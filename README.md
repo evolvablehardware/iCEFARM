@@ -14,8 +14,8 @@ sudo usbipd -D
 Returns the serial ids of all devices in the system  
 **GET /devices/available**
 Returns the serial ids of all devices that are not marked as reserved  
-**GET /devices/buses/\<device>**
-Returns the busids being exported with usbip by the device  
+**GET /devices/bus/\<device>**
+Returns the busid being exported with usbip by the device  
 **GET /devices/reserve/\<device>**
 Mark a device id as reserved  
 **GET /devices/unreserve/\<device>**

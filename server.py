@@ -1,9 +1,14 @@
-import flask
+from blacksheep import get, post, Application, json, Response, Request, FromFiles
+import uvicorn
 import logging
 import sys
 from werkzeug.utils import secure_filename
 
-from DeviceManager import DeviceManager
+from DeviceManager import DeviceManager, Firmware
+
+if __name__ == "__main__":
+    uvicorn.run("server:app", host="0.0.0.0", port=8080)
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -11,58 +16,55 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 
 manager = DeviceManager(logger, export_usbip=True)
 
+app = Application()
 
-app = flask.Flask(__name__)
-
-@app.get("/devices/all")
+@get("/devices/all")
 def devices_all():
-    return manager.getDevices()
+    return json(manager.getDevices())
 
-@app.get("/devices/available")
+@get("/devices/available")
 def devices_available():
-    return manager.getDevicesAvailable()
+    return json(manager.getDevicesAvailable())
 
-@app.get("/devices/buses/<device>")
-def devices_bus(device):
-    devices = manager.getDeviceExportedBuses(device)
+@get("/devices/bus/{device}")
+def devices_bus(device: str):
+    bus = manager.getDeviceExportedBuses(device)
 
-    # {} falsy
-    if devices != False:
-        return flask.jsonify(devices), 200
+    if bus != False:
+        return json(device) 
     
-    return "{}", 403
+    return Response(400)
 
-@app.get("/devices/reserve/<device>")
-def devices_reserve_put(device):
+@get("/devices/reserve/{device}")
+def devices_reserve_put(device: str):
     res = manager.reserve(device)
+    return Response(200 if res else 403)
 
-    return "{}", 200 if res else 403
-
-@app.get("/devices/unreserve/<device>")
-def devices_reserve_delete(device):
+@get("/devices/unreserve/{device}")
+def devices_reserve_delete(device: str):
     res = manager.unreserve(device)
+    return Response(200 if res else 403)
 
-    return "{}", 200 if res else 403
 
-from DeviceManager import Firmware
+@post("/devices/flash/{device}")
+async def devices_flash(request: Request, device: str):
+    data = await request.form()
 
-@app.post("/devices/flash/<device>")
-def devices_flash(device):
-    if "firmware" not in flask.request.files:
-        return "No firmware", 403
-
-    file = flask.request.files["firmware"]
-
-    name = flask.request.form.get("name")
-    if not name:
-        return "{'error': 'No name'}", 403
+    if "name" not in data:
+        return Response(400)
     
-    fname = "firmware/" + secure_filename(device) + ".uf2"
-    file.save(fname)
+    name = data["name"]
+    sec_name = "firmware/" + secure_filename(name)
 
-    res = manager.uploadFirmware(device, Firmware(name, fname))
+    if "firmware" not in data:
+        return Response(400)
+    
+    with open(sec_name, "wb") as f:
+        f.write(data["firmware"][0].data)
 
-    return "{}", 200 if res else 403
+    res = manager.uploadFirmware(device, Firmware(name, sec_name))
 
-app.run()
+    return Response(200 if res else 403)
+
+
 
