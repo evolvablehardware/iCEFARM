@@ -32,7 +32,7 @@ def devices_available():
 
 @get("/devices/bus/{device}")
 def devices_bus(device: str):
-    bus = manager.getDeviceExportedBuses(device)
+    bus = manager.getDeviceExportedBus(device)
 
     if bus != False:
         return json(bus) 

@@ -6,7 +6,8 @@ def format_dev_file(udevinfo):
     id_serial = udevinfo.get("ID_SERIAL")
     usb_num = udevinfo.get("ID_USB_INTERFACE_NUM")
     dev_name = udevinfo.get("DEVNAME")
-    return f"[{id_serial} : {usb_num} : {dev_name}]"
+    dev_path = udevinfo.get("DEVPATH")
+    return f"[{id_serial} : {usb_num} : {dev_name} : {dev_path}]"
 
 def get_exported_buses():
     # this is dumb but -local includes devices that are not bound

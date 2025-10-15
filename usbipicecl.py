@@ -26,8 +26,8 @@ def available(server=DEFAULT_SERVER):
     
     return r
 
-def buses(device, server=DEFAULT_SERVER):
-    r = validate(requests.get(f"{server}/devices/buses/{device}"))
+def bus(device, server=DEFAULT_SERVER):
+    r = validate(requests.get(f"{server}/devices/bus/{device}"))
     if not r:
         return "no exported buses"
 
