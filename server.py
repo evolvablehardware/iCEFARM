@@ -1,4 +1,4 @@
-from blacksheep import get, post, Application, json, Response, Request, FromFiles
+from blacksheep import get, Application, json, Response, Request
 from blacksheep.server.sse import ServerSentEvent, ServerSentEventsResponse
 import uvicorn
 import logging
@@ -8,11 +8,19 @@ from threading import Lock
 import atexit
 import sys
 import os
+import urllib.parse
+import requests
 
 from DeviceManager import DeviceManager, Firmware
+from utils import getIp
+
+PORT = 5000
+
+# No way to get from blacksheep since its run by uvicorn
+# If we want to send from main to server process its worse
+
 
 if __name__ == "__main__":
-
     # It does not look like uvicorn allows args to passed
     # They will be lost when uvicorn runs main again,
     # so we save them as env variables as a workaround
@@ -24,10 +32,12 @@ if __name__ == "__main__":
         else:
             raise Exception("Unknown args")
 
-    uvicorn.run("server:app", host="0.0.0.0", port=5000)
-
+    uvicorn.run("server:app", host="0.0.0.0", port=PORT)
 else:
-    export_usbip = os.getenv("SERVERCONF_EXPORT_USBIP")
+    # this is run by the server process
+    ip = getIp()
+
+    export_usbip = os.getenv("SERVERCONF_EXPORT_USBIP") == "1"
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))
@@ -56,10 +66,11 @@ def devices_bus(device: str):
     return Response(400)
 
 @get("/devices/reserve/{device}")
-def devices_reserve_put(device: str):
-    import requests
-    def callback(dev):
-        requests.get(f"http://localhost:5050/{dev.exported_busid}")
+async def devices_reserve_put(request: Request, device: str):
+    data = await request.form()
+    if "callback" in data:
+        def callback(dev):
+            requests.get(f"{data["callback"]}/{urllib.parse.quote_plus(ip)}/{dev.exported_busid}")
 
     res = manager.reserve(device, usbip_subscription=callback)
 
@@ -76,7 +87,6 @@ def devices_reserve_delete(device: str):
         return json({})
     
     return Response(403)
-
 
 @get("/devices/flash/{device}")
 async def devices_flash(request: Request, device: str):

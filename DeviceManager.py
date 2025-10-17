@@ -23,6 +23,7 @@ class Device:
 
         self.export_usbip = export_usbip
         self.exported_busid = None
+        self.usbip_subscription = None
 
         self.next_firmware = None
         self.current_firmware_name = None
@@ -53,6 +54,9 @@ class Device:
 
         busid = get_busid(udevinfo)
 
+        if busid == self.exported_busid:
+            return
+
         binded = usbip_bind(busid)
 
         if not binded:
@@ -60,6 +64,9 @@ class Device:
             return
         
         self.exported_busid = busid
+
+        if self.usbip_subscription:
+            self.usbip_subscription(self)
 
     def handleRemoveDevice(self, udevinfo):
         identifier = udevinfo.get("DEVNAME")
@@ -149,22 +156,13 @@ class Device:
 
         self.next_firmware = None
     
-    def updateBus(self, buses):
-        """Checks whether the exported bus is still being exported and updates it accordingly.
-        Returns updated bus."""
-        if not self.exported_busid or self.exported_busid in buses:
-            return self.exported_busid
-        
-        self.logger.info(f"Device {self.serial} discovered to be no longer exporting on {self.exported_busid}")
-        self.exported_busid = None
-        return self.exported_busid
-
-    def reserve(self):
+    def reserve(self, usbip_subscription=None):
         with self.lock:
             if not self.available:
                 return False
             
             self.available = False
+            self.usbip_subscription = usbip_subscription
             return True
     
     def unreserve(self):
@@ -178,8 +176,9 @@ class Device:
 class DeviceManager:
     def __init__(self, logger, export_usbip=False, unbind_on_exit=True):
         self.logger = logger
-        self.export_usbip = export_usbip
         self.devs = {}
+
+        self.export_usbip = export_usbip
         self.unbind_on_exit = unbind_on_exit
 
         if not os.path.isdir("media"):
@@ -190,8 +189,17 @@ class DeviceManager:
 
         context = pyudev.Context()
         monitor = pyudev.Monitor.from_netlink(context)
-        observer = pyudev.MonitorObserver(monitor, lambda x, y : self.handleDevEvent(x, y), name='monitor-observer')
+        observer = pyudev.MonitorObserver(monitor, lambda x, y : self.handleDevEvent(x, y), name="dev-observer")
         observer.start()
+
+        # need kernel events for detecting usbip disconnects
+        if export_usbip:
+            context = pyudev.Context()
+            monitor = pyudev.Monitor.from_netlink(context, source="kernel")
+            monitor.filter_by("usb", device_type="usb_device")
+            observer = pyudev.MonitorObserver(monitor, lambda x, y : self.handleKernelEvent(x, y), name="kernel-observer")
+            observer.start()
+
         self.scan()
     
     def scan(self):
@@ -203,28 +211,6 @@ class DeviceManager:
             self.handleDevEvent("add", dev)
         self.logger.info("Finished scan")
     
-    def removeInactiveDevices(self):
-        if self.export_usbip:
-            buses = get_exported_buses()
-
-        for serial in list(self.devs):
-            # don't want to lose reserved state
-            if not self.devs[serial].available:
-                continue
-
-            # don't want to lose firmware information while a device is updating
-            if self.devs[serial].next_firmware:
-                continue
-
-            if self.export_usbip and self.devs[serial].updateBus(buses):
-                continue
-
-            if self.devs[serial].dev_files:
-                continue
-
-            self.logger.info(f"Stopped tracking device {serial} from inactivity")
-            del self.devs[serial]
-            
     def handleDevEvent(self, action, dev):
         dev = dict(dev)
         devname = dev.get("DEVNAME")
@@ -267,21 +253,56 @@ class DeviceManager:
         
         self.devs[serial].handleRemoveDevice(udevinfo)
     
+    def handleKernelEvent(self, action, dev):
+        # NOTE: This should only be used for detecting usbip disconnects
+        if action != "remove":
+            return
+    
+        devpath = dev.properties.get("DEVPATH")
+
+        if not devpath:
+            return
+        
+        busid = re.search("/([0-9]+-[0-9]+)$", devpath)
+
+        if not busid:
+            self.logger.error(f"Kernel event for remove {format_dev_file(dev)} but was unable to parse busid \
+                    from devpath. Device may no longer be available through usbip.")
+            return
+        
+        busid = busid.group(1)
+
+        connected_buses = get_exported_buses()
+        if busid in connected_buses:
+            self.logger.error(f"Kernel event for remove {format_dev_file(dev)} implies bus {busid} was \
+            disconnected but still exporting it through usbip")
+            return
+        
+        self.handleUsbipDisconnect(busid)
+    
+    def handleUsbipDisconnect(self, busid):
+        for dev in self.devs.values():
+            if dev.exported_busid != busid:
+                continue
+
+            dev.exported_busid = None
+            self.logger.info(f"device {dev.serial} on bus {busid} disconnected while exporting usbip")
+            return
+        
+        self.logger.warning(f"Bus {busid} was disconnected but no devices were exporting on that bus \
+            - this may be an unrelated usb device")
+    
     def onExit(self):
         """Callback for cleanup on program exit"""
         self.logger.info("exiting...")
         if self.unbind_on_exit and self.export_usbip:
+            # TODO use dev info
             buses = get_exported_buses()
-
-            for serial in self.devs:
-                busid = self.devs[serial].updateBus(buses)
-
-                if busid:
-                    usbip_unbind(busid)
-                    self.logger.info(f"unbound device {serial} at {busid}")
+            for bus in buses:
+                usbip_unbind(bus)
+                self.logger.info(f"unbound bus {bus}")
     
     def getDevices(self):
-        self.removeInactiveDevices()
         values = []
 
         for d in self.devs.values():
@@ -289,18 +310,16 @@ class DeviceManager:
         
         return values
     
-    def getDeviceExportedBuses(self, device_serial):
+    def getDeviceExportedBus(self, device_serial):
         dev = self.devs.get(device_serial)
 
         if not dev:
             return False
         
-        exported_buses = get_exported_buses()
-        return dev.updateBus(exported_buses)
+        return dev.exported_busid
 
     
     def getDevicesAvailable(self):
-        self.removeInactiveDevices()
         values = []
 
         for d in self.devs.values():
@@ -309,13 +328,13 @@ class DeviceManager:
         
         return values
     
-    def reserve(self, device_serial):
+    def reserve(self, device_serial, usbip_subscription=None):
         dev = self.devs.get(device_serial)
 
         if not dev:
             return False
         
-        return dev.reserve()
+        return dev.reserve(usbip_subscription=usbip_subscription)
     
     def unreserve(self, device_serial):
         dev = self.devs.get(device_serial)

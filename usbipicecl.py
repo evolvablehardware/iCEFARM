@@ -2,46 +2,107 @@ import requests
 from requests_sse import EventSource
 import fire
 import os
+import uvicorn
+import threading
+import subprocess
+import atexit
 
-# TODO make these configurable
-DEFAULT_SERVER = "http://localhost:5000"
+from clutils import *
+from utils import getIp
 
-def validate(req):
-    if not req.status_code == 200:
-        raise Exception(f"error on server: {req.status_code}")
+DEFAULT_MANAGER_SERVER = "http://localhost:5000"
+DEFAULT_DEVICE_IP= "localhost"
 
-    return req.json()
+CLIENT_SERVER = ""
 
-def all(server=DEFAULT_SERVER):
-    r = validate(requests.get(f"{server}/devices/all"))
-    if not r:
-        return "no devices connected"
+def connect(server=DEFAULT_MANAGER_SERVER, device_ip=DEFAULT_DEVICE_IP, device="auto", port=8080):
+    """Reserve a device and connect to it with usbip. If a client server is set,
+    it will register a callback to it and automatically reconnect if usbip gets disconnected.
+    If a client server is not specified, it will run one and unreserve the device when the process
+    is stopped.
+    """
+    if device == "auto":
+        av = getAvailable(server)
+
+        if av == False:
+            return "failed to retrieve available devices"
+        
+        if not av:
+            return "no devices available"
+        
+        device = av[0]
     
-    return r
-
-def available(server=DEFAULT_SERVER):
-    r = validate(requests.get(f"{server}/devices/available"))
-    if not r:
-        return "all devices reserved/none connected"
+    if not CLIENT_SERVER:
+        t = threading.Thread(target=lambda : uvicorn.run("client:app", host="0.0.0.0", port=port))
+        t.start()
+        r = sendReserve(device, server=server, callback=f"http://{getIp()}:{port}")
+        atexit.register(lambda : sendUnreserve(device, server))
+    else:
+        r = sendReserve(device, server=server, callback=CLIENT_SERVER)
     
-    return r
+    if r == False:
+        return f"failed to reserve device {device}"
+    
+    
+    bus = getBus(device, server)
 
-def bus(device, server=DEFAULT_SERVER):
-    r = validate(requests.get(f"{server}/devices/bus/{device}"))
-    if not r:
+    if not bus:
+        return f"failed to get bus from device {device}"
+    
+    subprocess.run(["sudo", "usbip", "attach", "-r", device_ip, "-b", bus])
+
+    if t:
+        t.join()
+
+def all(server=DEFAULT_MANAGER_SERVER):
+    """Get list of all devices - this includes ones that are reserved."""
+    a = getAll(server)
+    if a == False:
+        return "request failed"
+    
+    return a
+
+def available(server=DEFAULT_MANAGER_SERVER):
+    """Get list of devices that are not reserved"""
+    av = getAvailable(server)
+    if av == False:
+        return "request failed"
+    
+    if not av:
+        return "no devices available/all devices reserved"
+    
+    return av
+
+def bus(device, server=DEFAULT_MANAGER_SERVER):
+    """Get busid for usage with usbip of a device"""
+
+    b = getBus(device, server)
+
+    if b == False:
+        return "request failed"
+    
+    if not b:
+
         return "no exported buses"
 
-    return r
+    return b
 
-def reserve(device, server=DEFAULT_SERVER):
-    r = validate(requests.get(f"{server}/devices/reserve/{device}"))
-    return "success!"
+def reserve(device, server=DEFAULT_MANAGER_SERVER):
+    """Mark a device as reserved"""
+    if sendReserve(device, server):
+        return "success!"
 
-def unreserve(device, server=DEFAULT_SERVER):
-    r = validate(requests.get(f"{server}/devices/unreserve/{device}"))
-    return "success!"
+    return "request failed"
 
-def flash(firmware, device, server=DEFAULT_SERVER, name="default_name"):
+def unreserve(device, server=DEFAULT_MANAGER_SERVER):
+    """Mark a device as available"""
+    if sendUnreserve(device, server):
+        return "success!"
+    
+    return "request failed"
+
+def flash(firmware, device, server=DEFAULT_MANAGER_SERVER, name="default_name"):
+    """Flash firmware onto a device"""
     if not os.path.isfile(firmware):
         return "error: file does not exist"
     

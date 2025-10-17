@@ -2,6 +2,13 @@ import re
 import subprocess
 import threading
 
+# theres no good way to get the host from uvicorn,
+# since the application thread does not have access to the server object
+# this seems to be the least hacky way to go about it
+def getIp():
+    res = subprocess.run(["hostname", "-I"], stdout=subprocess.PIPE).stdout
+    return re.search("[0-9]{3}\\.[0-9]{3}\\.[0-9]\\.[0-9]{3}", str(res)).group(0)
+
 def format_dev_file(udevinfo):
     id_serial = udevinfo.get("ID_SERIAL")
     usb_num = udevinfo.get("ID_USB_INTERFACE_NUM")
