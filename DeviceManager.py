@@ -141,10 +141,6 @@ class DeviceManager:
                 usbip_unbind(bus)
                 self.logger.info(f"unbound bus {bus}")
 
-        for serial in self.devs:
-            # TODO send disconnect notifs
-            pass
-
         self.database.onExit()
     
 

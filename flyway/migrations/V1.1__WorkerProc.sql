@@ -17,7 +17,12 @@ BEGIN
 END
 $$;
 
-CREATE PROCEDURE removeWorker(wname varchar(255))
+-- # TODO
+CREATE FUNCTION removeWorker(wname varchar(255))
+RETURNS TABLE (
+    "NotificationUrl" varchar(255),
+    "SerialId" varchar(255)
+)
 LANGUAGE plpgsql
 AS
 $$
@@ -25,6 +30,11 @@ BEGIN
     IF wname NOT IN (SELECT WorkerName FROM Worker) THEN
         RAISE EXCEPTION 'Worker does not exist';
     END IF;
+
+    RETURN QUERY SELECT NotificationUrl, Device
+    FROM Reservations
+    INNER JOIN Device on Reservations.Device = Device.SerialId
+    WHERE Device.Worker = wname;
 
     DELETE FROM Worker
     WHERE WorkerName = wname;

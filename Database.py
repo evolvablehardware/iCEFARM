@@ -1,6 +1,7 @@
 import psycopg
 from psycopg.types.enum import Enum, EnumInfo, register_enum
 from enum import Enum
+import requests
 
 class DeviceState(Enum):
     available = 0
@@ -79,6 +80,19 @@ class Database:
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
-                    cur.execute("CALL removeWorker(%s::nvarchar(255))", (self.clientname))
-        except:
+                    cur.execute("SELECT * FROM removeWorker(%s::varchar(255))", (self.clientname,))
+                    data = cur.fetchall()
+        except Exception:
             self.logger.warning("failed to remove worker from db before exit")
+            return
+        
+        for row in data:
+            url, serial = row
+
+            try:
+                requests.get(url, data={
+                    "event": "failure",
+                    "serial": serial
+                })
+            except:
+                self.logger.warning(f"failed to notify {url} of device {serial} failure")
