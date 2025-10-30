@@ -1,18 +1,10 @@
 import psycopg
-from psycopg.types.enum import Enum, EnumInfo, register_enum
 import logging
 import sys
 import os
 import requests
 from threading import Thread
 import schedule
-
-class DeviceState(Enum):
-    available = 0
-    reserved = 1
-    await_flash_default = 2
-    flashing_default = 3
-    broken = 4
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -40,8 +32,8 @@ if not TIMEOUT_DURATION:
 
 try:
     with psycopg.connect(DATABASE_URL) as conn:
-        info = EnumInfo.fetch(conn, "DeviceState")
-        register_enum(info, conn, DeviceState)
+        with conn.cursor() as cur:
+            pass
 
 except Exception:
     logger.critical("Failed to connect to database")
@@ -94,6 +86,8 @@ schedule.every(HEARTBEAT_TIME).seconds.do(lambda : Thread(target=query_workers).
 
 while True:
     schedule.run_pending()
+
+#TODO reservation
 
 
 
