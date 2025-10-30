@@ -10,12 +10,15 @@ h11==0.16.0
 idna==3.11
 itsdangerous==2.2.0
 MarkupSafe==3.0.3
+psycopg==3.2.11
+psycopg-binary==3.2.11
 pyudev==0.24.4
 PyYAML==6.0.3
 requests==2.32.5
 requests-sse==0.5.2
 rodi==2.0.8
 termcolor==3.1.0
+typing_extensions==4.15.0
 urllib3==2.5.0
 uvicorn==0.37.0
 Werkzeug==3.1.3
