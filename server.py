@@ -51,19 +51,88 @@ async def make_reservations(req: Request):
 
     return json(values)
 
-# TODO
 @get("/extend")
 async def extend(req: Request):
-    pass
+    args = await req.json()
+    if not args:
+        return Response(400)
+
+    serials = args.get("serials")
+    name = args.get("name")
+
+    if not serials or not name:
+        return Response(400)
+    try:
+        with psycopg.connect(DATABASE_URL) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT * FROM extendReservations(%s::varchar(255), %s::varchar(255)[])", (name, serials))
+
+                data = cur.fetchall()
+    except Exception:
+        return Response(500)
+    
+    return json(data)
 
 @get("/extendall")
 async def extendall(req: Request):
-    pass
+    args = await req.json()
+    if not args:
+        return Response(400)
+
+    name = args.get("name")
+
+    if not name:
+        return Response(400)
+    try:
+        with psycopg.connect(DATABASE_URL) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT * FROM extendAllReservations(%s::varchar(255))", (name,))
+
+                data = cur.fetchall()
+    except Exception:
+        return Response(500)
+    
+    return json(data)
 
 @get("/end")
 async def end(req: Request):
-    pass
+    args = await req.json()
+    if not args:
+        return Response(400)
+
+    serials = args.get("serials")
+    name = args.get("name")
+
+    if not serials or not name:
+        return Response(400)
+    try:
+        with psycopg.connect(DATABASE_URL) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT * FROM endReservations(%s::varchar(255), %s::varchar(255)[])", (name, serials))
+
+                data = cur.fetchall()
+    except Exception:
+        return Response(500)
+    
+    return json(data)
 
 @get("/endall")
 async def endall(req: Request):
-    pass
+    args = await req.json()
+    if not args:
+        return Response(400)
+
+    name = args.get("name")
+
+    if not name:
+        return Response(400)
+    try:
+        with psycopg.connect(DATABASE_URL) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT * FROM endAllReservations(%s::varchar(255))", (name,))
+
+                data = cur.fetchall()
+    except Exception:
+        return Response(500)
+    
+    return json(data)
