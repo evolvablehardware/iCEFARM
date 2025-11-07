@@ -164,7 +164,7 @@ $$;
 CREATE FUNCTION getReservationsEndingSoon(mins int)
 RETURNS TABLE (
     "Device" varchar(255),
-    "NotificationUrl" varchar(255),
+    "NotificationUrl" varchar(255)
 )
 LANGUAGE plpgsql
 AS
