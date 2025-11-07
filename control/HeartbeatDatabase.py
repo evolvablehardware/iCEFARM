@@ -16,7 +16,7 @@ class HeartbeatDatabase(Database):
                     data = cur.fetchall()
             
             return data
-        except:
+        except Exception:
             self.logger.error("failed to query for workers")
             return None
 
@@ -25,7 +25,7 @@ class HeartbeatDatabase(Database):
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
                     cur.execute("CALL heartbeatWorker(%s::nvarchar(255))", (name,))
-        except:
+        except Exception:
             self.logger.error(f"failed to update heartbeat on {name}")
     
     def getWorkerTimeouts(self, timeout_dur):
@@ -37,7 +37,7 @@ class HeartbeatDatabase(Database):
                     data = cur.fetchall()
             
             return data
-        except:
+        except Exception:
             self.logger.error("failed to get worker timeouts")
             return None
 
@@ -52,7 +52,7 @@ class HeartbeatDatabase(Database):
             
             return data
             
-        except:
+        except Exception:
             self.logger.error("failed to check for reservation timeouts")
             return None
     
@@ -66,7 +66,7 @@ class HeartbeatDatabase(Database):
             
             return data
 
-        except:
+        except Exception:
             self.logger.error("failed to check for reservation timeouts")
             return None
     

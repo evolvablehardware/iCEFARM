@@ -45,7 +45,7 @@ def main():
 
                 if req.status_code != 200:
                     raise Exception
-            except:
+            except Exception:
                 logger.error(f"{name} failed heartbeat check")
             else:
                 database.heartbeatWorker(name)
@@ -61,7 +61,7 @@ def main():
                 "event": event,
                 "serial": serial
             })
-        except:
+        except Exception:
             logger.warning(f"failed to notify {url} device {serial} of {event}")
 
     def worker_timeouts():
@@ -77,7 +77,7 @@ def main():
             requests.get(f"http://{workerip}:{workerport}/unreserve", data={
                 "serial": serial
             })
-        except:
+        except Exception:
             logger.warning(f"failed to notify worker {workerip}:{workerport} of device {serial} reservation ending")
 
     def reservation_timeouts():

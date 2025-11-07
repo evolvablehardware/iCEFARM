@@ -8,7 +8,7 @@ def expect_json(parms, fun):
         return Response(400)
     try:
         json = request.get_json()
-    except:
+    except Exception:
         return Response(400)
     
     args = []

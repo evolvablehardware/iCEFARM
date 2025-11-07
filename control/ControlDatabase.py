@@ -13,7 +13,7 @@ class ControlDatabase(Database):
                     cur.execute("SELECT * FROM makeReservations(%s::int, %s::varchar(255), %s::varchar(255))", (amount, subscriptionurl, clientname))
 
                     data = cur.fetchall()
-        except:
+        except Exception:
             return False
         
         values = []

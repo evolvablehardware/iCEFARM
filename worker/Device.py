@@ -135,41 +135,21 @@ class Device:
             if not os.path.isdir(path):
                 os.mkdir(path)
             
-            mounted = mount(udevinfo["DEVNAME"], path)
+            firmware_bytes = files("worker").joinpath("firmware").joinpath("build").joinpath("default_firmware.uf2").read_bytes()
 
-            if not mounted:
-                self.logger.warning(f"detected potential bootloader drive for {self.serial} device {format_dev_file(udevinfo)} but failed to mount")
-
-            if os.listdir(path) != ["INDEX.HTM", "INFO_UF2.TXT"]:
-                self.logger.warning(f"bootloader candidate {udevinfo["DEVNAME"]} for {self.serial} mounted but had unexpected files")
-                unmounted = umount(path)
-
-                if not unmounted:
-                    self.logger.error(f"bootloader candidate {udevinfo["DEVNAME"]} for {self.serial} mounted but had unexpected files then failed to unmount")
-
-                return
-            
             try:
-                with open(os.path.join(path, "default_firmware.uf2"), "wb") as f:
-                    f.write(files("worker").joinpath("default_firmware.uf2").read_bytes())
-            except:
-                self.logger.error(f"unable to upload firmware to {self.serial} at {format_dev_file(udevinfo)}")
-                umount(path)
+                uploaded = upload_firmware(udevinfo["DEVNAME"], path, firmware_bytes)
+                if uploaded:
+                    self.endBootloaderMode()
+                    self.trackDevice(udevinfo)
+                else:
+                    self.logger.warning(f"detected potential bootloader drive for {self.serial} device {format_dev_file(udevinfo)} but failed to upload firmware")
+
+            except FirmwareUploadFail:
+                self.logger.error(f"firmware upload left in unknown state for device {self.serial} after uploading to {format_dev_file(udevinfo)}")
                 self.database.updateDeviceStatus(self.serial, "broken")
                 self.mode = Mode.BROKEN
-                return
 
-            unmounted = umount(path)
-
-            if not unmounted:
-                self.logger.error(f"uploaded firmware to {format_dev_file(udevinfo)} for {self.serial}")
-                
-            self.endBootloaderMode()
-
-            # if the device is not tracked,
-            # there will be false warnings when it gets removed
-            self.trackDevice(udevinfo)
-    
     def handleTestAdd(self, udevinfo):
         """Device action handler for TEST mode. Checks whether a device is 
         printing the default firmware message."""

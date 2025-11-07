@@ -26,7 +26,7 @@ class WorkerDatabase(Database):
                 with conn.cursor() as cur:
                     cur.execute("CALL addDevice(%s::varchar(255), %s::varchar(255))", (deviceserial, self.clientname))
                     conn.commit()
-        except:
+        except Exception:
             self.logger.error(f"database: failed to add device with serial {deviceserial}")
             return False
         
@@ -38,7 +38,7 @@ class WorkerDatabase(Database):
                 with conn.cursor() as cur:
                     cur.execute("CALL updateDeviceBus(%s::varchar(255), %s::varchar(10))", (deviceserial, bus))
                     conn.commit()
-        except:
+        except Exception:
             self.logger.error(f"database: failed to update bus to {bus} on device {deviceserial}")
             return False
         
@@ -50,7 +50,7 @@ class WorkerDatabase(Database):
                 with conn.cursor() as cur:
                     cur.execute("SELECT * FROM getDeviceCallback(%s::varchar(255))", (deviceserial,))
                     data = cur.fetchall()
-        except:
+        except Exception:
             pass
 
         if not data:
@@ -61,7 +61,7 @@ class WorkerDatabase(Database):
 
         try:
             requests.get(url, data=contents)
-        except:
+        except Exception:
             self.logger.warning(f"failed to send subscription update for {deviceserial} to {url}")
         else:
             self.logger.debug(f"sent subscription update for {deviceserial} to {url}")
@@ -72,7 +72,7 @@ class WorkerDatabase(Database):
                 with conn.cursor() as cur:
                     cur.execute("CALL removeDeviceBus(%s::varchar(255))", (deviceserial,))
                     conn.commit()
-        except Exception as e:
+        except Exception:
             self.logger.error(f"database: failed to remove bus on device {deviceserial}")
             return False
         
@@ -84,7 +84,7 @@ class WorkerDatabase(Database):
                 with conn.cursor() as cur:
                     cur.execute("CALL updateDeviceStatus(%s::varchar(255), %s::DeviceState)", (deviceserial, status))
                     conn.commit()
-        except:
+        except Exception:
             self.logger.error(f"database: failed to update device {deviceserial} to status {status}")
             return False
     
