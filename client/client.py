@@ -5,6 +5,7 @@ import subprocess
 import requests
 import pyudev
 import threading
+import time
 
 from utils.utils import *
 
@@ -191,7 +192,36 @@ class Client:
         return connections
 
     def getDevs(self, serials):
-        """Returns a dict mapping device serials to list of dev file paths. This operation 
+        """Returns a dict mapping device serials to list of dev info dicts. This operation 
+        looks through all available dev files and is intended to be only used once after reserving devices.
+        If you are dealing with frequent dev file changes, you should use a pyudev MonitorObserver instead."""
+        out = {}
+
+        context = pyudev.Context().list_devices()
+        for dev in context:
+            values = dict(dev)
+            serial = get_serial(values)
+
+            if not serial:
+                continue
+            
+            if serial not in serials:
+                continue
+
+            devname = values.get("DEVNAME")
+
+            if not devname:
+                continue
+
+            if serial not in out:
+                out[serial] = []
+            
+            out[serial].append(dev)
+        
+        return out
+
+    def getDevPaths(self, serials):
+        """Returns a dict mapping device serials to list of dev paths. This operation 
         looks through all available dev files and is intended to be only used once after reserving devices.
         If you are dealing with frequent dev file changes, you should use a pyudev MonitorObserver instead."""
         out = {}
@@ -219,34 +249,102 @@ class Client:
         
         return out
 
-    def flash(self, serials, firmware_path):
+    def flash(self, serials, firmware_path, timeout=1):
+        """Flashes firmware_path to serials. Requires that the listed devices respond to the 1200 baud
+        protocol. Returns a list of serials that failed to flash. Returns after all devices have been updated, or
+        after timeout seconds. Devices that fail to be flashed to should be considered in an unknown state and unreserved."""
+        if type(serials) != list:
+            serials = [serials]
+
+        if not os.path.exists("client_media"):
+            os.mkdir("client_media")
+
         dev_files = self.getDevs(serials)
 
-        lock = threading.Lock()
-        lock.acquire()
+        # release when ready to return
+        return_lock = threading.Lock()
+        return_lock.acquire()
 
-        remaining_serials = serials
+        # stops data modification after return while observer shuts down
+        data_lock = threading.Lock()
+
+        remaining_serials = set(serials) 
         failed_serials = []
 
         def handle_event(action, dev):
-            # TODO
+            if action != "add":
+                return
+            
+            dev = dict(dev)
 
-            if not remaining_serials:
-                lock.release()
+            if dev.get("DEVTYPE") != "partition":
+                return
+            
+            serial = get_serial(dev)
+
+            if not serial or serial not in remaining_serials:
+                return
+            
+            devname = dev.get("DEVNAME")
+
+            if not devname:
+                return
+            
+            with open(firmware_path, "rb") as f:
+                b = f.read()
+            
+            mount_path = os.path.join("client_media", serial)
+            if not os.path.exists(mount_path):
+                os.mkdir(mount_path)
+
+            try:
+                if upload_firmware(devname, mount_path, b):
+                    with data_lock:
+                        remaining_serials.remove(serial)
+
+            except FirmwareUploadFail:
+                with data_lock:
+                    remaining_serials.remove(serial)
+                    failed_serials.append(serial)
+            
+            with data_lock:
+                if not remaining_serials:
+                    observer.send_stop()
+                    return_lock.release()
 
         context = pyudev.Context()
         monitor = pyudev.Monitor.from_netlink(context)
         observer = pyudev.MonitorObserver(monitor, handle_event, name="client-pyudev-monitor")
         observer.start()
 
+        exit_timeout = False
+
+        if timeout:
+            def handle_timeout():
+                for _ in range(timeout):
+                    time.sleep(1)
+
+                    if exit_timeout:
+                        return
+
+                observer.send_stop()
+                return_lock.release()
+            
+            threading.Thread(target=handle_timeout).start()
+
         for device in dev_files.values():
             for file in device:
                 if (path := file.get("DEVNAME")):
                     send_bootloader(path)
         
-        lock.acquire()
-        observer.send_stop()
+        return_lock.acquire()
+        exit_timeout = True
+        data_lock.acquire()
 
+        for serial in remaining_serials:
+            failed_serials.append(serial)
+
+        return failed_serials
 
     def extend(self, serials):
         try:
