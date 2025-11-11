@@ -119,7 +119,7 @@ BEGIN
 
     UPDATE Device
     SET DeviceStatus = 'await_flash_default'
-    WHERE Device.SerialID IN (SELECT res.Device FROM res);
+    WHERE Device.SerialID IN (SELECT res."Device" FROM res);
 
     RETURN QUERY SELECT * FROM res;
 END

@@ -45,11 +45,11 @@ class DefaultEventHandler(EventHandler):
     
     def handleExport(self, serial, bus, worker_ip, worker_port):
         try:
-            p = subprocess.run(["sudo", "usbip", "--tcp-port", worker_port, "attach", "-r", worker_ip, "-b", bus], timeout=5)
+            p = subprocess.run(["sudo", "usbip", "--tcp-port", str(worker_port), "attach", "-r", worker_ip, "-b", bus], timeout=5)
             if p.returncode != 0:
                 raise Exception
 
-        except:
+        except Exception:
             self.logger.error(f"failed to bind device {serial} on {worker_ip}:{bus} port {worker_port}")
         else:
             self.logger.info(f"bound device {serial} on {worker_ip}:{bus}")
