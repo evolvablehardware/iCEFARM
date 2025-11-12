@@ -35,7 +35,7 @@ def main():
 
     if not SERVER_PORT:
         SERVER_PORT= 8080
-        logger.warning(f"USBIPICE_EXPORTED_SERVER_POINT not configured, defaulting to {SERVER_PORT}")
+        logger.warning(f"USBIPICE_EXPORTED_SERVER_PORT not configured, defaulting to {SERVER_PORT}")
     else:
         SERVER_PORT = int(SERVER_PORT)
     

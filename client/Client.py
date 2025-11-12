@@ -1,6 +1,5 @@
 from flask import Flask, request, Response
 import threading
-import subprocess
 import requests
 import pyudev
 import threading
@@ -266,7 +265,7 @@ class Client:
 
     def extend(self, serials):
         try:
-            res = request.get(f"{self.control_server_url}/extend", json={
+            res = requests.get(f"{self.control_server_url}/extend", json={
                 "name": self.clientname,
                 "serials": serials
             })
@@ -281,7 +280,7 @@ class Client:
 
     def extendAll(self):
         try:
-            res = request.get(f"{self.control_server_url}/extendall", json={
+            res = requests.get(f"{self.control_server_url}/extendall", json={
                 "name": self.clientname,
             })
 
@@ -289,12 +288,12 @@ class Client:
                 raise Exception
             
             return res.json()
-        except:
+        except Exception:
             return False
 
     def end(self, serials):
         try:
-            res = request.get(f"{self.control_server_url}/end", json={
+            res = requests.get(f"{self.control_server_url}/end", json={
                 "name": self.clientname,
                 "serials": serials
             })
@@ -303,12 +302,12 @@ class Client:
                 raise Exception
             
             return res.json()
-        except:
+        except Exception as e:
             return False
 
     def endAll(self):
         try:
-            res = request.get(f"{self.control_server_url}/endall", json={
+            res = requests.get(f"{self.control_server_url}/endall", json={
                 "name": self.clientname,
             })
 
@@ -316,5 +315,5 @@ class Client:
                 raise Exception
             
             return res.json()
-        except:
+        except Exception:
             return False

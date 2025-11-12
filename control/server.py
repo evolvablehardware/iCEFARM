@@ -38,6 +38,9 @@ def main():
     if not DATABASE_URL:
         raise Exception("USBIPICE_DATABASE not configured")
     
+    SERVER_PORT = int(os.environ.get("USBIPICE_CONTROL_PORT", "8080"))
+    logger.info(f"Running on port {SERVER_PORT}")
+    
     try:
         with psycopg.connect(DATABASE_URL) as conn:
             with conn.cursor() as cur:
@@ -110,7 +113,7 @@ def main():
         
         return jsonify(list(map(lambda x : x["serial"], data)))
     
-    serve(app)
+    serve(app, port=SERVER_PORT)
 
 if __name__ == "__main__":
     main()
