@@ -70,8 +70,8 @@ class FirmwareUploadFail(Exception):
     def __init__(self, *args):
         super().__init__(*args)
 
-def upload_firmware(partition_path, mount_location, firmware_bytes):
-    mounted = mount(partition_path, mount_location)
+def upload_firmware(partition_path, mount_location, firmware_bytes, mount_timeout=10):
+    mounted = mount(partition_path, mount_location, timeout=mount_timeout)
 
     if not mounted:
         return False
@@ -151,11 +151,23 @@ def send_bootloader(path, timeout=10):
     
     return True
 
-def mount(drive, loc):
-    p = subprocess.run(["sudo", "mount", drive, loc], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    return p.returncode == 0
+def mount(drive, loc, timeout=10):
+    try:
+        p = subprocess.run(["sudo", "mount", drive, loc], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=timeout)
+        if p.returncode != 0:
+            raise Exception
+    except:
+        return False
+    
+    return True
 
 def umount(loc):
-    p = subprocess.run(["sudo", "umount", loc], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    return p.returncode == 0
+    try:
+        p = subprocess.run(["sudo", "umount", loc], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if p.returncode != 0:
+            raise Exception
+    except:
+        return False
+    
+    return True
 

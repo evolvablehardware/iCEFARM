@@ -185,6 +185,8 @@ class Client:
         # stops data modification after return while observer shuts down
         data_lock = threading.Lock()
 
+        dev_files = []
+
         remaining_serials = set(serials) 
         failed_serials = []
 
@@ -195,7 +197,6 @@ class Client:
             dev = dict(dev)
 
             if dev.get("SUBSYSTEM") == "tty":
-                print("tty")
                 serial = get_serial(dev)
 
                 if not serial or serial not in remaining_serials:
@@ -227,19 +228,21 @@ class Client:
                     os.mkdir(mount_path)
 
                 try:
-                    if upload_firmware(devname, mount_path, b):
+                    if upload_firmware(devname, mount_path, b, mount_timeout=30):
                         with data_lock:
                             remaining_serials.remove(serial)
 
-                except FirmwareUploadFail as e:
+                except FirmwareUploadFail:
                     with data_lock:
                         remaining_serials.remove(serial)
                         failed_serials.append(serial)
             
                 with data_lock:
-                    if not remaining_serials:
-                        observer.send_stop()
-                        return_lock.release()
+                    done = len(remaining_serials) == 0
+                
+                if done:
+                    return_lock.release()
+                    observer.send_stop()
 
         context = pyudev.Context()
         monitor = pyudev.Monitor.from_netlink(context)
@@ -265,6 +268,9 @@ class Client:
 
         for device in dev_files.values():
             for file in device:
+                if file.get("SUBSYSTEM") != "tty":
+                    return
+
                 if (path := file.get("DEVNAME")):
                     send_bootloader(path)
         
@@ -316,7 +322,7 @@ class Client:
                 raise Exception
             
             return res.json()
-        except Exception as e:
+        except Exception:
             return False
 
     def endAll(self):
