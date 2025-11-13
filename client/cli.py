@@ -17,16 +17,19 @@ def main():
     parser.add_argument("clientname", help="Name of client")
     parser.add_argument("-f", "-firmware", help="Firmware path to upload to devices")
     parser.add_argument("-p", "-port", help="Port to host subscription server", default="8080")
+    parser.add_argument("-c", "--controlserver", help="Control server hostname")
     args = parser.parse_args()
 
     amount = int(args.amount)
     port = args.p
     name = args.clientname
     firmware = args.f
-    
-    curl = os.environ.get("USBIPICE_CONTROL_SERVER")
+    curl = args.c
+
     if not curl:
-        raise Exception("USBIPICE_CONTROL_SERVER not configured, set to url of the control server")
+        curl = os.environ.get("USBIPICE_CONTROL_SERVER")
+        if not curl:
+            raise Exception("USBIPICE_CONTROL_SERVER not configured, set to url of the control server")
 
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)

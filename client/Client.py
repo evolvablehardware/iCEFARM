@@ -75,7 +75,8 @@ class Client:
                     return Response(400)
         
         self.server = create_server(app, port=port)
-        self.thread = threading.Thread(target=lambda _ : self.server.start())
+        self.thread = threading.Thread(target=lambda : self.server.run())
+        self.thread.start()
     
     def stopService(self):
         self.server.close()
@@ -84,7 +85,7 @@ class Client:
     def reserve(self, amount):
         """Reserves and connects to the specified amount of devices and returns their serials.
         If there are not enough devices available, it will reserve as many as it can."""
-        if not self.service_url or not self.eh:
+        if not self.service_url or not self.eventhandler:
             raise Exception("no service started")
 
         try:
@@ -102,7 +103,7 @@ class Client:
 
         for row in json:
             self.serial_locations[row["serial"]] = (row["ip"], row["usbipport"])
-            self.eh.handleExport(row["serial"], row["bus"], row["ip"], row["usbipport"])
+            self.eventhandler.handleExport(row["serial"], row["bus"], row["ip"], row["usbipport"])
             connections.append(row["serial"])
         
         return connections
