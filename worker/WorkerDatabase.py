@@ -51,7 +51,8 @@ class WorkerDatabase(Database):
                     cur.execute("SELECT * FROM getDeviceCallback(%s::varchar(255))", (deviceserial,))
                     data = cur.fetchall()
         except Exception:
-            pass
+            self.logger.error(f"failed to get device callback for serial {deviceserial}")
+            return False
 
         if not data:
             self.logger.debug(f"device subscription update for {deviceserial} but no reservation")

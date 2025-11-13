@@ -2,6 +2,7 @@ import os
 from enum import Enum
 from threading import Lock
 from importlib.resources import files
+import time
 
 from utils.utils import *
 
@@ -68,6 +69,11 @@ class Device:
             return
 
         self.logger.info(f"binded dev {format_dev_file(udevinfo)} on {busid}")
+
+        # if we attach to a bus after it has been bound
+        # too quickly, devices do not show properly 
+        time.sleep(3)
+
         self.exported_busid = busid
         self.database.updateDeviceBus(self.serial, busid)
         self.database.sendDeviceSubscription(self.serial, {

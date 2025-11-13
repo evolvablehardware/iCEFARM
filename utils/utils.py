@@ -144,14 +144,12 @@ def usbip_attach(ip, busid, tcp_port="3240"):
     return True
 
 def send_bootloader(path, timeout=10):
-    def send():
-        try:
-            subprocess.run(["sudo", "picocom", "--baud", "1200", path], timeout=timeout, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        except Exception:
-            pass
+    try:
+        p = subprocess.run(["sudo", "picocom", "--baud", "1200", path], timeout=timeout, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        return False
     
-    t = threading.Thread(None, send)
-    t.start()
+    return True
 
 def mount(drive, loc):
     p = subprocess.run(["sudo", "mount", drive, loc], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

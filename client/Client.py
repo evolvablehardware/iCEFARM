@@ -178,8 +178,6 @@ class Client:
         if not os.path.exists("client_media"):
             os.mkdir("client_media")
 
-        dev_files = self.getDevs(serials)
-
         # release when ready to return
         return_lock = threading.Lock()
         return_lock.acquire()
@@ -196,45 +194,59 @@ class Client:
             
             dev = dict(dev)
 
-            if dev.get("DEVTYPE") != "partition":
-                return
-            
-            serial = get_serial(dev)
+            if dev.get("SUBSYSTEM") == "tty":
+                print("tty")
+                serial = get_serial(dev)
 
-            if not serial or serial not in remaining_serials:
-                return
-            
-            devname = dev.get("DEVNAME")
+                if not serial or serial not in remaining_serials:
+                    return
+                
+                devname = dev.get("DEVNAME")
 
-            if not devname:
-                return
-            
-            with open(firmware_path, "rb") as f:
-                b = f.read()
-            
-            mount_path = os.path.join("client_media", serial)
-            if not os.path.exists(mount_path):
-                os.mkdir(mount_path)
+                if not devname:
+                    return
+                
+                send_bootloader(devname)
 
-            try:
-                if upload_firmware(devname, mount_path, b):
+            elif dev.get("DEVTYPE") == "partition":
+                serial = get_serial(dev)
+
+                if not serial or serial not in remaining_serials:
+                    return
+                
+                devname = dev.get("DEVNAME")
+
+                if not devname:
+                    return
+                
+                with open(firmware_path, "rb") as f:
+                    b = f.read()
+                
+                mount_path = os.path.join("client_media", serial)
+                if not os.path.exists(mount_path):
+                    os.mkdir(mount_path)
+
+                try:
+                    if upload_firmware(devname, mount_path, b):
+                        with data_lock:
+                            remaining_serials.remove(serial)
+
+                except FirmwareUploadFail as e:
                     with data_lock:
                         remaining_serials.remove(serial)
-
-            except FirmwareUploadFail:
-                with data_lock:
-                    remaining_serials.remove(serial)
-                    failed_serials.append(serial)
+                        failed_serials.append(serial)
             
-            with data_lock:
-                if not remaining_serials:
-                    observer.send_stop()
-                    return_lock.release()
+                with data_lock:
+                    if not remaining_serials:
+                        observer.send_stop()
+                        return_lock.release()
 
         context = pyudev.Context()
         monitor = pyudev.Monitor.from_netlink(context)
         observer = pyudev.MonitorObserver(monitor, handle_event, name="client-pyudev-monitor")
         observer.start()
+
+        dev_files = self.getDevs(serials)
 
         exit_timeout = False
 

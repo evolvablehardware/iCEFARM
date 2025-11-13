@@ -55,7 +55,7 @@ def main():
     if firmware:
         print("Flashing devices...")
 
-        failed = client.flash(serials, firmware, 60)
+        failed = client.flash(serials, firmware, 120)
 
         if failed:
             client.end(serials)
