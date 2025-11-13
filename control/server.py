@@ -83,7 +83,7 @@ def main():
             except:
                 logger.warning(f"failed to notify worker {row["workerip"]} of reservation on {row["serial"]} ending")
         
-        return jsonify(list(map(lambda x : x["serial"], row)))
+        return jsonify(list(map(lambda x : x["serial"], data)))
 
     @app.get("/endall")
     def endall():

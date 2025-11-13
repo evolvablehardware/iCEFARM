@@ -70,7 +70,7 @@ class ControlDatabase(Database):
         for row in data:
             values.append({
                 "serial": row[0],
-                "subscriptionurl": str(row[1]),
+                "subscriptionurl": row[1],
                 "workerip": str(row[2]),
                 "workerport": str(row[3])
             })
