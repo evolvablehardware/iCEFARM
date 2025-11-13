@@ -4,60 +4,9 @@ import requests
 import pyudev
 import threading
 import time
+from waitress.server import create_server
 
 from utils.utils import *
-
-def service(port, eventhandler, client):
-    app = Flask(__name__)
-
-    @app.route("/")
-    def handle():
-        if request.content_type != "application/json":
-            return Response(400)
-        
-        try:
-            json = request.get_json()
-        except:
-            return Response(400)
-        
-        event = json.get("event")
-
-        if not event:
-            return Response(400)
-        
-        serial = json.get("serial")
-
-        if not serial:
-            return Response(400)
-
-        match event:
-            case "failure":
-                eventhandler.handleFailure(serial)
-            case "reservation end":
-                eventhandler.handleReservationEnd(serial)
-                pass
-            case "export":
-                connection_info = client.getConnectionInfo(serial)
-
-                if not connection_info:
-                    return Response(400)
-                
-                ip, port = connection_info
-
-                bus = json.get("bus")
-
-                if not bus:
-                    return Response(400)
-
-                eventhandler.handleExport(serial, bus, ip, port)
-            case "disconnect":
-                eventhandler.handleDisconnect(serial)
-            case "reservation halfway":
-                eventhandler.handleReservationHalfway(serial)
-            case _:
-                return Response(400)
-
-    app.run(port=port)
 
 class Client:
     def __init__(self, clientname, control_server_url):
@@ -67,9 +16,10 @@ class Client:
         self.control_server_url = control_server_url
 
         self.service_url = None
-        self.eh = None
+        self.eventhandler = None
 
         self.thread = None
+        self.server = None
     
     def getConnectionInfo(self, serial):
         """Returns the (ip, port) needed to connect to a device with usbip."""
@@ -78,9 +28,58 @@ class Client:
     def startService(self, port, eventhandler):
         """Starts listening for device events on the specified port using the eventhandler."""
         self.service_url = f"http://{getIp()}:{port}"
-        self.eh = eventhandler
-        self.thread = threading.Thread(target=lambda : service(port, eventhandler, self))
-        self.thread.start()
+        self.eventhandler = eventhandler
+        app = Flask(__name__)
+
+        @app.route("/")
+        def handle():
+            if request.content_type != "application/json":
+                return Response(400)
+            
+            try:
+                json = request.get_json()
+            except:
+                return Response(400)
+            
+            serial = json.get("serial")
+            event = json.get("event")
+
+            if not serial or not event:
+                return Response(400)
+
+            match event:
+                case "failure":
+                    eventhandler.handleFailure(serial)
+                case "reservation end":
+                    eventhandler.handleReservationEnd(serial)
+                    pass
+                case "export":
+                    connection_info = self.getConnectionInfo(serial)
+
+                    if not connection_info:
+                        return Response(400)
+                    
+                    ip, port = connection_info
+
+                    bus = json.get("bus")
+
+                    if not bus:
+                        return Response(400)
+
+                    eventhandler.handleExport(serial, bus, ip, port)
+                case "disconnect":
+                    eventhandler.handleDisconnect(serial)
+                case "reservation halfway":
+                    eventhandler.handleReservationHalfway(serial)
+                case _:
+                    return Response(400)
+        
+        self.server = create_server(app, port=port)
+        self.thread = threading.Thread(target=lambda _ : self.server.start())
+    
+    def stopService(self):
+        self.server.close()
+        self.thread.join()
 
     def reserve(self, amount):
         """Reserves and connects to the specified amount of devices and returns their serials.

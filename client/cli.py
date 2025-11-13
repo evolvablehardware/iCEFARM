@@ -63,6 +63,7 @@ def main():
     print("Devices are now ready. Press enter to end the session. Note that this will free the reserved devices.")
     input()
     client.end(serials)
+    client.stopService()
     print("Session ended.")
 
 if __name__ == "__main__":
