@@ -59,7 +59,7 @@ class DefaultEventHandler(EventHandler):
     
     def handleReservationEndingSoon(self, serial):
         try:
-            res = requests.get(f"{self.control_server_url}/extend", data={
+            res = requests.get(f"{self.control_server_url}/extend", json={
                 "name": self.client_name,
                 "serials": [serial]
             })

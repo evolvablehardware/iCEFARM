@@ -60,7 +60,7 @@ class WorkerDatabase(Database):
         url = data[0][0]
 
         try:
-            requests.get(url, data=contents)
+            requests.get(url, json=contents)
         except Exception:
             self.logger.warning(f"failed to send subscription update for {deviceserial} to {url}")
         else:
