@@ -34,7 +34,7 @@ class Client:
         @app.route("/")
         def handle():
             if request.content_type != "application/json":
-                return Response(400)
+                return Response(status=400)
             
             try:
                 json = request.get_json()
@@ -45,7 +45,7 @@ class Client:
             event = json.get("event")
 
             if not serial or not event:
-                return Response(400)
+                return Response(status=400)
 
             match event:
                 case "failure":
@@ -57,14 +57,14 @@ class Client:
                     connection_info = self.getConnectionInfo(serial)
 
                     if not connection_info:
-                        return Response(400)
+                        return Response(status=400)
                     
                     ip, port = connection_info
 
                     bus = json.get("bus")
 
                     if not bus:
-                        return Response(400)
+                        return Response(status=400)
 
                     eventhandler.handleExport(serial, bus, ip, port)
                 case "disconnect":
@@ -72,7 +72,9 @@ class Client:
                 case "reservation halfway":
                     eventhandler.handleReservationHalfway(serial)
                 case _:
-                    return Response(400)
+                    return Response(status=400)
+            
+            return Response(status=200)
         
         self.server = create_server(app, port=port)
         self.thread = threading.Thread(target=lambda : self.server.run())
