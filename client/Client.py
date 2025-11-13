@@ -49,9 +49,9 @@ class Client:
 
             match event:
                 case "failure":
-                    eventhandler.handleFailure(serial)
+                    eventhandler.handleFailure(self, serial)
                 case "reservation end":
-                    eventhandler.handleReservationEnd(serial)
+                    eventhandler.handleReservationEnd(self, serial)
                     pass
                 case "export":
                     connection_info = self.getConnectionInfo(serial)
