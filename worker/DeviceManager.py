@@ -12,6 +12,7 @@ class DeviceManager:
         self.devs = {}
 
         self.unbind_on_exit = unbind_on_exit
+        self.exiting = False
 
         if not os.path.isdir("media"):
             os.mkdir("media")
@@ -40,6 +41,9 @@ class DeviceManager:
         self.logger.info("Finished scan")
     
     def handleDevEvent(self, action, dev):
+        if self.exiting:
+            return 
+
         dev = dict(dev)
 
         serial = get_serial(dev)
@@ -125,6 +129,7 @@ class DeviceManager:
     def onExit(self):
         """Callback for cleanup on program exit"""
         self.logger.info("exiting...")
+        self.exiting = True
         if self.unbind_on_exit:
             # TODO use dev info
             buses = get_exported_buses()
