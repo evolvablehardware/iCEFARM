@@ -3,7 +3,8 @@ RETURNS TABLE (
     "SerialID" varchar(255),
     "Host" inet,
     "UsbipPort" int,
-    "UsbipBus" varchar(255)
+    "UsbipBus" varchar(255),
+    "WorkerPort" int
 )
 LANGUAGE plpgsql
 AS

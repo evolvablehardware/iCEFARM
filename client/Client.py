@@ -38,8 +38,9 @@ class Client(ControlAPI, DeviceUtils):
         for serial in data:
             conninfo, bus = data[serial]
             self.event_server.triggerExport(serial, bus, conninfo.ip, conninfo.usbipport)
+            self.serial_locations[serial] = conninfo
         
-        return data.keys()
+        return list(data.keys())
 
     def getConnectionInfo(self, serial):
         """Returns (ip, port) needed to connect to serial, or None."""
@@ -55,5 +56,6 @@ class Client(ControlAPI, DeviceUtils):
 
         if not conninfo:
             self.logger.error(f"device {serial} timed out but no connection information")
+            return
         
         self.event_server.triggerTimeout(serial, conninfo.ip, conninfo.port)
