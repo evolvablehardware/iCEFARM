@@ -9,8 +9,9 @@ from utils.utils import *
 
 
 class DeviceStatus:
-    def __init__(self, serial, bus, timeout=20, delay=15):
+    def __init__(self, serial, ip, bus, timeout=20, delay=15):
         self.serial = serial
+        self.ip = ip
         self.bus = bus
         self.last_event = time.time()
         self.timeout = timeout
@@ -28,10 +29,11 @@ class DeviceStatus:
         with self.lock:
             self.last_event = max(time.time(), self.last_event)
     
-    def checkTimeout(self, active_buses):
+    def checkTimeout(self, info):
         with self.lock:
-            if self.bus in active_buses:
-                self.last_event = time.time()
+            if self.ip in info:
+                if self.bus in info[self.ip]:
+                    self.last_event = time.time()
 
             self.timed_out = time.time() - self.timeout > self.last_event
     
@@ -82,14 +84,14 @@ class TimeoutDetector(EventHandler):
                     break
                 time.sleep(1)
             
-            buses = usbip_port()
+            info= usbip_port()
 
-            if buses == False:
+            if info == False:
                 self.logger.warning("usbip port failed")
                 return
             
             for dev in self.devices:
-                if self.devices[dev].checkTimeout(buses):
+                if self.devices[dev].checkTimeout(info):
                     self.logger.warning(f"device {dev} timed out")
             
             for dev in self.devices.keys():
@@ -100,7 +102,7 @@ class TimeoutDetector(EventHandler):
     def handleExport(self, client, serial, bus, worker_ip, worker_port):
         with self.lock:
             if serial not in self.devices:
-                self.devices[serial] = DeviceStatus(serial, bus, timeout=self.timeout)
+                self.devices[serial] = DeviceStatus(serial, worker_ip, bus, timeout=self.timeout)
                 return
         
             self.devices[serial].updateBus(bus)

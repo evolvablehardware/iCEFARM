@@ -37,7 +37,23 @@ def usbip_port(timeout=20):
         if p.returncode != 0:
             raise Exception
         
-        return re.findall("usbip://.*?([0-9]+-(?:[0-9]|\\.)+)", str(p.stdout))
+        connections = re.findall("usbip://.*?[0-9]+-(?:[0-9]|\\.)+", str(p.stdout))
+
+        info = {}
+
+        for c in connections:
+            ip = re.search("usbip://(.*?):_list ", c)
+            bus = re.search(":[0-9]+/(.*)", c)
+
+            if not ip or not bus:
+                return
+            
+            if ip not in info:
+                info[ip] = []
+            
+            info[ip].append(bus)
+        
+        return info
 
     except Exception:
         return False
