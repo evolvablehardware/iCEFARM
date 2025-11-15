@@ -103,10 +103,10 @@ def main():
     reservation_timeouts()
     reservation_ending_soon()
 
-    schedule.every(HEARTBEAT_POLL).seconds.do(lambda : Thread(target=heartbeat_workers).start())
-    schedule.every(TIMEOUT_POLL).seconds.do(lambda : Thread(target=worker_timeouts).start())
-    schedule.every(RESERVATION_POLL).seconds.do(lambda : Thread(target=reservation_timeouts).start())
-    schedule.every(RESERVATION_EXPIRING_POLL).seconds.do(lambda : Thread(target=reservation_ending_soon).start())
+    schedule.every(HEARTBEAT_POLL).seconds.do(lambda : Thread(target=heartbeat_workers, name="worker-heartbeat").start())
+    schedule.every(TIMEOUT_POLL).seconds.do(lambda : Thread(target=worker_timeouts, name="worker-timeout").start())
+    schedule.every(RESERVATION_POLL).seconds.do(lambda : Thread(target=reservation_timeouts, name="reservation-ending-notifications").start())
+    schedule.every(RESERVATION_EXPIRING_POLL).seconds.do(lambda : Thread(target=reservation_ending_soon, name="reservation-expiring").start())
 
 
     while True:

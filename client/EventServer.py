@@ -76,7 +76,7 @@ class EventServer:
             return Response(status=200)
         
         self.server = create_server(app,  port=self.port)
-        self.thread = threading.Thread(target=lambda : self.server.run())
+        self.thread = threading.Thread(target=lambda : self.server.run(), name="eventserver")
         self.thread.start()
 
     def triggerExport(self, serial, bus, ip, port):

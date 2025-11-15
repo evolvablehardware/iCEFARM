@@ -20,14 +20,14 @@ class DeviceManager:
 
         context = pyudev.Context()
         monitor = pyudev.Monitor.from_netlink(context)
-        observer = pyudev.MonitorObserver(monitor, lambda x, y : self.handleDevEvent(x, y), name="dev-observer")
+        observer = pyudev.MonitorObserver(monitor, lambda x, y : self.handleDevEvent(x, y), name="manager-userevents")
         observer.start()
 
         # need kernel events for detecting usbip disconnects
         context = pyudev.Context()
         monitor = pyudev.Monitor.from_netlink(context, source="kernel")
         monitor.filter_by("usb", device_type="usb_device")
-        observer = pyudev.MonitorObserver(monitor, lambda x, y : self.handleKernelEvent(x, y), name="kernel-observer")
+        observer = pyudev.MonitorObserver(monitor, lambda x, y : self.handleKernelEvent(x, y), name="manager-kernelevents")
         observer.start()
 
         self.scan()

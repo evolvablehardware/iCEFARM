@@ -127,7 +127,7 @@ class DeviceUtils:
 
         context = pyudev.Context()
         monitor = pyudev.Monitor.from_netlink(context)
-        observer = pyudev.MonitorObserver(monitor, handle_event, name="client-pyudev-monitor")
+        observer = pyudev.MonitorObserver(monitor, handle_event, name="flash-observer")
         observer.start()
 
         dev_files = self.getDevs(serials)
@@ -145,7 +145,7 @@ class DeviceUtils:
                 observer.send_stop()
                 return_lock.release()
             
-            threading.Thread(target=handle_timeout).start()
+            threading.Thread(target=handle_timeout, name="flash-timeout-detection").start()
 
         for device in dev_files.values():
             for file in device:
