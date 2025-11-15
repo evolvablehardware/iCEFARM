@@ -126,6 +126,17 @@ class DeviceManager:
         dev.startBootloaderMode()
         self.database.updateDeviceStatus(device, "flashing_default")
         return True
+    
+    def unbind(self, serial):
+        dev = self.devs.get(serial)
+
+        if not dev:
+            return False
+        
+        if not dev.exported_busid:
+            return False
+        
+        return usbip_unbind(dev.exported_busid)
 
     def onExit(self):
         """Callback for cleanup on program exit"""

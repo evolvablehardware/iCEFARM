@@ -57,7 +57,7 @@ def main():
         return Response(status=200)
 
     @app.get("/unreserve")
-    async def devices_bus():
+    def devices_bus():
         if request.content_type != "application/json":
             return Response(status=400)
 
@@ -75,6 +75,27 @@ def main():
             return Response(status=200)
         else:
             return Response(status=400)
+    
+    @app.get("/unbind")
+    def unbind():
+        if request.content_type != "application/json":
+            return Response(status=400)
+        
+        try:
+            json = request.get_json()
+        except Exception:
+            return Response(status=400)
+        
+        serial = json.get("serial")
+        # TODO validate
+        name = json.get("name")
+
+        if not name or not serial:
+            return Response(status=400)
+        
+        manager.unbind(serial)
+
+        return Response(status=200)
 
     serve(app, port=SERVER_PORT)
 

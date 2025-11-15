@@ -47,8 +47,22 @@ class Client(ControlAPI, DeviceUtils):
         return self.serial_locations.get(serial)
     
     def unbind(self, serial):
-        # TODO
-        pass
+        conninfo = self.getConnectionInfo(serial)
+        if not conninfo:
+            return False
+        
+        try:
+            res = requests.get(f"http://{conninfo.ip}:{conninfo.serverport}/unbind", json={
+                "serial": serial,
+                "name": self.clientname
+            })
+
+            if res.status_code != 200:
+                raise Exception
+            
+            return True
+        except:
+            return False
     
     def triggerTimeout(self, serial):
         """Triggers a timeout event on the event server. This is used by the TimeoutDetector"""
