@@ -1,8 +1,7 @@
 import os
 from enum import Enum
-from threading import Lock
+from threading import Lock, Timer
 from importlib.resources import files
-import time
 
 from utils.dev import *
 from utils.usbip import usbip_bind, usbip_unbind
@@ -15,13 +14,16 @@ class Mode(Enum):
     BROKEN = 3
 
 class Device:
-    def __init__(self, serial, logger, database, dev_files={}):
+    def __init__(self, serial, logger, database, dev_files={}, bootloader_timeout_duration=30):
         self.serial = serial
         self.logger = logger
         self.dev_files = dev_files
         self.database = database
 
         self.mode = Mode.NORMAL
+        self.bootloader_timeout_clock = None
+        self.bootloader_timeout_duration = bootloader_timeout_duration
+
         self.exported_busid = None
         self.lock = Lock()
     
@@ -102,6 +104,14 @@ class Device:
             self.logger.info(f"reflashing device {self.serial} to default firmware")
             self.mode = Mode.BOOTLOADER
 
+            if self.bootloader_timeout_clock:
+                self.bootloader_timeout_clock.cancel()
+                self.bootloader_timeout_clock = None
+                self.logger.warning(f"Device {self.serial} bootloader timer already exists but entered mode, resetting timer")
+
+            self.bootloader_timeout_clock = Timer(self.bootloader_timeout_duration, lambda : self.handleBootloaderTimeout())
+            self.bootloader_timeout_clock.start()
+
             paths = list(self.dev_files.keys())
 
             for p in paths:
@@ -150,6 +160,19 @@ class Device:
                 self.logger.error(f"firmware upload left in unknown state for device {self.serial} after uploading to {format_dev_file(udevinfo)}")
                 self.database.updateDeviceStatus(self.serial, "broken")
                 self.mode = Mode.BROKEN
+    
+    def handleBootloaderTimeout(self):
+        with self.lock:
+            if self.mode != Mode.BOOTLOADER:
+                return
+
+            self.mode = Mode.BROKEN
+            self.database.updateDeviceStatus(self.serial, "broken")
+            self.database.sendDeviceSubscription(self.serial, {
+                "event": "disconnect",
+                "serial": self.serial
+            })
+            self.logger.error(f"device {self.serial} timed out while flashing default firmware")
 
     def handleTestAdd(self, udevinfo):
         """Device action handler for TEST mode. Checks whether a device is 
@@ -174,10 +197,14 @@ class Device:
 
     def endBootloaderMode(self):
         """Cleanup after firmware is uploaded"""
+        if self.mode != Mode.BOOTLOADER:
+            return
+
         self.logger.info(f"restored default firmware to {self.serial}")
+        self.bootloader_timeout_clock.cancel()
+        self.bootloader_timeout_clock = None
         self.mode = Mode.TEST
         self.database.updateDeviceStatus(self.serial, "testing")
-        # TODO callback timeout for marking broken
 
     def handleUsbipDisconnect(self):
         """Event handler for when a usbip disconnect is detected"""
