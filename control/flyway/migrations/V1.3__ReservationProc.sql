@@ -167,7 +167,7 @@ BEGIN
     RETURN QUERY 
     SELECT res."Device", Reservations.NotificationUrl
     FROM res
-    INNER JOIN Reservations ON res."Device" = Reservations."Device";
+    INNER JOIN Reservations ON res."Device" = Reservations.Device;
 
     DELETE FROM Reservations
     WHERE Device IN (SELECT res."Device" FROM res);

@@ -61,7 +61,6 @@ class HeartbeatDatabase(Database):
             return None
 
     def getReservationTimeouts(self) -> list[str]:
-        # TODO
         """Gets reservations that have timed out, returns (serial, notificationurl)"""
         try:
             with psycopg.connect(self.url) as conn:
