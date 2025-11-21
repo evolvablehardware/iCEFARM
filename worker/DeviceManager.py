@@ -26,6 +26,8 @@ class DeviceManager:
         if not os.path.isdir("media"):
             os.mkdir("media")
 
+        self.disconnectAll()
+
         context = pyudev.Context()
         monitor = pyudev.Monitor.from_netlink(context)
         observer = pyudev.MonitorObserver(monitor, lambda x, y : self.handleDevEvent(x, y), name="manager-userevents")
@@ -39,6 +41,16 @@ class DeviceManager:
         observer.start()
 
         self.scan()
+
+    def disconnectAll(self):
+        """Disconnects all devices from usbip."""
+        buses = get_exported_buses()
+        if not buses:
+            return
+
+        for bus in buses:
+            usbip_unbind(bus)
+            self.logger.info(f"Unbound preexisting bound bus {bus}")
 
     def scan(self):
         """Trigger add events for devices that are already connected."""
