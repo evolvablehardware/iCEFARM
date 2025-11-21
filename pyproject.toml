@@ -1,6 +1,15 @@
 [project]
 name = "usbipice"
 version = "0.1"
+dependencies = [
+    "Flask",
+    "pexpect",
+    "psycopg[binary]",
+    "pyudev",
+    "requests",
+    "schedule",
+    "waitress"
+]
 
 [project.scripts]
 worker = "worker:worker.main"
