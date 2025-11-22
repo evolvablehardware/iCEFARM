@@ -41,5 +41,5 @@ def get_ip() -> str:
     res = subprocess.run(["hostname", "-I"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True).stdout
     group = re.search("[0-9]{3}\\.[0-9]{3}\\.[0-9]\\.[0-9]{3}", str(res))
     if group:
-        return group.group(1)
+        return group.group(0)
 
