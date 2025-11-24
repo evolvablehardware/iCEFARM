@@ -40,9 +40,7 @@ flasher.flash(PICO_SERIAL, FIRMWARE_PATH)
 # Remaining serials are still being flashed to, they just are not finished yet. However,
 # they may be in a stalled state such as if the current firmware does not respond to the baud
 # 1200 protocol. The failed serials indicate something went wrong during the transfer of the uf2 file.
-remaining_serials, failed_serials = flasher.waitUntilFlashingFinished(timeout=60)
-if remaining_serials:
-    raise Exception("Firmware did not flash in time.")
+failed_serials = flasher.waitUntilFlashingFinished(timeout=60)
 if failed_serials:
     raise Exception("Firmware failed to upload.")
 

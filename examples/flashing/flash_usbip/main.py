@@ -72,9 +72,9 @@ flasher.flash(serial, FIRMWARE_PATH)
 # Do NOT flash firmware that does not respond to the 1200 baud protocol. These
 # devices will not be able reflashed by the worker. Someone will have to go
 # to the pico room, identify which device is broken, and press the button.
-remaining_serials, failed_serials = flasher.waitUntilFlashingFinished(timeout=60)
+failed_serials = flasher.waitUntilFlashingFinished(timeout=60)
 
-if remaining_serials or failed_serials:
+if failed_serials:
     raise Exception("Failed to flash.")
 
 print("Device ready!")

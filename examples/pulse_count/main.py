@@ -176,9 +176,9 @@ pico_serial = pico_serials[0]
 
 flasher.startFlasher()
 flasher.flash(pico_serial, FIRMWARE_PATH)
-remaining_serials, failed_serials = flasher.waitUntilFlashingFinished(timeout=120)
+failed_serials = flasher.waitUntilFlashingFinished(timeout=120)
 
-if remaining_serials or failed_serials:
+if failed_serials:
     raise Exception("Failed to flash.")
 
 logger.info("Device ready!")
