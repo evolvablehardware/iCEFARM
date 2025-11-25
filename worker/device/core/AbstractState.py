@@ -1,30 +1,15 @@
-from abc import ABC, abstractmethod
-import pyudev
+from __future__ import annotations
+import threading
+from logging import Logger
+from abc import ABC
 
-class DeviceState:
-    def __init__(self, serial, logger, database, notif):
-        self.serial = serial
-        self.logger = logger
-        self.database = database
-        self.notif = notif
-        self.device = None #TODO flash
+from worker.WorkerDatabase import WorkerDatabase
+from utils.NotificationSender import NotificationSender
+from utils.dev import *
 
-    def handleAdd(self, dev):
-        self.device.handleAdd(dev)
-
-    def handleRemove(self, dev):
-        self.device.handleRemove(dev)
-
-    def handleUnreserve(self):
-        # TODO
-        self.device.exit()
-
-    def handleEvent(self, event, json):
-        self.device.handleEvent(event, json)
-
-    def switch(self, state_factory):
-        self.device.handleExit()
-        self.device = state_factory()
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from worker.device import Device
 
 class EventMethod:
     def __init__(self, method, parms):
@@ -39,24 +24,55 @@ class EventMethod:
 
         return self.method(device, *args)
 
-class AbstractDevice(ABC):
+class AbstractState(ABC):
     methods = {}
 
-    def __init__(self, state: DeviceState):
+    def __init__(self, state: Device):
         super().__init__()
         self.state = state
+        self.switching = False
+        self.switching_lock = threading.Lock()
 
-    @abstractmethod
     def handleAdd(self, dev: pyudev.Device):
         """Called on ADD device event."""
 
-    @abstractmethod
     def handleRemove(self, dev: pyudev.Device):
         """Called on REMOVE device event."""
 
-    @abstractmethod
     def handleExit(self):
         """Cleanup."""
+
+    def getState(self) -> Device:
+        return self.state
+
+    def getSerial(self) -> str:
+        return self.getState().getSerial()
+
+    def getLogger(self) -> Logger:
+        return self.getState().getLogger()
+
+    def getDatabase(self) -> WorkerDatabase:
+        return self.getState().getDatabase()
+
+    def getNotif(self) -> NotificationSender:
+        return self.getState().getNotif()
+
+    def switch(self, state_factory):
+        # prevents multiple switches
+        # from happening
+        with self.switching_lock:
+            if self.switching:
+                return
+
+            self.switching = True
+
+            return self.getState().switch(state_factory)
+
+    def isSwitching(self) -> bool:
+        return self.switching
+
+    def getSwitchingLock(self) -> threading.Lock:
+        return self.switching_lock
 
     @classmethod
     def register(cls, event, *args):
@@ -66,7 +82,7 @@ class AbstractDevice(ABC):
 
         Ex. 
         >>> class ExampleDevice:  
-                @AbstractDevice.register("add", "value 1", "value 2")  
+                @AbstractState.register("add", "value 1", "value 2")  
                 def addNumbers(self, a, b):  
                     return a + b  
         
@@ -96,7 +112,7 @@ class AbstractDevice(ABC):
     def handleEvent(self, event, json):
         """Calls method event from the methods dictionary, using the arguments it was registered with 
         as keys for the json."""
-        methods = AbstractDevice.methods.get(type(self))
+        methods = AbstractState.methods.get(type(self))
 
         if not methods:
             return False
