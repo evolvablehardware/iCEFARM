@@ -1,8 +1,8 @@
 import threading
 
-from worker.device.core import AbstractState
-from worker.device.core import BrokenState
-from worker.device.core import ReadyState
+from worker.device.state import AbstractState
+from worker.device.state import BrokenState
+from worker.device.state import ReadyState
 
 from utils.utils import check_default
 

@@ -3,6 +3,7 @@ __pycache__
 .vscode
 
 client_media
+worker_media
 
 worker/firmware/build
 worker/firmware/pico-ice-sdk

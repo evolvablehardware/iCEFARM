@@ -5,7 +5,7 @@ import atexit
 import os
 
 from waitress import serve
-from flask import Flask, request, Response
+from flask import Flask, request, Response, jsonify
 
 from worker.DeviceManager import DeviceManager
 from worker.WorkerDatabase import WorkerDatabase
@@ -80,7 +80,7 @@ def main():
         else:
             return Response(status=400)
 
-    @app.get("/unbind")
+    @app.get("/event")
     def unbind():
         if request.content_type != "application/json":
             return Response(status=400)
@@ -91,15 +91,13 @@ def main():
             return Response(status=400)
 
         serial = json.get("serial")
-        # TODO validate
         name = json.get("name")
+        event = json.get("event")
 
-        if not name or not serial:
+        if not name or not serial or not event:
             return Response(status=400)
 
-        manager.unbind(serial)
-
-        return Response(status=200)
+        return jsonify(manager.handleRequest(serial, event, json))
 
     serve(app, port=SERVER_PORT)
 

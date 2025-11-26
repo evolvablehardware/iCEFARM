@@ -33,6 +33,9 @@ class AbstractState(ABC):
         self.switching = False
         self.switching_lock = threading.Lock()
 
+        name = type(self).__name__
+        self.getLogger().debug(f"state is now {name}")
+
     def handleAdd(self, dev: pyudev.Device):
         """Called on ADD device event."""
 
@@ -109,7 +112,7 @@ class AbstractState(ABC):
                 setattr(owner, name, self.fn)
         return Reg
 
-    def handleEvent(self, event, json):
+    def handleRequest(self, event, json):
         """Calls method event from the methods dictionary, using the arguments it was registered with 
         as keys for the json."""
         methods = AbstractState.methods.get(type(self))

@@ -1,7 +1,7 @@
 import os
 
-from worker.device.core import AbstractState
-from worker.device.core import BrokenState
+from worker.device.state import AbstractState
+from worker.device.state import BrokenState
 from utils.dev import send_bootloader, upload_firmware_path
 
 class FlashState(AbstractState):

@@ -1,4 +1,4 @@
-from worker.device.core import AbstractState
+from worker.device.state import AbstractState
 
 class ReadyState(AbstractState):
     def __init__(self, state):
