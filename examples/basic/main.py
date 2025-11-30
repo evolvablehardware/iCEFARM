@@ -6,10 +6,9 @@ import time
 import atexit
 from pexpect import fdpexpect
 
-from client.drivers.usbip import UsbipClient
-
-from utils.dev import get_dev_paths
-from utils.utils import get_ip
+from usbipice.client.drivers.usbip import UsbipClient
+from usbipice.utils import get_ip
+from usbipice.utils.dev import get_dev_paths
 
 #################################################
 CLIENT_NAME = "read default example"

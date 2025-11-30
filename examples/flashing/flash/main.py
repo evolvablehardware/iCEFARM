@@ -1,7 +1,7 @@
 import atexit
 
-from utils.FirmwareFlasher import FirmwareFlasher
-from utils.dev import get_dev_paths
+from usbipice.utils import FirmwareFlasher
+from usbipice.utils.dev import get_dev_paths
 
 #################################################
 # ID_SERIAL_SHORT field from udevadm info

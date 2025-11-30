@@ -1,8 +1,5 @@
 # Client Usage
 
-**OUTDATED**
-#TODO
-
 ## Installation
 Currently, Linux is required for the usbip module. If this is not already installed, it can be found in the linux-tools-generic package. After installation, enable the usbip related modules:
 ```

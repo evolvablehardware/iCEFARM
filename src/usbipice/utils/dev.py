@@ -120,7 +120,7 @@ class FirmwareUploadFail(Exception):
     def __init__(self, *args):
         super().__init__(*args)
 
-def upload_firmware(partition_path: str, mount_location: str, firmware_bytes: bytes, mount_timeout=10):
+def upload_firmware(partition_path: str, mount_location: str, firmware_bytes: bytes, mount_timeout=30):
     """Mounts the partition at location and uploads firmware_bytes to the drive. Requires sudo 
     to write to drive.."""
     mounted = mount(partition_path, mount_location, timeout=mount_timeout)

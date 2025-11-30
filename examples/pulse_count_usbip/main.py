@@ -10,11 +10,11 @@ from enum import Enum, auto
 
 import serial
 
-from client.drivers.usbip import UsbipClient
-from utils.FirmwareFlasher import FirmwareFlasher
+from usbipice.client.drivers.usbip import UsbipClient
+from usbipice.utils import FirmwareFlasher
 
-from utils.utils import get_ip
-from utils.dev import get_devs
+from usbipice.utils import get_ip
+from usbipice.utils.dev import get_devs
 
 # ==============================
 # Configuration

@@ -6,18 +6,18 @@ import time
 import atexit
 from pexpect import fdpexpect
 
-from client.drivers.usbip import UsbipClient
+from usbipice.client.drivers.usbip import UsbipClient
 
 # client.base provides tools for working with a specific type of device reservation
 # The EventHandler abstract class provides a way for us to respond to events
 # from the worker.
-from client.base.usbip import BaseUsbipEventHandler
+from usbipice.client.base.usbip import BaseUsbipEventHandler
 
 # Used for typing, ignore
-from client.lib import EventServer
+from usbipice.client.lib import EventServer
 
-from utils.dev import get_dev_paths
-from utils.utils import get_ip
+from usbipice.utils.dev import get_dev_paths
+from usbipice.utils import get_ip
 
 #################################################
 CLIENT_NAME = "read default example"

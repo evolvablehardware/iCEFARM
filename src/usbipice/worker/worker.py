@@ -32,9 +32,8 @@ def main():
         raise Exception("USBIPICE_CLIENT not configured")
 
     if not IP:
-        IP = get_ip()
-        os.environ["USBIPICE_EXPORTED_IP"] = IP
-        logger.warning(f"USBIPICE_EXPORTED_IP not configured, defaulting to {IP}")
+        logger.warning("USBIPICE_EXPORTED_IP not configured")
+        raise Exception("USBIPICE_EXPORTED_IP not configured")
 
     if not SERVER_PORT:
         SERVER_PORT= 8080
@@ -43,9 +42,8 @@ def main():
         SERVER_PORT = int(SERVER_PORT)
 
     if not USBIP_PORT:
-        USBIP_PORT = 3240
-        os.environ["USBIPICE_EXPORTED_USBIP_PORT"] = str(USBIP_PORT)
-        logger.warning(f"USBIPICE_EXPORTED_USBIP_PORT not configured, defaulting to {USBIP_PORT}")
+        logger.error("USBIPICE_EXPORTED_USBIP_PORT not configured")
+        raise Exception("USBIPICE_EXPORTED_USBIP_PORT not configured")
 
     else:
         USBIP_PORT = int(USBIP_PORT)

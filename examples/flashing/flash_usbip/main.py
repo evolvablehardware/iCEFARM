@@ -3,10 +3,10 @@ import sys
 import os
 import signal
 
-from client.drivers.usbip import UsbipClient
+from usbipice.client.drivers.usbip import UsbipClient
 
-from utils.FirmwareFlasher import FirmwareFlasher
-from utils.utils import get_ip
+from usbipice.utils import FirmwareFlasher
+from usbipice.utils import get_ip
 
 #################################################
 CLIENT_NAME = "read default example"
