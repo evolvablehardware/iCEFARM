@@ -1,1 +1,2 @@
 from worker.WorkerDatabase import WorkerDatabase
+import worker.worker

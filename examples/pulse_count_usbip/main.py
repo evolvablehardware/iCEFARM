@@ -10,9 +10,7 @@ from enum import Enum, auto
 
 import serial
 
-from client.Client import Client
-from client.lib.AbstractEventHandler import DefaultEventHandler
-from client.drivers.usbip.UsbipHandler import TimeoutDetector
+from client.drivers.usbip import UsbipClient
 from utils.FirmwareFlasher import FirmwareFlasher
 
 from utils.utils import get_ip
@@ -33,9 +31,9 @@ CONTROL_SERVER = ""
 
 CLK = 48000000           # clk hz firmware uses for ice40
 TARGET_KHZ = [8, 16, 32, 64, 128]
-FIRMWARE_PATH = "examples/pulse_count/firmware/build/bitstream_over_usb.uf2"
-PCF_PATH = "examples/pulse_count/pico_ice.pcf"
-BUILD_DIR = "examples/pulse_count/build"
+FIRMWARE_PATH = "examples/pulse_count_usbip/firmware/build/bitstream_over_usb.uf2"
+PCF_PATH = "examples/pulse_count_usbip/pico_ice.pcf"
+BUILD_DIR = "examples/pulse_count_usbip/build"
 
 if not CONTROL_SERVER:
     CONTROL_SERVER = os.environ.get("USBIPICE_CONTROL_SERVER")
@@ -82,7 +80,7 @@ def make(hz):
     with open(os.path.join(BUILD_DIR, "top.v"), "w") as f:
         f.write(veri)
 
-    subprocess.run(["bash", "examples/pulse_count/build.sh", BUILD_DIR, PCF_PATH], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+    subprocess.run(["bash", "examples/pulse_count_usbip/build.sh", BUILD_DIR, PCF_PATH], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
     logger.info("Built.")
 
 class Status(Enum):
@@ -154,18 +152,15 @@ def transfer(ser: serial.Serial):
 
     logger.info("\nTransfer complete. Waiting for device response...")
 
-client = Client(CLIENT_NAME, CONTROL_SERVER, logger)
-
-event_handlers = [DefaultEventHandler(logger), TimeoutDetector(client, logger)]
-client.startEventServer(event_handlers, CLIENT_IP, CLIENT_PORT)
+client = UsbipClient(CONTROL_SERVER, CLIENT_NAME, logger)
+client.start(CLIENT_IP, CLIENT_PORT)
 
 pico_serials = client.reserve(1)
 
 flasher = FirmwareFlasher()
 
 def onexit():
-    client.stopEventServer()
-    client.endAll()
+    client.stop()
     flasher.stopFlasher()
 
 atexit.register(onexit)
@@ -231,4 +226,4 @@ while i < len(TARGET_KHZ):
 
 
 logger.info("Done!")
-client.stopEventServer()
+client.stop()

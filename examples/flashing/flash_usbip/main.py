@@ -13,7 +13,7 @@ CLIENT_NAME = "read default example"
 CLIENT_IP = get_ip() # local network ip - must be accessible by control/worker servers
 CLIENT_PORT = "8080"
 CONTROL_SERVER = ""
-FIRMWARE_PATH = "/home/heiljj/ehw/firmware/rp2_hello_world.uf2"
+FIRMWARE_PATH = ""
 
 if not CONTROL_SERVER:
     CONTROL_SERVER = os.environ.get("USBIPICE_CONTROL_SERVER")
