@@ -1,2 +1,2 @@
 # Pulse count over usbip
-Connect to a device with the usbip client, then upload pulse counting firmware. Performs a loop of creating a clock bitstream, uploading it to the fpga, then logging the resulting pulses. Requires the oss-cad-suite. Also requires creating symlinks for the pico-sdk and pico-ice-sdk in the firmware directory. Modified from <https://github.com/evolvablehardware/BitstreamEvolutionPico/tree/main/exampleProjectsC/bitstream_over_usb>.
+Connect to a device with the usbip client, then upload pulse counting firmware. Performs a loop of creating a clock bitstream, uploading it to the fpga, then logging the resulting pulses. Requires first building the firmware in [worker](../../src/usbipice/worker/firmware). 

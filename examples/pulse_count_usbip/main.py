@@ -31,7 +31,7 @@ CONTROL_SERVER = ""
 
 CLK = 48000000           # clk hz firmware uses for ice40
 TARGET_KHZ = [8, 16, 32, 64, 128]
-FIRMWARE_PATH = "examples/pulse_count_usbip/firmware/build/bitstream_over_usb.uf2"
+FIRMWARE_PATH = "src/usbipice/worker/firmware/pulse_count/build/bitstream_over_usb.uf2"
 PCF_PATH = "examples/pulse_count_usbip/pico_ice.pcf"
 BUILD_DIR = "examples/pulse_count_usbip/build"
 

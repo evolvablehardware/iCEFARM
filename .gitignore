@@ -9,9 +9,6 @@ src/usbipice/worker/firmware/**/build
 src/usbipice/worker/firmware/pico-ice-sdk
 src/usbipice/worker/firmware/pico-sdk
 
-examples/pulse_count_usbip/firmware/pico-ice-sdk
-examples/pulse_count_usbip/firmware/pico-sdk
-examples/pulse_count_usbip/firmware/build
 examples/pulse_count_usbip/build
 
 usbipice.egg-info
