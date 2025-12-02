@@ -4,7 +4,7 @@ from logging import Logger
 
 import pyudev
 
-from usbipice.client.base.usbip import UsbipAPI, BaseUsbipEventHandler, register
+from usbipice.client.lib.usbip import UsbipAPI, BaseUsbipEventHandler, register
 from usbipice.client.lib import EventServer
 
 from usbipice.utils.dev import get_serial

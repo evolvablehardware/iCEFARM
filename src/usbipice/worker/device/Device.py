@@ -61,30 +61,6 @@ class Device:
         # TODO logger adapter?
         self.getLogger().warning(f"[{self.serial}] unhandled device action: {action}")
 
-    def enableKernelAdd(self):
-        self.getManager().subscribeKernelAdd(self)
-
-    def handleKernelAdd(self, dev: dict):
-        with self.device_lock:
-            device = self.device
-
-        device.handleKernelAdd(dev)
-
-    def disableKernelAdd(self):
-        self.getManager().unsubscribeKernelAdd(self)
-
-    def enableKernelRemove(self):
-        self.getManager().subscribeKernelRemove(self)
-
-    def handleKernelRemove(self, dev: dict):
-        with self.device_lock:
-            device = self.device
-
-        device.handleKernelRemove(dev)
-
-    def disableKernelRemove(self):
-        self.getManager().unsubscribeKernelRemove(self)
-
     def handleReserve(self, kind, args):
         fn = get_reservation_state_fac(self, kind, args)
 

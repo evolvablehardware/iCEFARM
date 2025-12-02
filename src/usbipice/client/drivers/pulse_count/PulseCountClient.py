@@ -1,7 +1,7 @@
 import threading
 import uuid
 
-from usbipice.client.base.pulsecount import PulseCountAPI, PulseCountEventHandler
+from usbipice.client.lib.pulsecount import PulseCountAPI, PulseCountEventHandler
 from usbipice.client.lib import EventServer, register
 from usbipice.client.utils import DefaultEventHandler
 

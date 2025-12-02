@@ -15,7 +15,7 @@ class TestState(AbstractState):
         path = dev.get("DEVNAME")
 
         if not path:
-            self.state.getLogger().warning("add event with no devname")
+            self.getLogger().warning("add event with no devname")
             return
 
         with self.lock:
@@ -25,7 +25,7 @@ class TestState(AbstractState):
             self.exiting = True
 
             if not check_default(path):
-                self.state.getLogger().error("default firmware test failed")
-                self.switch(lambda : BrokenState(self.getState()))
+                self.getLogger().error("default firmware test failed")
+                self.switch(lambda : BrokenState(self.getDevice()))
             else:
-                self.switch(lambda : ReadyState(self.getState()))
+                self.switch(lambda : ReadyState(self.getDevice()))

@@ -1,5 +1,7 @@
 import os
 
+import pyudev
+
 from usbipice.utils.dev import get_busid, get_devs
 from usbipice.utils.usbip import usbip_bind, usbip_unbind
 
@@ -33,8 +35,16 @@ class UsbipState(AbstractState):
         self.busid = None
         self.notif = UsbipEventSender(self)
 
-        self.getLogger().debug("now usbip state")
-        self.enableKernelRemove()
+        # TODO this disconnect detection has nowhere to go, ideally it's done by a single MO, but if it
+        # goes in DeviceManager it results in 6 different fn chains of DM -> Device -> ABS,
+        # which goes unused by probably every other reservable. if this causes performance issues,
+        # or another reservable needs this behavior , i think i'll make the MO a global?
+
+        context = pyudev.Context()
+        monitor = pyudev.Monitor.from_netlink(context, source="kernel")
+        monitor.filter_by("usb", device_type="usb_device")
+        self.observer = pyudev.MonitorObserver(monitor, lambda x, y : self.handleKernel(x, y), name=f"usbip-disconnect-detection-{self.getSerial()}")
+        self.observer.start()
 
     def start(self):
         devs = get_devs().get(self.getSerial())
@@ -71,7 +81,10 @@ class UsbipState(AbstractState):
         if not self.notif.export(busid, PORT, IP):
             self.getLogger().debug(f"failed to send export event (bus {busid})")
 
-    def handleKernelRemove(self, dev: dict):
+    def handleKernel(self, event: str, dev: dict):
+        if event != "remove":
+            return
+
         path = dev.get("DEVPATH")
 
         if not path:
@@ -101,13 +114,12 @@ class UsbipState(AbstractState):
 
         return True
 
-    def handleRemove(self, dev):
-        pass
-
     def handleExit(self):
         super().handleExit()
         if not usbip_unbind(self.busid):
             self.getLogger().error(f"failed to unbind on exit - bus {self.busid}")
+
+        self.observer.stop()
 
 class UsbipEventSender:
     def __init__(self, device: Device):

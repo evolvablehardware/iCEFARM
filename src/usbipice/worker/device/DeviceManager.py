@@ -37,12 +37,6 @@ class DeviceManager:
         observer = pyudev.MonitorObserver(monitor, lambda x, y : self.handleDevEvent(x, y), name="manager-userevents")
         observer.start()
 
-        context = pyudev.Context()
-        monitor = pyudev.Monitor.from_netlink(context, source="kernel")
-        monitor.filter_by("usb", device_type="usb_device")
-        observer = pyudev.MonitorObserver(monitor, lambda x, y : self.handleKernelEvent(x, y), name="manager-kernelevents")
-        observer.start()
-
         self.scan()
 
     def scan(self):
@@ -73,42 +67,6 @@ class DeviceManager:
             self.devs[serial] = Device(serial, self.logger, self.database, self.notif, self)
 
         self.devs[serial].handleDeviceEvent(action, dev)
-
-    # TODO this is really messy
-    def subscribeKernelAdd(self, device: Device):
-        with self.kernel_lock:
-            self.kernel_add_subscribers[device.getSerial()] = device
-
-    def unsubscribeKernelAdd(self, device: Device):
-        with self.kernel_lock:
-            self.kernel_add_subscribers.pop(device.getSerial(), None)
-
-    def subscribeKernelRemove(self, device: Device):
-        with self.kernel_lock:
-            self.kernel_remove_subscribers[device.getSerial()] = device
-
-    def unsubscribeKernelRemove(self, device: Device):
-        with self.kernel_lock:
-            self.kernel_remove_subscribers.pop(device.getSerial(), None)
-
-    def handleKernelEvent(self, event, dev: pyudev.Device):
-        if event not in ["add", "remove"]:
-            return
-
-        dev = dict(dev)
-
-        if event == "add":
-            with self.kernel_lock:
-                devices = list(self.kernel_add_subscribers.values())
-
-            for device in devices:
-                device.handleKernelAdd(dev)
-        else:
-            with self.kernel_lock:
-                devices = list(self.kernel_remove_subscribers.values())
-
-            for device in devices:
-                device.handleKernelRemove(dev)
 
     def handleRequest(self, json: dict):
         serial = json.get("serial")

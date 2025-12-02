@@ -38,14 +38,14 @@ class StateLogger(LoggerAdapter):
 class AbstractState:
     methods = {}
 
-    def __init__(self, state: Device):
+    def __init__(self, device: Device):
         """NOTE: switch CANNOT be called inside __init__(). This will result
         in the lock for Device being a acquired a second time. If this behavior 
         is needed, use start() instead."""
-        self.state = state
+        self.device = device
 
         name = type(self).__name__
-        self.logger = StateLogger(self.state.getLogger(), self.getSerial(), name)
+        self.logger = StateLogger(self.getDevice().getLogger(), self.getSerial(), name)
 
         self.switching = False
         self.switching_lock = threading.Lock()
@@ -57,7 +57,8 @@ class AbstractState:
 
     def start(self):
         """Called after the AbstractState is initialized, for
-        actions that may result in a switch call."""
+        actions that may result in a switch call. Note that handleExit
+        may be called during this step."""
 
     def handleAdd(self, dev: dict):
         """Called on ADD device event."""
@@ -65,66 +66,41 @@ class AbstractState:
     def handleRemove(self, dev: dict):
         """Called on REMOVE device event."""
 
-    def enableKernelAdd(self):
-        self.getState().enableKernelAdd()
-
-    def handleKernelAdd(self, dev: dict):
-        """Called on a kernel dev add event. Unlike handleAdd, this is called on all
-        dev events, not just ones that match this devices serial. This must be enabled with
-        enableKernelAdd.
-        """
-
-    def disableKernelAdd(self):
-        self.getState().disableKernelAdd()
-
-    def enableKernelRemove(self):
-        self.getState().enableKernelRemove()
-
-    def handleKernelRemove(self, dev: dict):
-        """Called on a kernel dev add event. Unlike handleAdd, this is called on all
-        dev events, not just ones that match this devices serial. This must be enabled with
-        enableKernelRemove.
-        """
-
-    def disableKernelRemove(self):
-        self.getState().disableKernelRemove()
-
     def handleExit(self):
         """Cleanup"""
-        self.disableKernelAdd()
-        self.disableKernelRemove()
 
-    def getState(self) -> Device:
-        return self.state
+    def getDevice(self) -> Device:
+        return self.device
 
     def getSerial(self) -> str:
-        return self.getState().getSerial()
+        return self.getDevice().getSerial()
 
     def getLogger(self) -> Logger:
         return self.logger
 
     def getDatabase(self) -> WorkerDatabase:
-        return self.getState().getDatabase()
+        return self.getDevice().getDatabase()
 
     def getNotif(self) -> DeviceEventSender:
-        return self.getState().getNotif()
+        return self.getDevice().getNotif()
 
     def switch(self, state_factory):
-        # prevents multiple switches
-        # from happening
+        """Switches the Device's state to a new one. This happens by first calling
+        exit on the existing state. After the existing state has exited, the 
+        state factory is called and the result is set as the state. Subsequent calls
+        to switch from the original state object are ignored."""
         with self.switching_lock:
             if self.switching:
                 return
 
             self.switching = True
 
-            return self.getState().switch(state_factory)
+        return self.getDevice().switch(state_factory)
 
-    def isSwitching(self) -> bool:
-        return self.switching
-
-    def getSwitchingLock(self) -> threading.Lock:
-        return self.switching_lock
+    def isSwitching(self):
+        """Whether the Device is currently switching states"""
+        with self.switching_lock:
+            return self.switching
 
     @classmethod
     def register(cls, event, *args):
@@ -134,7 +110,7 @@ class AbstractState:
         The values passed in from the client are typechecked. Currently, only type and list[type]
         are supported. For files from multipart forums, specify 'files'. This is received as a 
         dict[str, tempfile._TemporaryFileWrapper]. After the function returns, the temp file is deleted. If the file is needed later, it
-        should be saved under self.getPath().
+        should be saved under self.getDevice().getMediaPath().
         Parameters without types are treated as Any. Returning None sends a 400 status
         to the client, otherwise Flask.jsonify is sent. 
 

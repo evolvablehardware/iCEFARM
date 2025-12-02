@@ -11,7 +11,7 @@ from usbipice.client.drivers.usbip import UsbipClient
 # client.base provides tools for working with a specific type of device reservation
 # The EventHandler abstract class provides a way for us to respond to events
 # from the worker.
-from usbipice.client.base.usbip import BaseUsbipEventHandler
+from usbipice.client.lib.usbip import BaseUsbipEventHandler
 
 # Used for typing, ignore
 from usbipice.client.lib import EventServer

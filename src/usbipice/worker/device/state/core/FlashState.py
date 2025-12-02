@@ -34,11 +34,11 @@ class FlashState(AbstractState):
         if dev.get("DEVTYPE") == "partition":
             self.getLogger().debug("found bootloader candidate")
 
-            uploaded = upload_firmware_path(devname, self.getState().getMountPath(), self.firmware_path)
+            uploaded = upload_firmware_path(devname, self.getDevice().getMountPath(), self.firmware_path)
 
             if not uploaded:
                 self.getLogger().error("failed to upload firmware")
-                self.switch(lambda : BrokenState(self.state))
+                self.switch(lambda : BrokenState(self.getDevice()))
                 return
 
             self.switch(self.next_state_factory)

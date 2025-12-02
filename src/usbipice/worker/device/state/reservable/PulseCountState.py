@@ -27,8 +27,8 @@ class Bitstream:
 @reservable("pulsecount")
 class PulseCountStateFlasher(AbstractState):
     def start(self):
-        pulse_fac = lambda : PulseCountState(self.getState())
-        self.switch(lambda : FlashState(self.getState(), PULSE_FIRMWARE_PATH, pulse_fac))
+        pulse_fac = lambda : PulseCountState(self.getDevice())
+        self.switch(lambda : FlashState(self.getDevice(), PULSE_FIRMWARE_PATH, pulse_fac))
 class PulseCountState(AbstractState):
     def __init__(self, state):
         super().__init__(state)
@@ -44,18 +44,18 @@ class PulseCountState(AbstractState):
         paths = get_devs().get(self.getSerial())
 
         if not paths:
-            self.switch(lambda : BrokenState(self.getState()))
+            self.switch(lambda : BrokenState(self.getDevice()))
 
         port = list(filter(lambda x : x.get("ID_USB_INTERFACE_NUM") == "00", paths))
 
         if not port:
-            self.switch(lambda : BrokenState(self.getState()))
+            self.switch(lambda : BrokenState(self.getDevice()))
 
         port = port[0].get("DEVNAME")
 
         self.ser = serial.Serial(port, BAUD, timeout=0.1)
         self.reader = Reader(self.ser)
-        self.sender = PulseCountEventSender(self.getState())
+        self.sender = PulseCountEventSender(self.getDevice())
 
         self.exiting = False
         self.thread = threading.Thread(target=lambda : self.run())
@@ -63,7 +63,7 @@ class PulseCountState(AbstractState):
 
     @AbstractState.register("evaluate", "files")
     def queue(self, files):
-        media_path = self.getState().getMediaPath()
+        media_path = self.getDevice().getMediaPath()
         paths = [str(media_path.joinpath(str(uuid.uuid4()))) for _ in range(len(files))]
 
         for path, tmp in zip(paths, files.values()):

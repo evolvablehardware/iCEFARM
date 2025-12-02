@@ -1,6 +1,6 @@
 from usbipice.client.lib import EventServer, AbstractEventHandler
 from usbipice.client.drivers.usbip import UsbipHandler
-from usbipice.client.base.usbip import UsbipAPI
+from usbipice.client.lib.usbip import UsbipAPI
 from usbipice.client.utils import DefaultEventHandler
 
 class UsbipClient(UsbipAPI):

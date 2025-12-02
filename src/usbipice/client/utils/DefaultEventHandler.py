@@ -1,7 +1,7 @@
 from logging import Logger
 
 from usbipice.client.lib import EventServer, BaseAPI
-from usbipice.client.base.default import DefaultBaseEventHandler
+from usbipice.client.lib.default import DefaultBaseEventHandler
 
 class DefaultEventHandler(DefaultBaseEventHandler):
     def __init__(self, event_server: EventServer, api: BaseAPI, logger: Logger):
