@@ -9,8 +9,8 @@ from usbipice.utils import Database
 class DeviceEventSender(Database):
     """Allows for sending event notifications to client's event server, as well as sending 
     instructions to worker's servers.."""
-    def __init__(self, config: Config, logger: Logger):
-        super().__init__(config.getDatabase())
+    def __init__(self, dburl: str, logger: Logger):
+        super().__init__(dburl)
         self.logger = logger
 
     def getDeviceEventUrl(self, deviceserial: str) -> str:

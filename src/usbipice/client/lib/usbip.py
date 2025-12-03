@@ -1,8 +1,8 @@
 from usbipice.client.lib import AbstractEventHandler, register, BaseAPI
 
 class BaseUsbipEventHandler(AbstractEventHandler):
-    @register("export", "serial", "busid", "server_ip", "usbip_port")
-    def export(self, serial:str, busid: str, server_ip: str, usbip_port: str):
+    @register("export", "serial", "busid", "usbip_port")
+    def export(self, serial:str, busid: str, usbip_port: str):
         """Event signifies that a bus is now available through usbip 
         for the client to connect to."""
 

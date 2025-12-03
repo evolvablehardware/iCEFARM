@@ -17,7 +17,7 @@ class DeviceManager:
     def __init__(self, config: Config, logger: Logger):
         self.config = config
         self.logger = logger
-        self.notif = DeviceEventSender(config, logger)
+        self.notif = DeviceEventSender(config.getDatabase(), logger)
         self.database = WorkerDatabase(config, logger)
 
         atexit.register(lambda : self.onExit())
@@ -29,9 +29,6 @@ class DeviceManager:
         self.kernel_remove_subscribers: dict[str, Device] = {}
 
         self.exiting = False
-
-        if not os.path.isdir("media"):
-            os.mkdir("media")
 
         context = pyudev.Context()
         monitor = pyudev.Monitor.from_netlink(context)

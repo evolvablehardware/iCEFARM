@@ -6,6 +6,9 @@ from usbipice.utils import config_else_env
 class Config:
     def __init__(self, path=None):
         if path:
+            if not os.path.exists(path):
+                raise Exception("Config file does not exist")
+
             parser = ConfigParser()
             parser.read(path)
         else:
@@ -38,9 +41,9 @@ class Config:
 
     def getDatabase(self):
         return self.database
-    
+
     def getDefaultFirmwarePath(self):
         return self.default_firmware_path
-    
+
     def getPulseCountFirmwarePath(self):
         return self.pulse_firmware_path

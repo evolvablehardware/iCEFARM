@@ -42,12 +42,12 @@ def get_busid(dev_path: str) -> str:
     """Returns the bus from a devpath, or None. Obtains the bus from matching
     /usb1/.../() on DEVPATH."""
     # user format
-    capture = re.search("/usb1/.*?/(.*?)([:/]|$)", dev_path)
+    capture = re.search("/usb[0-9]/.*?/(.*?)([:/]|$)", dev_path)
     if capture:
         return capture.group(1)
 
     # kernel format
-    capture = re.search("/usb1/([0-9]-(?:[0-9]|\\.)+)$", dev_path)
+    capture = re.search("/usb[0-9]/([0-9]-(?:[0-9]|\\.)+)$", dev_path)
     if capture:
         return capture.group(1)
     return None

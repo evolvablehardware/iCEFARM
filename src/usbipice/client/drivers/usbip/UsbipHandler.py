@@ -113,7 +113,13 @@ class UsbipHandler(BaseUsbipEventHandler):
                     dev.deviceEvent()
                     self.api.unbind(serial)
 
-    def export(self, serial: str, busid: str, server_ip: str, usbip_port: str):
+    def export(self, serial: str, busid: str, usbip_port: str):
+        conn_info = self.api.getConnectionInfo(serial)
+        if not conn_info:
+            self.logger.error(f"got export for {serial} but no connection info")
+
+        server_ip = conn_info.ip
+
         if usbip_attach(server_ip, busid, tcp_port=usbip_port):
             self.logger.info(f"bound device {serial} on {server_ip}:{usbip_port}:{busid}")
         else:

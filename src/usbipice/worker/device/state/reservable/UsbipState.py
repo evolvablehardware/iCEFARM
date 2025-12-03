@@ -10,8 +10,7 @@ from usbipice.worker.device import Device
 from usbipice.worker.device.state.core import AbstractState
 from usbipice.worker.device.state.reservable import reservable
 
-PORT = os.environ.get("USBIPICE_EXPORTED_USBIP_PORT")
-IP = os.environ.get("USBIPICE_EXPORTED_IP")
+PORT = "3240"
 
 @reservable("usbip")
 class UsbipState(AbstractState):
@@ -126,7 +125,7 @@ class UsbipEventSender:
         self.notif = device.getNotif()
         self.serial = device.getSerial()
 
-    def export(self, busid: str, usbip_port: int, server_ip: str):
+    def export(self, busid: str, usbip_port: int):
         """Event signifies that a bus is now available through usbip 
         for the client to connect to."""
         return self.notif.sendDeviceEvent(self.serial, {
@@ -134,7 +133,6 @@ class UsbipEventSender:
             "serial": self.serial,
             "busid": busid,
             "usbip_port": usbip_port,
-            "server_ip": server_ip
         })
 
     def disconnect(self):
