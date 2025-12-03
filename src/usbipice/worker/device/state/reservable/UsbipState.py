@@ -77,7 +77,7 @@ class UsbipState(AbstractState):
 
         self.getLogger().debug(f"now exporting on bus {busid}")
 
-        if not self.notif.export(busid, PORT, IP):
+        if not self.notif.export(busid, PORT):
             self.getLogger().debug(f"failed to send export event (bus {busid})")
 
     def handleKernel(self, event: str, dev: dict):
