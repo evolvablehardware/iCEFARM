@@ -13,6 +13,7 @@ from usbipice.worker import Config
 def main():
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
+    logging.basicConfig(filemode="a", filename="worker_logs")
     logger.addHandler(logging.StreamHandler(sys.stdout))
 
     parser = argparse.ArgumentParser(
