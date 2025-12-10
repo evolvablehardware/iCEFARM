@@ -10,12 +10,12 @@ Create database and user:
 CREATE ROLE {user} LOGIN PASSWORD {pass};
 CREATE DATABASE {name} WITH OWNER = {user};
 ```
-Configure remote connections. This can be done by modifying /etc/postgresql/{}/main/pg_hba.conf. Afterwards, apply the changes with 
-```service postgresql@{}-main.service reload```.
+Configure remote connections. This can be done by modifying /etc/postgresql/{version}/main/pg_hba.conf. Afterwards, apply the changes with 
+```service postgresql@{version}-main.service reload```.
 
 ### Flyway
 - Install [Flyway](https://documentation.red-gate.com/fd/command-line-277579359.html)
-- Create a flyway.toml in /flyway/conf - see /flyway/conf/flyway.toml.example
+- Create a flyway.toml in /flyway/conf - see /flyway/conf/flyway.toml.example for authentication details. Add flyway.locations=["filesystem:migrations"].
 - Run ```flyway migrate```
 
 ## Control-server setup
