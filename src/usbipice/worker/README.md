@@ -4,7 +4,7 @@
 Set USBIPICE_DATABASE to the [libpg connection string](https://www.postgresql.org/docs/8.0/libpq.html) of the control database. Run ```docker compose up```.
 
 ## With Usbip - local
-Usbip requires a host specific package to function. The usbip module can be installed with ```sudo apt install linux-tools[kernel release]```. The kernel release can be found with ```name -r```. Next, the usbip modules need to be loaded. These will have to be loaded again after a reboot.
+Usbip requires a host specific package to function. The usbip module can be installed with ```sudo apt install linux-tools[kernel release]```. The kernel release can be found with ```uname -r```. Next, the usbip modules need to be loaded. These will have to be loaded again after a reboot.
 ```
 sudo modprobe usbip_host
 sudo modprobe usbip_core
