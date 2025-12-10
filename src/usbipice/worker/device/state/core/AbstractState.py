@@ -50,9 +50,6 @@ class AbstractState:
         self.switching = False
         self.switching_lock = threading.Lock()
 
-        self.reference_cv = threading.Condition()
-        self.references = 0
-
         self.getLogger().debug(f"state is now {name}")
 
     def start(self):
