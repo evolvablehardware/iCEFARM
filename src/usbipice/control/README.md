@@ -46,7 +46,7 @@ password = ""
 cd src/usbipice/control/flyway && flyway migrate
 ```
 
-Flyway ships with its a java runtime, which may be compiled for the wrong architecture. If you encounter an exec format error, ensure you have a java runtime installed and delete the flyway-{version}/jre/bin/java file.
+Flyway ships with its own java runtime, which may be compiled for the wrong architecture. If you encounter an exec format error, ensure you have a java runtime installed and delete the flyway-{version}/jre/bin/java file.
 
 ## Control setup
 Install usbipice:
