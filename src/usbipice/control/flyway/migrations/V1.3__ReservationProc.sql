@@ -186,7 +186,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION getDeviceCallBack(client_id varchar(255))
+CREATE FUNCTION getDeviceCallBack(deviceserial varchar(255))
 RETURNS TABLE (
     "ClientId" varchar(255)
 )

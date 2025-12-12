@@ -24,7 +24,7 @@ class BaseClient(BaseAPI):
             if not info:
                 self.logger.error(f"could not get connection info for serial {serial}")
 
-            self.server.connectWorker(f"http://{info.ip}:{info.port}")
+            self.server.connectWorker(f"http://{info.ip}:{info.server_port}")
             connected.append(serial)
 
         return connected

@@ -13,6 +13,10 @@ class DeviceEventSender:
 
     def sendDeviceEvent(self, contents: dict) -> bool:
         contents["serial"] = self.serial
+        contents = {
+            "serial": self.serial,
+            "contents": contents
+        }
 
         try:
             data = json.dumps(contents)

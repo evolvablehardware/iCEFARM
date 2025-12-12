@@ -76,8 +76,12 @@ class SocketEventServer:
                     return
 
                 serial = msg.get("serial")
-                event = msg.get("event")
                 contents = msg.get("contents")
+
+                if contents:
+                    event = contents.get("event")
+                else:
+                    event = None
 
                 if not serial or not event or not contents:
                     logger.error("bad event contents")
@@ -87,7 +91,7 @@ class SocketEventServer:
                 event = Event(serial, event, contents)
                 self.handleEvent(event)
 
-            sio.connect(url, headers={"client_id": self.client_id})
+            sio.connect(url, auth={"client_id": self.client_id}, wait_timeout=10)
 
     def sendWorker(self, url, event, data: dict):
         """Sends data to worker socket. Adds client_id value to data."""

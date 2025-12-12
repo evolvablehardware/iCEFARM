@@ -111,7 +111,7 @@ def main():
 
         manager.handleRequest(data)
 
-    socketio.run(app, port=8081)
+    socketio.run(app, port=8081, host="0.0.0.0", debug=False)
 
 if __name__ == "__main__":
     main()

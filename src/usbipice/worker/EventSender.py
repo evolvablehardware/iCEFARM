@@ -71,7 +71,7 @@ class Session:
 
     def flush(self):
         with self.lock:
-            if not self.message_queue:
+            if not self.sock_id:
                 return
 
             if not self.message_queue:

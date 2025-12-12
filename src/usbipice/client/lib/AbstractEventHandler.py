@@ -61,7 +61,7 @@ class AbstractEventHandler:
             if not methods:
                 continue
 
-            attr = methods.get(event.name)
+            attr = methods.get(event.event)
 
             if attr:
                 break
@@ -72,4 +72,4 @@ class AbstractEventHandler:
         if not attr:
             return False
 
-        return attr(self, event.json)
+        return attr(self, event.contents)
