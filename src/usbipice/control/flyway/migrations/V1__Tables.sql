@@ -18,6 +18,5 @@ CREATE TABLE Device (
 CREATE TABLE Reservations (
     Device varchar(255) PRIMARY KEY REFERENCES Device(SerialId) ON DELETE CASCADE,
     ClientName varchar(255) NOT NULL,
-    Until timestamp NOT NULL,
-    NotificationUrl varchar(255)
+    Until timestamp NOT NULL
 )

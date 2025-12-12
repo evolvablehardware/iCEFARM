@@ -1,4 +1,4 @@
-CREATE FUNCTION makeReservations(amount int, notificationUrl varchar(255), clientName varchar(255))
+CREATE FUNCTION makeReservations(amount int, clientName varchar(255))
 RETURNS TABLE (
     "SerialID" varchar(255),
     "Host" inet,
@@ -25,8 +25,8 @@ BEGIN
     SET DeviceStatus = 'reserved'
     WHERE Device.SerialID IN (SELECT res."SerialID" FROM res);
 
-    INSERT INTO Reservations(Device, ClientName, Until, NotificationUrl)
-    SELECT res."SerialID", clientName, CURRENT_TIMESTAMP + interval '1 hour', notificationUrl
+    INSERT INTO Reservations(Device, ClientName, Until)
+    SELECT res."SerialID", clientName, CURRENT_TIMESTAMP + interval '1 hour'
     FROM res;
 
     RETURN QUERY SELECT * FROM res;
@@ -69,7 +69,6 @@ $$;
 CREATE FUNCTION endReservations(client_name varchar(255), serial_ids varchar(255)[])
 RETURNS TABLE (
     "Device" varchar(255),
-    "NotificationUrl" varchar(255),
     "WorkerIp" inet,
     "WorkerServerPort" int
 )
@@ -79,7 +78,6 @@ $$
 BEGIN
     CREATE TEMPORARY TABLE res (
         "Device" varchar(255),
-        "NotificationUrl" varchar(255),
         "WorkerIp" inet,
         "WorkerServerPort" int
     ) ON COMMIT DROP;
@@ -91,7 +89,7 @@ BEGIN
     AND Device = ANY(serial_ids);
 
     RETURN QUERY
-    SELECT res."Device", Reservations.NotificationUrl, Worker.Host, Worker.ServerPort
+    SELECT res."Device", Worker.Host, Worker.ServerPort
     FROM res
     INNER JOIN Reservations ON res."Device" = Reservations.Device
     INNER JOIN Device ON res."Device" = Device.SerialID
@@ -109,7 +107,6 @@ $$;
 CREATE FUNCTION endAllReservations(client_name varchar(255))
 RETURNS TABLE (
     "Device" varchar(255),
-    "NotificationUrl" varchar(255),
     "WorkerIp" inet,
     "WorkerServerPort" int
 )
@@ -127,7 +124,7 @@ BEGIN
     WHERE ClientName = client_name;
 
     RETURN QUERY
-    SELECT res."Device", Reservations.NotificationUrl, Worker.Host, Worker.ServerPort
+    SELECT res."Device", Worker.Host, Worker.ServerPort
     FROM res
     INNER JOIN Reservations ON res."Device" = Reservations.Device
     INNER JOIN Device ON res."Device" = Device.SerialID
@@ -145,7 +142,7 @@ $$;
 CREATE FUNCTION handleReservationTimeouts()
 RETURNS TABLE (
     "Device" varchar(255),
-    "NotificationUrl" varchar(255)
+    "ClientName" varchar(255)
 )
 LANGUAGE plpgsql
 AS
@@ -161,7 +158,7 @@ BEGIN
     WHERE Until < CURRENT_TIMESTAMP;
 
     RETURN QUERY 
-    SELECT res."Device", Reservations.NotificationUrl
+    SELECT res."Device", Reservations.ClientName
     FROM res
     INNER JOIN Reservations ON res."Device" = Reservations.Device;
 
