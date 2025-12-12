@@ -80,16 +80,13 @@ def main():
 
     @socketio.on("connect")
     def connection(auth):
-        try:
-            client_id = json.loads(auth).get("client_id")
-            if not auth:
-                raise Exception
-        except Exception:
-            logger.warning("received bad client connection")
+        client_id = auth.get("client_id")
+        if not client_id:
+            logger.warning("socket connection without client id")
             return
 
         with id_lock:
-            sock_id_to_client_id[client_id] = request.sid
+            sock_id_to_client_id[request.sid] = client_id
 
         event_sender.addSocket(request.sid, client_id)
 
@@ -114,15 +111,9 @@ def main():
             logger.warning("socket sent request but has no known client id")
             return
 
-        try:
-            data = json.loads(data)
-        except Exception:
-            logger.warning(f"failed to jsonify request from {client_id}")
-            return
-
         manager.handleRequest(data)
 
-    serve(socketio, port=config.getPort())
+    socketio.run(app, port=8081)
 
 if __name__ == "__main__":
     main()

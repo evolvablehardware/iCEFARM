@@ -4,7 +4,7 @@ from logging import Logger
 
 import pyudev
 
-from usbipice.client.lib.usbip import UsbipAPI, BaseUsbipEventHandler, register
+from usbipice.client.lib.usbip import UsbipBaseClient, BaseUsbipEventHandler, register
 from usbipice.client.lib import EventServer
 
 from usbipice.utils.dev import get_serial
@@ -53,7 +53,7 @@ class DeviceStatus:
 class UsbipHandler(BaseUsbipEventHandler):
     """EventHandler for detecting usbip timeouts through tracking device events and polling usbip port. When
     a timeout is detected, it calls triggerTimeout on the client to inform other EventHandlers."""
-    def __init__(self, event_server: EventServer, api: UsbipAPI, logger: Logger, poll=4, timeout=15):
+    def __init__(self, event_server: EventServer, api: UsbipBaseClient, logger: Logger, poll=4, timeout=15):
         super().__init__(event_server)
 
         self.api = api
