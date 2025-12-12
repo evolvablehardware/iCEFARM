@@ -51,7 +51,11 @@ class FlashState(AbstractState):
 
             if not uploaded:
                 self.getLogger().error(f"failed to upload firmware to {devname}")
+                if self.timer:
+                    self.timer.cancel()
                 self.switch(lambda : BrokenState(self.getDevice()))
                 return
 
+            if self.timer:
+                self.timer.cancel()
             self.switch(self.next_state_factory)
