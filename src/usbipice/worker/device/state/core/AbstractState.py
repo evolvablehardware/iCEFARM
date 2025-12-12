@@ -103,33 +103,26 @@ class AbstractState:
 
     @classmethod
     def register(cls, event, *args):
+        # TODO
+        # update this for sockets
+        # test typechecking with sockets
         """Adds a method to the methods dictionary, which allows it to be called 
         using the handleEvent function with event=event. These arguments specify which json 
         key should be used to get the value of that positional argument when handleEvent is called.
         The values passed in from the client are typechecked. Currently, only type and list[type]
-        are supported. For files from multipart forums, specify 'files'. This is received as a 
-        dict[str, tempfile._TemporaryFileWrapper]. After the function returns, the temp file is deleted. If the file is needed later, it
-        should be saved under self.getDevice().getMediaPath().
-        Parameters without types are treated as Any. Returning None sends a 400 status
-        to the client, otherwise Flask.jsonify is sent. 
+        are supported. Files should be sent as cp437 encoded bytes. If the file is needed later, it
+        should be saved under self.getDevice().getMediaPath(). Parameters without types are treated as Any.
 
         Ex. 
         >>> class ExampleDevice:  
                 @AbstractState.register("add", "value 1", "value 2")  
                 def addNumbers(self, a: int, b: int):  
                     self.getLogger().info(a + b)
-        >>> requests.get("{host}/event", json={
+        >>> client.requestWorker("serial", {
                 "serial": "ABCDEF",
                 "value 1": 1,
                 "value 2": 2
-            })
         [ABCDEF] 3
-        >>> requests.get("{host}/event", json={
-                "serial": "ABCDEF",
-                "value 1": "1",
-                "value 2": 2
-            }).status_code
-        400
         """
         class Reg:
             def __init__(self, fn):

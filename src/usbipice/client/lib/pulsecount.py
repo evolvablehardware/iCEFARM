@@ -19,9 +19,7 @@ class PulseCountBaseClient(BaseClient):
         files = {}
         for iden, path in bitstreams.items():
             with open(path, "rb") as f:
-                files[iden] = f.read().encode("cp437")
-
-            files[iden] = open(path, "rb")
+                files[str(iden)] = f.read().decode("cp437")
 
         res = self.requestWorker(serial, {
             "serial": serial,

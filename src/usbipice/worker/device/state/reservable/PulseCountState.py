@@ -31,7 +31,7 @@ class PulseCountStateFlasher(AbstractState):
 class PulseCountState(AbstractState):
     def __init__(self, state):
         super().__init__(state)
-        self.getEventSender().sendDeviceInitialized(self.getSerial())
+        self.getEventSender().sendDeviceInitialized()
 
         self.cv = threading.Condition()
         self.bitstream_queue: list[Bitstream] = []
@@ -65,9 +65,9 @@ class PulseCountState(AbstractState):
         media_path = self.getDevice().getMediaPath()
         paths = [str(media_path.joinpath(str(uuid.uuid4()))) for _ in range(len(files))]
 
-        for path, tmp in zip(paths, files.values()):
+        for path, data in zip(paths, files.values()):
             with open(path, "wb") as f:
-                f.write(tmp.read())
+                f.write(data.encode("cp437"))
                 f.flush()
 
         self.getLogger().debug(f"queued bitstreams: {list(files.keys())}")

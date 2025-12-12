@@ -84,6 +84,7 @@ class Session:
         for message in messages:
             try:
                 self.socketio.emit("event", message, to=sock_id)
+                self.socketio.sleep(0)
             except Exception:
                 self.logger.warning("socket disconnected during flush")
                 with self.lock:

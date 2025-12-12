@@ -35,7 +35,7 @@ class BaseClient(BaseAPI):
         if not info:
             return False
 
-        self.server.sendWorker(f"http://{info.ip}:{info.port}", "request", data)
+        return self.server.sendWorker(f"http://{info.ip}:{info.server_port}", "request", data)
 
     def stop(self):
         self.server.exit()

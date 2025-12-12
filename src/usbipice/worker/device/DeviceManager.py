@@ -1,6 +1,7 @@
 from logging import Logger, LoggerAdapter
 import threading
 import atexit
+import json
 
 import pyudev
 
@@ -73,9 +74,14 @@ class DeviceManager:
 
         device.handleDeviceEvent(action, dev)
 
-    def handleRequest(self, json: dict):
-        serial = json.get("serial")
-        event = json.get("event")
+    def handleRequest(self, data: dict):
+        try:
+            contents = json.loads(data)
+        except Exception:
+            return False
+
+        serial = contents.get("serial")
+        event = contents.get("event")
         if not serial or not event:
             return
 
@@ -85,12 +91,12 @@ class DeviceManager:
             self.logger.warning(f"request for {event} on {serial} but device not found")
             return
 
-        return dev.handleRequest(event, json)
+        return dev.handleRequest(event, contents)
 
-    def reserve(self, json: dict):
-        serial = json.get("serial")
-        kind = json.get("kind")
-        args = json.get("args")
+    def reserve(self, data: dict):
+        serial = data.get("serial")
+        kind = data.get("kind")
+        args = data.get("args")
 
         if not isinstance(serial, str) or not isinstance(kind, str) or not isinstance(args, dict):
             return False

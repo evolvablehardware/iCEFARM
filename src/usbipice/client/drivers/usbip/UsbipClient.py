@@ -1,4 +1,3 @@
-from usbipice.client.lib import EventServer, AbstractEventHandler
 from usbipice.client.drivers.usbip import UsbipHandler
 from usbipice.client.lib.usbip import UsbipBaseClient
 from usbipice.client.utils import DefaultEventHandler
@@ -10,4 +9,3 @@ class UsbipClient(UsbipBaseClient):
 
         self.addEventHandler(DefaultEventHandler(self.server, self, logger))
         self.addEventHandler(UsbipHandler(self.server, self, logger))
-

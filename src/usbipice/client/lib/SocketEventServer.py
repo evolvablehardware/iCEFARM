@@ -1,5 +1,5 @@
 from __future__ import annotations
-from logging import Logger, LoggerAdapter
+from logging import LoggerAdapter
 import threading
 import json
 
@@ -36,8 +36,7 @@ class SocketEventServer:
         self.eventhandlers = eventhandlers
 
         self.socket_lock = threading.Lock()
-        self.sockets = {}
-        self.dont_reconnect = set()
+        self.sockets: dict[str, socketio.Client] = {}
 
     def addEventHandler(self, eh: AbstractEventHandler):
         """Adds an event handler. Should not be called after reservations have
@@ -67,8 +66,8 @@ class SocketEventServer:
             @sio.event
             def disconnect(reason):
                 logger.error(f"disconnected: {reason}")
-            @sio.on("event")
-            def handle(data):
+            @sio.event
+            def event(data):
                 try:
                     msg = json.loads(data)
                 except Exception:
@@ -127,5 +126,8 @@ class SocketEventServer:
         for eh in self.eventhandlers:
             eh.exit()
 
-        for url in self.sockets:
+        with self.socket_lock:
+            urls = list(self.sockets)
+
+        for url in urls:
             self.disconnectWorker(url)
