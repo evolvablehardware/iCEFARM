@@ -1,4 +1,4 @@
-from logging import Logger
+from logging import Logger, LoggerAdapter
 import threading
 import atexit
 
@@ -9,18 +9,23 @@ from usbipice.utils.dev import *
 from usbipice.worker import WorkerDatabase, Config, EventSender
 from usbipice.worker.device import Device
 
+class ManagerLogger(LoggerAdapter):
+    def process(self, msg, kwargs):
+        return f"[DeviceManager] {msg}", kwargs
+
 class DeviceManager:
     """Tracks device events and routes them to their corresponding Device object. Also listens to kernel
     device events to identify usbip disconnects."""
     def __init__(self, event_sender: EventSender, config: Config, logger: Logger):
         self.config = config
-        self.logger = logger
+        self.logger = ManagerLogger(logger)
         self.event_sender = event_sender
-        self.database = WorkerDatabase(config, logger)
+        self.database = WorkerDatabase(config, self.logger)
 
         atexit.register(lambda : self.onExit())
 
         self.devs: dict[str, Device] = {}
+        self.dev_lock = threading.Lock()
 
         self.kernel_lock = threading.Lock()
         self.kernel_add_subscribers: dict[str, Device] = {}
@@ -58,11 +63,15 @@ class DeviceManager:
         if not serial:
             return
 
-        if serial not in self.devs:
-            self.database.addDevice(serial)
-            self.devs[serial] = Device(serial, self, self.event_sender, self.database, self.logger)
+        with self.dev_lock:
+            device = self.devs.get(serial)
 
-        self.devs[serial].handleDeviceEvent(action, dev)
+            if not device:
+                self.database.addDevice(serial)
+                device = Device(serial, self, self.event_sender, self.database, self.logger)
+                self.devs[serial] = device
+
+        device.handleDeviceEvent(action, dev)
 
     def handleRequest(self, json: dict):
         serial = json.get("serial")

@@ -1,15 +1,20 @@
+from logging import LoggerAdapter
+
 import psycopg
-import requests
 
 from usbipice.worker import Config
 from usbipice.utils import Database, DeviceState
+
+class WorkerDataBaseLogger(LoggerAdapter):
+    def process(self, msg, kwargs):
+        return f"[WorkerDatabase] {msg}", kwargs
 
 class WorkerDatabase(Database):
     """Provides access to database operations related to the worker process."""
     def __init__(self, config: Config, logger):
         super().__init__(config.getDatabase())
         self.worker_name = config.getName()
-        self.logger = logger
+        self.logger = WorkerDataBaseLogger(logger)
 
         try:
             with psycopg.connect(self.url) as conn:
@@ -18,8 +23,8 @@ class WorkerDatabase(Database):
                     conn.commit()
 
         except Exception:
-            logger.critical("Failed to add worker to database")
-            raise Exception("Failed to add worker to database")
+            logger.critical(f"Failed to add worker {self.worker_name}")
+            raise Exception(f"Failed to add worker {self.worker_name}")
 
 
     def addDevice(self, deviceserial: str) -> bool:
@@ -30,7 +35,7 @@ class WorkerDatabase(Database):
                     cur.execute("CALL addDevice(%s::varchar(255), %s::varchar(255))", (deviceserial, self.worker_name))
                     conn.commit()
         except Exception:
-            self.logger.error(f"database: failed to add device with serial {deviceserial}")
+            self.logger.error(f"failed to add device {deviceserial}")
             return False
 
         return True
@@ -43,7 +48,7 @@ class WorkerDatabase(Database):
                     cur.execute("CALL updateDeviceStatus(%s::varchar(255), %s::DeviceState)", (deviceserial, status))
                     conn.commit()
         except Exception:
-            self.logger.error(f"database: failed to update device {deviceserial} to status {status}")
+            self.logger.error(f"failed to update device {deviceserial} to status {status}")
             return False
 
     def onExit(self):
@@ -54,16 +59,5 @@ class WorkerDatabase(Database):
                     cur.execute("SELECT * FROM removeWorker(%s::varchar(255))", (self.worker_name,))
                     data = cur.fetchall()
         except Exception:
-            self.logger.warning("failed to remove worker from db before exit")
+            self.logger.warning(f"failed to remove worker {self.worker_name} before exit")
             return
-
-        for row in data:
-            url, serial = row
-
-            try:
-                requests.get(url, data={
-                    "event": "failure",
-                    "serial": serial
-                }, timeout=10)
-            except Exception:
-                self.logger.warning(f"failed to notify {url} of device {serial} failure")

@@ -12,7 +12,11 @@ class FlashState(AbstractState):
         self.timer = None
 
         if timeout:
-            self.timer = threading.Timer(timeout, lambda : self.switch(lambda : BrokenState(self.getDevice())))
+            def do_timeout():
+                self.logger.error("flashing timed out")
+                self.switch(lambda : BrokenState(self.getDevice()))
+
+            self.timer = threading.Timer(timeout, do_timeout)
             self.timer.daemon = True
             self.timer.name = f"{self.getSerial()}-flash-timeout"
             self.timer.start()
@@ -36,17 +40,17 @@ class FlashState(AbstractState):
             return
 
         if dev.get("SUBSYSTEM") == "tty":
-            self.getLogger().debug("sending bootloader signal")
+            self.getLogger().debug(f"sending bootloader signal to {devname}")
             send_bootloader(devname)
             return
 
         if dev.get("DEVTYPE") == "partition":
-            self.getLogger().debug("found bootloader candidate")
+            self.getLogger().debug(f"found bootloader candidate {devname}")
 
             uploaded = upload_firmware_path(devname, self.getDevice().getMountPath(), self.firmware_path)
 
             if not uploaded:
-                self.getLogger().error("failed to upload firmware")
+                self.getLogger().error(f"failed to upload firmware to {devname}")
                 self.switch(lambda : BrokenState(self.getDevice()))
                 return
 

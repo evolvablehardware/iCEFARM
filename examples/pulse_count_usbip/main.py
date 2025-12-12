@@ -154,7 +154,6 @@ def transfer(ser: serial.Serial):
     logger.info("\nTransfer complete. Waiting for device response...")
 
 client = UsbipClient(CONTROL_SERVER, CLIENT_NAME, logger)
-client.start(CLIENT_IP, CLIENT_PORT)
 
 pico_serials = client.reserve(1)
 
