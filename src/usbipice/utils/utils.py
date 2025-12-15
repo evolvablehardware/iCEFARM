@@ -10,9 +10,10 @@ import types
 from configparser import ConfigParser
 
 from pexpect import fdpexpect
+from flask import Response, request, jsonify
 
 def get_env_default(var, default: str, logger: Logger):
-    """Obtains an environment variable. If its not configured, it instead returns 
+    """Obtains an environment variable. If its not configured, it instead returns
     the default value and logs a warning message."""
     value = os.environ.get(var)
 
@@ -24,9 +25,9 @@ def get_env_default(var, default: str, logger: Logger):
 
 def check_default(devpath) -> bool:
     """Checks for whether a device is running the default firmware."""
-    # TODO 
+    # TODO
     # Sometimes closing the fd takes a long time (> 10s) on some firmwares,
-    # this might create issues. I'm not really sure what the cause is, I added 
+    # this might create issues. I'm not really sure what the cause is, I added
     # a read from stdio to the default firmware and it seems to fix the issue.
     # The same behavior happens from opening and closing the file in C.
     try:
@@ -48,7 +49,7 @@ def get_ip() -> str:
 
 def typecheck(fn, args) -> bool:
     """Checks whether args are valid types for fn. Only works on classes
-    and non nested list generics."""
+    and non nested list generics. For dict, only checks if arg is a dict."""
     params = inspect.signature(fn).parameters.values()
 
     if len(params) != len(args):
@@ -69,7 +70,10 @@ def typecheck(fn, args) -> bool:
         if not isinstance(annotation, types.GenericAlias):
             return False
 
-        if annotation.__origin__ != list or not isinstance(arg, list):
+        if annotation.__origin__ is dict:
+            continue
+
+        if annotation.__origin__ is not list or not isinstance(arg, list):
             return False
 
         if len(annotation.__args__) != 1:
@@ -82,6 +86,46 @@ def typecheck(fn, args) -> bool:
                 return False
 
     return True
+
+def json_to_args(json, parameters):
+    values = list(map(json.get, parameters))
+    if any(map(lambda x : x is None, parameters)):
+        return False
+
+    return values
+
+def inject_and_return_json(func):
+    """Injects request json values into arguments. Uses argument names as the json key. Typechecks arguments,
+    only type, list[type] and dict are supported. Returns a status=400 if a key is missing or the typecheck fails.
+    Returns status=200 on True and status=500 on false. Otherwise, returns flask.jsonify of the result."""
+    parameter_strings = [] # func args as string
+    parameters = inspect.signature(func).parameters.values()
+
+    for param in parameters:
+        parameter_strings.append(str(param))
+
+    def handler_wrapper():
+        if request.content_type != "application/json":
+            return False
+        try:
+            json = request.get_json()
+        except Exception:
+            return False
+
+        args = json_to_args(json, parameters)
+
+        if not typecheck(func, args):
+            return Response(status=400)
+
+        res = func(*args)
+        if res is True:
+            return Response(status=200)
+        if res is False:
+            return Response(status=500)
+
+        return json(res)
+
+    return handler_wrapper
 
 def config_else_env(option: str, section: str, parser: ConfigParser, error=True, default=None):
     """Tries to find option from section of a .ini file. If it fails,
