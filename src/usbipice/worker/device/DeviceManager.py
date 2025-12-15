@@ -1,7 +1,6 @@
 from logging import Logger, LoggerAdapter
 import threading
 import atexit
-import json
 
 import pyudev
 
@@ -52,7 +51,7 @@ class DeviceManager:
         self.logger.info("Finished scan")
 
     def handleDevEvent(self, action: str, dev: pyudev.Device):
-        """Ensures that a device is related to pico2ice and reroutes the event to handleAddDevice or 
+        """Ensures that a device is related to pico2ice and reroutes the event to handleAddDevice or
         handleRemoveDevice."""
         if self.exiting:
             return
@@ -74,17 +73,7 @@ class DeviceManager:
 
         device.handleDeviceEvent(action, dev)
 
-    def handleRequest(self, data: dict):
-        try:
-            contents = json.loads(data)
-        except Exception:
-            return False
-
-        serial = contents.get("serial")
-        event = contents.get("event")
-        if not serial or not event:
-            return
-
+    def handleRequest(self, serial: str, event: str, contents: dict):
         dev = self.devs.get(serial)
 
         if not dev:
@@ -93,18 +82,12 @@ class DeviceManager:
 
         return dev.handleRequest(event, contents)
 
-    def reserve(self, data: dict):
-        serial = data.get("serial")
-        kind = data.get("kind")
-        args = data.get("args")
-
-        if not isinstance(serial, str) or not isinstance(kind, str) or not isinstance(args, dict):
-            return False
-
+    def reserve(self, serial: str, kind: str, args: dict):
         device = self.devs.get(serial)
 
         if not device:
             self.logger.error(f"device {serial} reserved but does not exist")
+            return False
 
         return device.handleReserve(kind, args)
 

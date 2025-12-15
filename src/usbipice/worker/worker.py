@@ -3,6 +3,7 @@ import logging
 import sys
 import argparse
 import threading
+import json
 
 from flask import Flask, request, Response
 from flask_socketio import SocketIO
@@ -10,7 +11,7 @@ from flask_socketio import SocketIO
 from usbipice.worker.device import DeviceManager
 from usbipice.worker import Config, EventSender
 
-from usbipice.utils import RemoteLogger
+from usbipice.utils import RemoteLogger, inject_and_return_json
 
 def main():
     logger = logging.getLogger(__name__)
@@ -43,38 +44,14 @@ def main():
         return Response(status=200)
 
     @app.get("/reserve")
-    def reserve():
-        if request.content_type != "application/json":
-            return Response(status=400)
-
-        try:
-            json = request.get_json()
-        except Exception:
-            return Response(status=400)
-
-        status = 200 if manager.reserve(json) else 400
-
-        return Response(status=status)
+    @inject_and_return_json
+    def reserve(serial: str, kind: str, args: dict):
+        return manager.reserve(serial, kind, args)
 
     @app.get("/unreserve")
-    def devices_bus():
-        if request.content_type != "application/json":
-            return Response(status=400)
-
-        try:
-            json = request.get_json()
-        except Exception:
-            return Response(status=400)
-
-        serial = json.get("serial")
-
-        if not serial:
-            return Response(status=400)
-
-        if manager.unreserve(serial):
-            return Response(status=200)
-        else:
-            return Response(status=400)
+    @inject_and_return_json
+    def devices_bus(serial: str):
+        return manager.unreserve(serial)
 
     @socketio.on("connect")
     def connection(auth):
@@ -109,7 +86,21 @@ def main():
             logger.warning("socket sent request but has no known client id")
             return
 
-        manager.handleRequest(data)
+        try:
+            data = json.loads(data)
+        except Exception:
+            logger.error(f"failed to load json string from client {client_id}")
+            return
+
+        serial = data.get("serial")
+        event = data.get("event")
+        contents = data.get("contents")
+
+        if not serial or not event or not contents:
+            logger.error(f"bad request packet from client {client_id}")
+            return
+
+        manager.handleRequest(serial, event, contents)
 
     socketio.run(app, port=8081, host="0.0.0.0", debug=False)
 
