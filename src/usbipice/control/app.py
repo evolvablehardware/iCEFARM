@@ -106,7 +106,8 @@ def main():
         event_sender.removeSocket(client_id)
 
 
-    socketio.run(app, port=SERVER_PORT)
+    #TODO
+    socketio.run(app, port=SERVER_PORT, allow_unsafe_werkzeug=True)
 
 if __name__ == "__main__":
     main()

@@ -5,6 +5,7 @@ from usbipice.utils import config_else_env
 from usbipice.utils import get_ip
 
 class Config:
+    # TODO do logging here
     def __init__(self, path=None):
         if path:
             if not os.path.exists(path):
@@ -15,7 +16,16 @@ class Config:
         else:
             parser = None
 
-        self.name = config_else_env("USBIPICE_WORKER_NAME", "Connection", parser)
+        self.name = config_else_env("USBIPICE_WORKER_NAME", "Connection", parser, error=False)
+        if not self.name:
+            self.name = os.environ.get("HOSTNAME")
+
+        if not self.name:
+            raise Exception("USBIPICE_WORKER_NAME not set, no HOSTNAME")
+
+        print("WARNING: using {self.name}")
+
+
         self.port = config_else_env("USBIPICE_SERVER_PORT", "Connection", parser, default="8081")
         self.virtual_port = config_else_env("USBIPICE_VIRTUAL_PORT", "Connection", parser, default="8081")
         self.control = config_else_env("USBIPICE_CONTROL_SERVER", "Connection", parser)

@@ -2,7 +2,6 @@
 import os
 import logging
 import sys
-import argparse
 import threading
 import json
 
@@ -99,7 +98,8 @@ def main():
 
         manager.handleRequest(serial, event, contents)
 
-    socketio.run(app, port=8081, host="0.0.0.0", debug=False)
+    # TODO
+    socketio.run(app, port=8081, debug=False, allow_unsafe_werkzeug=True)
 
 if __name__ == "__main__":
     main()
