@@ -37,7 +37,7 @@ Ensure a java runtime is installed, then install [Flyway](https://documentation.
 locations = ["filesystem:migrations"]
 cleanDisabled = false # optional
 [environments.default]
-url = "jdbc:postgresql://localhost:5432/{username}"
+url = "jdbc:postgresql://localhost:5432/{database}"
 user = ""
 password = ""
 ```
@@ -62,7 +62,7 @@ export USBIPICE_DATABASE='dbname={database name} user={username} password={passw
 ```
 Set USBIPICE_CONTROL_SERVER to the url of the control server. By default, it runs on 8080:
 ```
-export CONTROL_SERVER_URL=http://localhost:8080
+export USBIPICE_CONTROL_SERVER=http://localhost:8080
 ```
 
 Run control process:
