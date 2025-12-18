@@ -1,3 +1,4 @@
+from __future__ import annotations
 from logging import Logger
 
 from usbipice.client.lib import BaseAPI, EventServer, AbstractEventHandler, register

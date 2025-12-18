@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 import threading
 import json
@@ -8,6 +9,9 @@ from flask_socketio import SocketIO
 from usbipice.utils import Database
 
 class EventSenderLogger(logging.LoggerAdapter):
+    def __init__(self, logger, extra=None):
+        super().__init__(logger, extra)
+
     def process(self, msg, kwargs):
         return f"[EventSender] {msg}", kwargs
 

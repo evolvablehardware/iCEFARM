@@ -1,3 +1,4 @@
+from __future__ import annotations
 from threading import Lock
 from logging import Logger
 
@@ -67,7 +68,8 @@ class BaseAPI:
                 return False
 
             return res.json()
-        except Exception:
+        except Exception as e:
+            self.logger.error(f"Exception during GET /{endpoint}: {e}")
             return False
 
     def requestControl(self, endpoint: str, json: dict) -> dict:

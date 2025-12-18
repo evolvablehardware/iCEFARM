@@ -14,27 +14,7 @@ from usbipice.worker import Config, EventSender
 
 from usbipice.utils import RemoteLogger, inject_and_return_json
 
-# whether being run with uvicorn
-DEBUGING = __name__ == "__main__"
-
-def main():
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    logging.basicConfig(filemode="a", filename="worker_logs")
-    logger.addHandler(logging.StreamHandler(sys.stdout))
-
-    config_path = os.environ.get("USBIPICE_WORKER_CONFIG")
-    if not config_path:
-        config_path = None
-    config = Config(path=config_path)
-
-    app = Flask(__name__)
-
-    if DEBUGING:
-        socketio = SocketIO(app)
-    else:
-        socketio = Server()
-
+def create_app(app, socketio, config, logger):
     logger = RemoteLogger(logger, config.getControl(), config.getName())
 
     event_sender = EventSender(socketio, config.getDatabase(), logger)
@@ -106,11 +86,39 @@ def main():
 
         manager.handleRequest(serial, event, contents)
 
-    if DEBUGING:
-        logger.warning("DEBUG MODE")
-        socketio.run(app, port=config.getPort(), allow_unsafe_werkzeug=True)
-    else:
-        return WSGIApp(socketio, app)
+def run_debug():
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+    logger.warning("Running in debug mode")
+
+    config_path = os.environ.get("USBIPICE_WORKER_CONFIG")
+    if not config_path:
+        config_path = None
+    config = Config(path=config_path)
+
+    app = Flask(__name__)
+    socketio = SocketIO(app)
+    create_app(app, socketio, config, logger)
+    socketio.run(app, port=config.getPort())
+
+def run_uvicorn():
+    # TODO
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    logging.basicConfig(filemode="a", filename="worker_logs")
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+
+    config_path = os.environ.get("USBIPICE_WORKER_CONFIG")
+    if not config_path:
+        config_path = None
+    config = Config(path=config_path)
+
+    app = Flask(__name__)
+    socketio = Server()
+    create_app(app, socketio, config, logger)
+
+    return WSGIApp(socketio, app)
 
 if __name__ == "__main__":
-    main()
+    run_debug()

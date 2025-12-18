@@ -37,7 +37,7 @@ class Control:
     def end(self, client_id: str, serials: list[str]) -> list[str]:
         data = self.database.end(client_id, serials)
         for row in data:
-            self.__notifyEnd(client_id, row["serial"], f"http://{row["workerip"]}:{row["workerport"]}")
+            self.__notifyEnd(client_id, row['serial'], f"http://{row['workerip']}:{row['workerport']}")
 
         return list(map(lambda row : row["serial"], data))
 
@@ -45,7 +45,7 @@ class Control:
     def endAll(self, client_id: str) -> list[str]:
         data = self.database.endAll(client_id)
         for row in data:
-            self.__notifyEnd(client_id, row["serial"], f"http://{row["workerip"]}:{row["workerport"]}")
+            self.__notifyEnd(client_id, row["serial"], f"http://{row['workerip']}:{row['workerport']}")
 
         return list(map(lambda row : row["serial"], data))
 

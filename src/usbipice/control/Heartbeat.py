@@ -41,6 +41,9 @@ class HeartbeatConfig:
         return self.reservation_expiring_notify_at_seconds
 
 class HeartbeatLogger(LoggerAdapter):
+    def __init__(self, logger, extra=None):
+        super().__init__(logger, extra)
+
     def process(self, msg, kwargs):
         return f"[Heartbeat] {msg}", kwargs
 
@@ -121,7 +124,7 @@ class Heartbeat:
 
                 for row in data:
                     self.event_sender.sendDeviceFailure(row["serial"], row["client_id"])
-                    self.logger.info(f"Worker {row["worker"]} failed; sent device failure for client {row["client_id"]} device {row["serial"]}")
+                    self.logger.info(f"Worker {row['worker']} failed; sent device failure for client {row['client_id']} device {row['serial']}")
 
             threading.Thread(target=run, name="heartbeat-worker-timeouts", daemon=True).start()
 
@@ -135,7 +138,7 @@ class Heartbeat:
 
                 for row in data:
                     self.__notifyEnd(row["serial"], row["workerip"], row["workerport"])
-                    self.logger.info(f"Reservation for device {row["serial"]} by client {row["client_id"]} ended")
+                    self.logger.info(f"Reservation for device {row['serial']} by client {row['client_id']} ended")
 
             threading.Thread(target=run, name="heartbeat-reservation-timeouts", daemon=True).start()
 

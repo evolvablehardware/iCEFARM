@@ -36,7 +36,7 @@ class RemoteLogger:
                 res = requests.get(f"{self.control_server}/log", json={
                     "logs": logs,
                     "name": self.client_name
-                })
+                }, timeout=10)
                 if res.status_code != 200:
                     raise Exception
             except Exception:

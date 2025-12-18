@@ -65,7 +65,7 @@ class UsbipState(AbstractState):
         busid = get_busid(path)
 
         if not busid:
-            self.getLogger().warning(f"failed to get busid: {dev.get("DEVNAME")}")
+            self.getLogger().warning(f"failed to get busid: {dev.get('DEVNAME')}")
             return
 
         self.busid = busid

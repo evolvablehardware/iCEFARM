@@ -1,3 +1,4 @@
+from __future__ import annotations
 from usbipice.utils import Database
 
 class ControlDatabase(Database):

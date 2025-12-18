@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["setuptools >= 77.0.3"]
+requires = ["setuptools >= 61"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
@@ -24,10 +24,8 @@ packages = ["usbipice"]
 package-dir = {"" = "src"}
 
 [project.scripts]
-worker = "usbipice:worker.main"
-control = "usbipice:control.main"
-heartbeat = "usbipice:heartbeat.main"
-usbipconnect = "usbipice:usbipconnect.main"
+worker = "usbipice:worker.app.run_debug"
+control = "usbipice:control.app.run_debug"
 
 
 

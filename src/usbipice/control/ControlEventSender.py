@@ -3,6 +3,9 @@ from logging import LoggerAdapter
 from usbipice.worker import EventSender
 
 class ControlEventSenderLogger(LoggerAdapter):
+    def __init__(self, logger, extra=None):
+        super().__init__(logger, extra)
+
     def process(self, msg, kwargs):
         return f"[ControlEventSender] {msg}", kwargs
 

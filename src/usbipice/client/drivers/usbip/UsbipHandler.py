@@ -1,3 +1,4 @@
+from __future__ import annotations
 import time
 import threading
 from logging import Logger
@@ -89,7 +90,7 @@ class UsbipHandler(BaseUsbipEventHandler):
             self.devices[serial].deviceEvent()
 
     def __pollUsbipPort(self):
-        """Runs usbip port, updates devices that are connected, and triggers timeouts on devices that 
+        """Runs usbip port, updates devices that are connected, and triggers timeouts on devices that
         have disconnected."""
         while True:
             for _ in range(self.poll):

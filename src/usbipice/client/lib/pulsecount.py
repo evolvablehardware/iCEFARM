@@ -1,3 +1,4 @@
+from __future__ import annotations
 import uuid
 from usbipice.client.lib import AbstractEventHandler, register, BaseClient
 

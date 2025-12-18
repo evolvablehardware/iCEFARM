@@ -13,14 +13,15 @@ if TYPE_CHECKING:
     from usbipice.worker.device import DeviceManager
     from usbipice.worker.device.state.core import AbstractState
 
-DEFAULT_FIRMWARE_PATH = "src/usbipice/worker/firmware/build/default_firmware.uf2"
+# TODO add this to config
 WORKER_MEDIA = "worker_media"
+
 class DeviceLogger(LoggerAdapter):
     def __init__(self, logger, serial):
         super().__init__(logger, extra={"serial": serial})
 
     def process(self, msg, kwargs):
-        return f"[{self.extra["serial"]}] {msg}", kwargs
+        return f"[{self.extra['serial']}] {msg}", kwargs
 
 class Device:
     def __init__(self, serial: str, manager: DeviceManager, event_sender: EventSender, database: WorkerDatabase, logger: Logger):

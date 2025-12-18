@@ -1,6 +1,7 @@
 """
 Utility functions that don't fit the other modules.
 """
+from __future__ import annotations
 from logging import Logger
 import re
 import subprocess

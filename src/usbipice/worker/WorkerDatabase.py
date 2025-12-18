@@ -11,6 +11,9 @@ if typing.TYPE_CHECKING:
     from usbipice.utils import DeviceState
 
 class WorkerDataBaseLogger(LoggerAdapter):
+    def __init__(self, logger, extra=None):
+        super().__init__(logger, extra)
+
     def process(self, msg, kwargs):
         return f"[WorkerDatabase] {msg}", kwargs
 

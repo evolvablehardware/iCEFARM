@@ -10,33 +10,19 @@ from socketio import Server, WSGIApp
 from usbipice.control import Control, Heartbeat, HeartbeatConfig, ControlEventSender
 from usbipice.utils import inject_and_return_json
 
-DEBUGGING = __name__ == "__main__"
-
 class ControlLogger(logging.LoggerAdapter):
+    def __init__(self, logger, extra=None):
+        super().__init__(logger, extra)
+
     def process(self, msg, kwargs):
         return f"[Control] {msg}", kwargs
 
-def main():
-    base_logger = logging.getLogger(__name__)
-    base_logger.setLevel(logging.DEBUG)
-    base_logger.addHandler(logging.StreamHandler(sys.stdout))
-
-    logger = ControlLogger(base_logger)
+def create_app(app, socketio, logger):
+    logger = ControlLogger(logger)
 
     DATABASE_URL = os.environ.get("USBIPICE_DATABASE")
     if not DATABASE_URL:
         raise Exception("USBIPICE_DATABASE not configured")
-
-    SERVER_PORT = int(os.environ.get("USBIPICE_CONTROL_PORT", "8080"))
-    logger.info(f"Running on port {SERVER_PORT}")
-
-
-    app = Flask(__name__)
-
-    if DEBUGGING:
-        socketio = SocketIO(app)
-    else:
-        socketio = Server()
 
     sock_id_to_client_id = {}
     id_lock = threading.Lock()
@@ -55,7 +41,7 @@ def main():
 
     @app.get("/extend")
     @inject_and_return_json
-    def extend(name: str, serials: list[str]):
+    def extend(name: str, serials: list):
         return control.extend(name, serials)
 
     @app.get("/extendall")
@@ -112,11 +98,30 @@ def main():
 
         event_sender.removeSocket(client_id)
 
-    if DEBUGGING:
-        logger.warning("DEBUG MODE")
-        socketio.run(app, port=SERVER_PORT)
-    else:
-        return WSGIApp(socketio, app)
+def run_debug():
+    SERVER_PORT = int(os.environ.get("USBIPICE_CONTROL_PORT", "8080"))
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+    logger.warning("Running in debug mode")
+
+    app = Flask(__name__)
+    socketio = SocketIO(app)
+    create_app(app, socketio, logger)
+    socketio.run(app, port=SERVER_PORT)
+
+def run_uvicorn():
+    # TODO
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+
+    app = Flask(__name__)
+    socketio = Server()
+    create_app(app, socketio)
+
+    return WSGIApp(socketio, app, logger)
 
 if __name__ == "__main__":
-    main()
+    run_debug()

@@ -1,3 +1,4 @@
+from __future__ import annotations
 import threading
 import os
 
@@ -100,7 +101,7 @@ class FirmwareFlasher:
             device.otherExport(path)
 
     def flash(self, serials: list[str], path: str):
-        """Queue serials to be flashed with path firmware. Note that this does not return when the devices 
+        """Queue serials to be flashed with path firmware. Note that this does not return when the devices
         are done being flashed, only once the devices have been added into the queue."""
         if not isinstance(serials, list):
             serials = [serials]

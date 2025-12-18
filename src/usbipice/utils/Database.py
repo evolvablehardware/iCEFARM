@@ -1,5 +1,6 @@
 import psycopg
 from psycopg.types.enum import Enum, EnumInfo, register_enum
+from typing import List
 
 class DeviceState(Enum):
     available = 0
@@ -41,7 +42,7 @@ class Database:
 
         return True
 
-    def getData(self, sql: str, args: tuple, columns: list[str], stringify=[]):
+    def getData(self, sql: str, args: tuple, columns: List[str], stringify=[]):
         if (data := self.execute(sql, args)) is False:
             return False
 

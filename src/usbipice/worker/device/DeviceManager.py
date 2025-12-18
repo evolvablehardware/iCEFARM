@@ -14,6 +14,9 @@ if typing.TYPE_CHECKING:
     from usbipice.worker import Config, EventSender
 
 class ManagerLogger(LoggerAdapter):
+    def __init__(self, logger, extra=None):
+        super().__init__(logger, extra)
+
     def process(self, msg, kwargs):
         return f"[DeviceManager] {msg}", kwargs
 

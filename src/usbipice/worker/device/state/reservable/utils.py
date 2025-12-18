@@ -1,4 +1,6 @@
 """Makes it possible for a specific device state to be requested from the client."""
+from typing import List
+
 STATE_VALUE_CHECKERS = {}
 STATE_RESERVATION_CONSTRUCTORS = {}
 
@@ -13,7 +15,7 @@ def get_reservation_state_fac(state, kind, args):
 
     return fn(state, args)
 
-def reservable(name, *args: list[str]):
+def reservable(name, *args: List[str]):
     """Makes an AbstractState available by reservation request under name. When reserve is called with
     this name, the device switches state to Cls(device: device.Device, *json_args), where json_args
     are obtained from using args as keys into the request dictionary. The class should be included in
