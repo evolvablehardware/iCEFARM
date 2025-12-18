@@ -1,4 +1,3 @@
-# This is meant for local development and testing, not for production
 # Starts control on localhost:8080 and worker on localhost:8081
 # Configuration needed:
 #   USBIPICE_DATABASE
@@ -34,13 +33,14 @@ services:
     environment:
     - USBIPICE_DATABASE=${USBIPICE_DATABASE}
     - USBIPICE_VIRTUAL_IP=${USBIPICE_VIRTUAL_IP}
+    - USBIPICE_VIRTUAL_PORT=8081
 
     - USBIPICE_CONTROL_SERVER=http://localhost:8080
     - USBIPICE_WORKER_NAME=host_worker
     - USBIPICE_DEFAULT=src/usbipice/worker/firmware/default/build/default_firmware.uf2
     - USBIPICE_PULSE_COUNT=src/usbipice/worker/firmware/pulse_count/build/bitstream_over_usb.uf2
 
-    command: [".venv/bin/uvicorn", "usbipice.worker.app:main"]
+    command: [".venv/bin/uvicorn", "usbipice.worker.app:main", "--env-file", ".uvicorn_env_bridge", "--port", "8081", "--factory", "host=0.0.0.0"]
 
   control:
     deploy:
@@ -61,5 +61,4 @@ services:
     environment:
       - USBIPICE_DATABASE=${USBIPICE_DATABASE}
 
-    command: [".venv/bin/uvicorn", "usbipice.control.app:main"]
-
+    command: [".venv/bin/uvicorn", "usbipice.control.app:main", "--env-file", ".uvicorn_env_bridge", "--factory", "host=0.0.0.0"]
