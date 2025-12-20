@@ -42,6 +42,9 @@ class DeviceManager:
 
         context = pyudev.Context()
         monitor = pyudev.Monitor.from_netlink(context)
+        monitor.filter_by("tty")
+        monitor.filter_by("block")
+
         observer = pyudev.MonitorObserver(monitor, lambda x, y : self.handleDevEvent(x, y), name="manager-userevents")
         observer.start()
 
@@ -53,14 +56,17 @@ class DeviceManager:
         context = pyudev.Context().list_devices()
 
         for dev in context:
-            dev = dict(dev)
             self.handleDevEvent("add", dev)
+
         self.logger.info("Finished scan")
 
     def handleDevEvent(self, action: str, dev: pyudev.Device):
         """Ensures that a device is related to pico2ice and reroutes the event to handleAddDevice or
         handleRemoveDevice."""
         if self.exiting:
+            return
+
+        if dev.properties.get("ID_VENDOR_ID") != "2e8a":
             return
 
         dev = dict(dev)
