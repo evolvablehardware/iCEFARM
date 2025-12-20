@@ -81,7 +81,9 @@ class DeviceManager:
         device.handleDeviceEvent(action, dev)
 
     def handleRequest(self, serial: str, event: str, contents: dict):
-        dev = self.devs.get(serial)
+        with self.dev_lock:
+            dev = self.devs.get(serial)
+
 
         if not dev:
             self.logger.warning(f"request for {event} on {serial} but device not found")
@@ -90,7 +92,8 @@ class DeviceManager:
         return dev.handleRequest(event, contents)
 
     def reserve(self, serial: str, kind: str, args: dict):
-        device = self.devs.get(serial)
+        with self.dev_lock:
+            device = self.devs.get(serial)
 
         if not device:
             self.logger.error(f"device {serial} reserved but does not exist")
@@ -98,8 +101,10 @@ class DeviceManager:
 
         return device.handleReserve(kind, args)
 
-    def unreserve(self, device: pyudev.Device):
-        dev = self.devs.get(device)
+    def unreserve(self, serial: str):
+        with self.dev_lock:
+            dev = self.devs.get(serial)
+
         if not dev:
             return False
 
@@ -107,7 +112,10 @@ class DeviceManager:
 
     def onExit(self):
         """Callback for cleanup on program exit"""
-        for dev in self.devs.values():
+        with self.dev_lock:
+            devs = list(self.devs.values())
+
+        for dev in devs:
             dev.handleExit()
 
         self.database.onExit()

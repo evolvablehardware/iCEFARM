@@ -76,7 +76,10 @@ class Device:
         return True
 
     def handleRequest(self, event, json):
-        return self.device.handleRequest(event, json)
+        with self.device_lock:
+            device = self.device
+
+        return device.handleRequest(event, json)
 
     def handleExit(self):
         with self.device_lock:
