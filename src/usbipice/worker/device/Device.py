@@ -32,7 +32,7 @@ class Device:
         self.device_event_sender = DeviceEventSender(event_sender, self.serial, self.logger)
 
         self.device: AbstractState = None
-        self.device_lock = threading.Lock()
+        self.device_lock = threading.RLock()
 
         self.path = Path(WORKER_MEDIA).joinpath(self.getSerial())
 
@@ -50,17 +50,18 @@ class Device:
             if not self.device:
                 return
 
-            device = self.device
+            with self.device.getSwitchLock():
+                self.logger.debug(f"device {dev["DEVPATH"]}")
 
-        if action == "add":
-            device.handleAdd(dev)
-            return
+                if action == "add":
+                    self.device.handleAdd(dev)
+                    return
 
-        if action == "remove":
-            device.handleRemove(dev)
-            return
+                if action == "remove":
+                    self.device.handleRemove(dev)
+                    return
 
-        self.getLogger().warning(f"unhandled device action: {action}")
+                self.getLogger().warning(f"unhandled device action: {action}")
 
     def handleReserve(self, kind, args):
         fn = get_reservation_state_fac(self, kind, args)
@@ -77,9 +78,7 @@ class Device:
 
     def handleRequest(self, event, json):
         with self.device_lock:
-            device = self.device
-
-        return device.handleRequest(event, json)
+            self.device.handleRequest(event, json)
 
     def handleExit(self):
         with self.device_lock:
@@ -92,8 +91,7 @@ class Device:
                 self.device.handleExit()
             device = state_factory()
             self.device = device
-
-        device.start()
+            self.device.start()
 
     def getSerial(self) -> str:
         return self.serial

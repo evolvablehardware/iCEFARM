@@ -93,8 +93,8 @@ def create_app(app, socketio, config, logger):
 
         if isinstance(serial, list):
             for s in serial:
-                contents["serial"] = s
-                manager.handleRequest(s, event, contents)
+                thread = threading.Thread(target=lambda : manager.handleRequest(s, event, contents), name="socket-request")
+                thread.start()
 
         else:
             manager.handleRequest(serial, event, contents)

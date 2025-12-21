@@ -11,6 +11,9 @@ class TestState(AbstractState):
 
         self.getDatabase().updateDeviceStatus(self.getSerial(), "testing")
 
+        self.timer = threading.Timer(30, lambda : self.switch(lambda : BrokenState(self.getDevice())))
+        self.timer.start()
+
     def handleAdd(self, dev):
         path = dev.get("DEVNAME")
 
@@ -24,8 +27,6 @@ class TestState(AbstractState):
 
             self.exiting = True
 
-            if not check_default(path):
-                self.getLogger().error("default firmware test failed")
-                self.switch(lambda : BrokenState(self.getDevice()))
-            else:
+            if check_default(path):
+                self.timer.cancel()
                 self.switch(lambda : ReadyState(self.getDevice()))

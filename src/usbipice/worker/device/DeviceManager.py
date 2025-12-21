@@ -66,7 +66,7 @@ class DeviceManager:
         if self.exiting:
             return
 
-        if dev.properties.get("ID_VENDOR_ID") != "2e8a":
+        if dev.properties.get("ID_VENDOR_ID") not in ["2e8a", "1209"]:
             return
 
         dev = dict(dev)
@@ -84,7 +84,8 @@ class DeviceManager:
                 device = Device(serial, self, self.event_sender, self.database, self.logger)
                 self.devs[serial] = device
 
-        device.handleDeviceEvent(action, dev)
+        thread = threading.Thread(target=lambda : device.handleDeviceEvent(action, dev), name="dev-event-handler")
+        thread.start()
 
     def handleRequest(self, serial: str, event: str, contents: dict):
         with self.dev_lock:

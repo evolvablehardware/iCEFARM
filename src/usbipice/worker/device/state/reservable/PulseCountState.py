@@ -36,7 +36,6 @@ class PulseCountStateFlasher(AbstractState):
 class PulseCountState(AbstractState):
     def __init__(self, state):
         super().__init__(state)
-        self.getEventSender().sendDeviceInitialized()
 
         self.cv = threading.Condition()
         self.bitstream_queue: list[Bitstream] = []
@@ -62,8 +61,10 @@ class PulseCountState(AbstractState):
         self.sender = PulseCountEventSender(self.getDevice())
 
         self.exiting = False
-        self.thread = threading.Thread(target=lambda : self.run())
+        self.thread = threading.Thread(target=self.run)
         self.thread.start()
+
+        self.getEventSender().sendDeviceInitialized()
 
     @AbstractState.register("evaluate", "files")
     def queue(self, files):

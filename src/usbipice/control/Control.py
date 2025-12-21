@@ -1,5 +1,6 @@
 from __future__ import annotations
 from logging import Logger
+import threading
 
 import requests
 
@@ -54,20 +55,24 @@ class Control:
             return False
 
         for row in con_info:
-            ip = row["ip"]
-            port = row["serverport"]
-            serial = row["serial"]
+            def send_reserve():
+                ip = row["ip"]
+                port = row["serverport"]
+                serial = row["serial"]
 
-            try:
-                res = requests.get(f"http://{ip}:{port}/reserve", json={
-                    "serial": serial,
-                    "kind": kind,
-                    "args": args
-                }, timeout=5)
+                try:
+                    res = requests.get(f"http://{ip}:{port}/reserve", json={
+                        "serial": serial,
+                        "kind": kind,
+                        "args": args
+                    }, timeout=15)
 
-                if res.status_code != 200:
-                    raise Exception
-            except Exception:
-                pass
+                    if res.status_code != 200:
+                        raise Exception
+                except Exception:
+                    pass
+
+            thread = threading.Thread(target=send_reserve, name="send-reservation")
+            thread.start()
 
         return con_info

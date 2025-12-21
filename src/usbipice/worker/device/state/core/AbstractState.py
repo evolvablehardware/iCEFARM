@@ -47,7 +47,7 @@ class AbstractState:
         self.logger = StateLogger(self.getDevice().getLogger(), name)
 
         self.switching = False
-        self.switching_lock = threading.Lock()
+        self.switching_lock = threading.RLock()
 
         self.getLogger().debug(f"state is now {name}")
 
@@ -95,6 +95,9 @@ class AbstractState:
             self.switching = True
 
         return self.getDevice().switch(state_factory)
+
+    def getSwitchLock(self):
+        return self.switching_lock
 
     def isSwitching(self):
         """Whether the Device is currently switching states"""

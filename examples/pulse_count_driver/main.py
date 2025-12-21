@@ -30,7 +30,7 @@ BUILD_DIR = "examples/pulse_count_driver/build"
 # If you have more than one device, feel free to increase this number. This
 # particular client evaluates each circuit once on each of the devices,
 # but the distribution method can be changed by modifying the client.
-NUM_DEVICES = 3
+NUM_DEVICES = 1
 
 # ID for the client. Must be unique.
 CLIENT_NAME = "read default example"
@@ -61,6 +61,7 @@ atexit.register(client.stop)
 
 # Reserves a device from the system. Since this is the pulse count client,
 # the device will automatically be set to the pulse count device behavior.
+logger.info("Reserving devices. This may take up to 30 seconds.")
 devices = client.reserve(NUM_DEVICES)
 if not devices:
     raise Exception("Failed to reserve any devices")
@@ -94,12 +95,6 @@ if COMPILE_PULSES:
         logger.info(f"Circuit compiled with approximately {actual_khz:.2f}kHz.")
 
 num_bitstreams = len(BITSTREAM_PATHS)
-
-# Give some time for the devices to be ready.
-# The client is notified when all devices have been
-# initilized, but this is simpler for an example.
-logger.info("Letting devices initialize...")
-time.sleep(15)
 
 # Raise exception if evaluation takes suspiciously long
 def timeout():
