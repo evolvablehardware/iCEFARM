@@ -18,6 +18,19 @@ jobs:
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+      -
+        name: Build and push amd
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: usbipiceproject/usbipice-worker:amd
+          file: deploy/Dockerfile
+          platforms: linux/amd64
+          # cache-from: type=registry,ref=usbipiceproject/usbipice-worker:amd
+          cache-from: type=gha
+          # cache-to: type=inline,mode=max
+          cache-to: type=gha,mode=max
+
       # -
       #   name: Build and push arm
       #   uses: docker/build-push-action@v6
@@ -29,15 +42,4 @@ jobs:
       #     cache-from: type=registry,ref=usbipiceproject/usbipice-worker:arm
       #     cache-to: type=inline,mode=max
 
-      -
-        name: Build and push amd
-        uses: docker/build-push-action@v6
-        with:
-          push: true
-          tags: usbipiceproject/usbipice-worker:amd
-          file: deploy/Dockerfile
-          platforms: linux/amd64
-          cache-from: type=registry,ref=usbipiceproject/usbipice-worker:amd
-          # cache-to: type=inline,mode=max
-          cache-to: type=gha,mode=max
 
