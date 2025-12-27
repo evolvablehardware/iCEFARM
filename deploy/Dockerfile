@@ -29,6 +29,10 @@ WORKDIR /usr/local/app/src/usbipice/worker/firmware/pulse_count/build
 RUN cmake -DPICO_BOARD=pico2_ice ..
 RUN make
 
+WORKDIR /usr/local/app/src/usbipice/worker/firmware/default_firmware/build
+RUN cmake -DPICO_BOARD=pico2_ice ..
+RUN make
+
 WORKDIR /usr/local/app
 RUN python3 -m venv .venv
 RUN .venv/bin/pip install -e .
