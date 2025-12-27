@@ -29,7 +29,7 @@ WORKDIR /usr/local/app/src/usbipice/worker/firmware/pulse_count/build
 RUN cmake -DPICO_BOARD=pico2_ice ..
 RUN make
 
-WORKDIR /usr/local/app/src/usbipice/worker/firmware/default_firmware/build
+WORKDIR /usr/local/app/src/usbipice/worker/firmware/default/build
 RUN cmake -DPICO_BOARD=pico2_ice ..
 RUN make
 
