@@ -24,12 +24,16 @@ RUN make
 FROM ubuntu:noble-20251013
 WORKDIR /usr/local/app
 
-RUN apt-get update && apt-get install -y python3 python3-pip python3-venv sudo udev linux-tools-generic
+RUN apt-get update && apt-get install -y python3 python3-pip python3-venv sudo udev linux-tools-generic && rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
+
 RUN mkdir -p /run/udev
 
 COPY ./ /usr/local/app/
 COPY --from=builder /usr/local/build/picocom/picocom /usr/bin
-COPY --from=builder /usr/local/firmware /usr/local/app/src/usbipice/worker/firmware
+# TODO must be a better way
+# can't copy entire dir since build artifacts
+COPY --from=builder /usr/local/firmware/default/build/default_firmware.uf2 /usr/local/app/src/usbipice/worker/firmware/default/build/default_firmware.uf2
+COPY --from=builder /usr/local/firmware/pulse_count/build/bitstream_over_usb.uf2 /usr/local/app/src/usbipice/worker/firmware/pulse_count/build/bitstream_over_usb.uf2
 
 WORKDIR /usr/local/app
 RUN python3 -m venv .venv
