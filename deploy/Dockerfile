@@ -37,5 +37,6 @@ COPY --from=builder /usr/local/firmware/pulse_count/build/bitstream_over_usb.uf2
 
 WORKDIR /usr/local/app
 RUN python3 -m venv .venv
+RUN .venv/bin/pip install -e .
 
 EXPOSE 8080
