@@ -61,7 +61,7 @@ def check_default(devpath) -> bool:
 def get_ip() -> str:
     """Obtains local network ip from hostname -I."""
     res = subprocess.run(["hostname", "-I"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True).stdout
-    group = re.search("[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]", str(res))
+    group = re.search("[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+", str(res))
     if group:
         return group.group(0)
 
