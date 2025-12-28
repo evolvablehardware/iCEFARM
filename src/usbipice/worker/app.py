@@ -103,7 +103,6 @@ def run_debug():
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))
-    logger.warning("Running in debug mode")
 
     config_path = os.environ.get("USBIPICE_WORKER_CONFIG")
     if not config_path:
@@ -116,10 +115,15 @@ def run_debug():
     socketio.run(app, port=config.server_port, allow_unsafe_werkzeug=True, host="0.0.0.0")
 
 def run_uvicorn():
-    # TODO
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
-    logging.basicConfig(filemode="a", filename="worker_logs")
+
+    log_loc = os.environ.get("USBIPICE_WORKER_LOGS")
+    if log_loc:
+        logger.addHandler(logging.FileHandler(log_loc))
+    else:
+        raise Exception("USBIPICE_WORKER_LOGS not configured")
+
     logger.addHandler(logging.StreamHandler(sys.stdout))
 
     config_path = os.environ.get("USBIPICE_WORKER_CONFIG")
