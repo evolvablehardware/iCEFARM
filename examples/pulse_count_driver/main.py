@@ -7,7 +7,7 @@ from pathlib import Path
 import shutil
 import threading
 
-from usbipice.client.drivers.pulse_count import PulseCountClient
+from usbipice.client.drivers import PulseCountClient
 from usbipice.utils import generate_circuit
 
 #################################################

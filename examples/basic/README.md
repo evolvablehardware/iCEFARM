@@ -1,2 +1,0 @@
-# Reading from default firmware
-This is intended to be used as the first example. It uses the UsbipClient to connect to a device, finds the device's port, then reads the output of the default firmware. Afterwards, the device is unreserved.

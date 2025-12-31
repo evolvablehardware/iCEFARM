@@ -5,8 +5,11 @@ __pycache__
 
 client_media
 worker_media
-examples
 worker_logs
+
+examples
+!examples/pulse_count_driver/main.py
+!examples/pulse_count_driver/precompiled_circuits
 
 src/usbipice/worker/firmware/**/build
 !src/usbipice/worker/firmware/**/build/*.uf2

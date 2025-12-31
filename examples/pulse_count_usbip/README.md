@@ -1,2 +1,0 @@
-# Pulse count over usbip
-Connect to a device with the usbip client, then upload pulse counting firmware. Performs a loop of creating a clock bitstream, uploading it to the fpga, then logging the resulting pulses. Requires first building the firmware in [worker](../../src/usbipice/worker/firmware). 
