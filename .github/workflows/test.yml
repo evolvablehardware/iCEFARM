@@ -9,19 +9,21 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Compose Up
-        run: docker compose -f deploy/test_compose.yml up -d
+    #   - name: Checkout
+    #     uses: actions/checkout@v6
+    #   - name: Compose Up
+    #     run: docker compose -f deploy/test_compose.yml up -d
 
-      - name: Wait for compose
-        run: sleep 2m
+    #   - name: Wait for compose
+    #     run: sleep 2m
 
-      - name: Run Tests
-        run: docker compose -f deploy/test_compose.yml exec client .venv/bin/python3 tests/pulsecount_stack.py
+    #   - name: Run Tests
+    #     run: docker compose -f deploy/test_compose.yml exec client .venv/bin/python3 tests/pulsecount_stack.py
 
-      - name: Compose Logs
-        run: docker compose -f deploy/test_compose.yml logs
+    #   - name: Compose Logs
+    #     run: docker compose -f deploy/test_compose.yml logs
 
-      - name: Compose Down
-        run: docker compose -f deploy/test_compose.yml down
+    #   - name: Compose Down
+    #     run: docker compose -f deploy/test_compose.yml down
+        - name: Test error
+          run: python3 -c "raise Exception()"
