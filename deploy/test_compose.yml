@@ -29,7 +29,7 @@ services:
         condition: service_completed_successfully
 
 
-    image: runtest
+    image: usbipiceproject/usbipice-worker:all
     build:
       context: .
       dockerfile: deploy/dockerfile
@@ -57,7 +57,7 @@ services:
       flyway:
         condition: "service_completed_successfully"
 
-    image: runtest
+    image: usbipiceproject/usbipice-worker:all
     build:
       context: .
       dockerfile: deploy/dockerfile
@@ -69,4 +69,13 @@ services:
     ports:
       - target: 8080
         published: 8080
+
+  client:
+    depends_on:
+      flyway:
+        condition: "service_completed_successfully"
+
+    image: usbipiceproject/usbipice-worker:all
+    command: ["tail",  "-f",  "/dev/null"]
+
 

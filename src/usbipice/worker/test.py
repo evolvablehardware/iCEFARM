@@ -59,6 +59,9 @@ class FakeSerial:
 
         time.sleep(5)
 
+    def close(self):
+        pass
+
 class FakeDevice:
     def __init__(self, properties):
         self.properties = properties
