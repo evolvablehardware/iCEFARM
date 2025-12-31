@@ -20,7 +20,7 @@ RUN cmake -DPICO_BOARD=pico2_ice ..
 RUN make
 
 
-FROM --platform=$BUILDPLATFORM ubuntu:noble-20251013 AS picocom-builder
+FROM ubuntu:noble-20251013 AS picocom-builder
 RUN apt-get update && apt-get install -y make cmake gcc-arm-none-eabi linux-tools-generic git python3 build-essential
 
 WORKDIR /usr/local/build
