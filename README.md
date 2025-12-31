@@ -22,6 +22,73 @@ The core of the client is the event server. This event server is in change of li
 
 A separate client interface is made for each device state, and a single device state may have multiple different clients for different situations. The client lib contains a base for each device state, which includes an event handler stub. An example of this is the [pulse count state](./src/usbipice/client/lib/pulsecount.py), which contains an event hook for once the bitstreams have been evaluated. In addition, an API for interacting with methods that the state has made available for web interfacing is included. Continuing with the pulse count example, the client can first use *reserve* to obtain a device, then call *evaluate* to queue a bitstream for evaluation. Once the device state has finished measuring the amount of pulses, it sends a request to the event server of the client. The event server then routes the request into the *results* method on the event handler.
 
+## Docker Setup
+*This is much quicker than using the Local Development Setup*
+
+The picos need to be plugged into the worker and running firmware that has tinyusb loaded. The [rp2_hello_world](https://github.com/tinyvision-ai-inc/pico-ice-sdk/tree/main/examples/rp2_hello_world) example from the pico-ice-sdk works for this purpose.
+
+
+If it is not yet installed, install [Docker Engine](https://docs.docker.com/engine/install/). Follow the [post installation steps](https://docs.docker.com/engine/install/linux-postinstall/) so that you do not need to use sudo. Included below:
+ ```
+ sudo usermod -aG docker $USERNAME
+ #new shell or log out and then login
+ newgrp docker
+ ```
+
+Build the image. You may skip this step and the image will automatically download from [DockerHub](https://hub.docker.com/r/usbipiceproject/usbipice-worker/tags).
+```
+docker build -f docker/Dockerfile -t usbipiceproject/usbipice-worker:all .
+```
+A compose file is included for running both the worker and control. This can also be done through the provided vscode tasks. If you are on an arm device, you will need to change the image tag in the compose file to arm. Start the stack:
+```
+docker compose -f docker/compose.yml up
+```
+This runs:
+- iCEFARM control server on port 8080
+- iCEFARM worker on port 8081
+- Postgres database on port 5433 and applies database migrations
+
+If there is unexpected behavior, check the [troubleshooting](#troubleshooting) section.
+Approximate output from Worker:
+```
+[DeviceManager] Scanning for devices
+[DeviceManager] [{SERIAL}] [FlashState] state is now FlashState
+[DeviceManager] [{SERIAL}] [FlashState] sending bootloader signal to /dev/ttyACM0
+[DeviceManager] [{SERIAL}] [TestState] state is now TestState
+[DeviceManager] [{SERIAL}] [ReadyState] state is now ReadyState
+[DeviceManager] Finished scan
+```
+Note that the order and dev files will vary. In some situations there may be multiple bootloader signals sent. Confirm that the device has been added to the database:
+```
+psql -p 5433 -U postgres -w postgres -h localhost -c 'select * from device;'
+```
+Expected output:
+```
+| serialid |    worker     | devicestatus |
+|----------|---------------|--------------|
+| {serial} |  host worker  |   available  |
+```
+
+The control does not have any immediate output. It will send periodic heartbeats to workers:
+```
+[Control] [Heartbeat] heartbeat success for debug-worker
+```
+In addition, it will receive logs from the workers. Note that log entries that happened before the control was started will not be displayed:
+```
+[host_worker@1] [DeviceManager] Scanning for devices
+[host_worker@1] [DeviceManager] [{serial}] [FlashState] state is now FlashState
+[host_worker@1] [DeviceManager] [{serial}] [FlashState] sending bootloader signal to /dev/ttyACM0
+```
+
+The [pulse count example client](./examples/pulse_count_driver/main.py) can now be used.
+
+Stop the stack:
+```
+docker compose -f docker/compose.yml down
+```
+
+Note that just using ```ctrl+c``` will not fully shutdown the stack and the database state will be maintained between runs, which will create issues.
+
 ## Local Development Setup
 ### Database Setup
 iCEFARM uses postgres. Install postgres:
@@ -84,7 +151,7 @@ This can also be done with the ```database-rebuild``` vscode task. Note that in 
 
 
 ### Building Firmware
-Note that this is **not required to run or build images. If you are going to only use Docker, you may skip this step.**. If not already installed, install the [pico-sdk](https://github.com/raspberrypi/pico-sdk) and [pico-ice-sdk](https://github.com/tinyvision-ai-inc/pico-ice-sdk). Make sure to run ```git submodule update --init``` in the pico-ice-sdk repo. Commands:
+If not already installed, install the [pico-sdk](https://github.com/raspberrypi/pico-sdk) and [pico-ice-sdk](https://github.com/tinyvision-ai-inc/pico-ice-sdk). Make sure to run ```git submodule update --init``` in the pico-ice-sdk repo. Commands:
 
 ```
 git clone https://github.com/tinyvision-ai-inc/pico-ice-sdk.git
@@ -140,26 +207,6 @@ This may also be done with the -E flag, but this is not supported on all systems
 The picos need to be plugged into the worker and running firmware that has tinyusb loaded. The [rp2_hello_world](https://github.com/tinyvision-ai-inc/pico-ice-sdk/tree/main/examples/rp2_hello_world) example from the pico-ice-sdk works for this purpose.
 
 ### Running Control/Worker
-*Only choose one option. Docker is quickest, debugging locally recommended is for testing/development. See end of section for verification information*
-
-#### Docker
-Note that the images can be built using the provided vscode tasks. Images are also available on [DockerHub](https://hub.docker.com/r/usbipiceproject/usbipice-worker/tags). Before building an image, ensure that firmware builds are up to date.
-
-If it is not yet installed, install [Docker Engine](https://docs.docker.com/engine/install/). Follow the [post installation steps](https://docs.docker.com/engine/install/linux-postinstall/) so that you do not need to use sudo. Included below:
- ```
- sudo usermod -aG docker {linux-username}
- #new shell or log out and then login
- newgrp docker
- ```
-
-Build the image. You may skip this step and the image will automatically download from DockerHub. If you are on an arm device, change the tag to arm.
-```
-docker build -f deploy/Dockerfile -t usbipiceproject/usbipice-worker:amd.
-```
-A compose file is included for running both the worker and control. This can also be done through the provided vscode tasks. If you are on an arm device, you will need to change the image tag in the compose file to arm.
-```
-docker compose -f deploy/compose.yml up
-```
 
 #### Debug Locally
 Install iCEFARM module:
@@ -174,7 +221,7 @@ sudo USBIPICE_DATABASE="$USBIPICE_DATABASE" USBIPICE_WORKER_CONFIG="$USBIPICE_WO
 ```
 
 #### Uvicorn Locally
-Not recommended to use this, but here for the sake of completeness. The docker compose stack runs with uvicorn, so it is usually better to use that.
+Not recommended to use this, but here for the sake of completeness.
 Install iCEFARM module:
 ```
 python3 -m venv .venv
@@ -190,56 +237,14 @@ Worker:
 ```
 sudo USBIPICE_DATABASE="$USBIPICE_DATABASE" USBIPICE_WORKER_CONFIG=$USBIPICE_WORKER_CONFIG .venv/bin/uvicorn usbipice.worker.app:run_uvicorn --env-file .uvicorn_env_bridge --factory --host 0.0.0.0 --port 8081
 ```
+### Workflow
+Vscode debug configurations are available for both the worker and control. There is also an assortment of vscode tasks. The task ```database-clear``` removes workers from the database and is useful to fix invalid worker/device states. This can also be done with ```psql -d "$USBIPICE_DATABASE" -c 'delete from worker;```.
 
-### Verification
-If there is unexpected behavior, check the [troubleshooting](#troubleshooting) section.
-Approximate output from Worker:
-```
-[DeviceManager] Scanning for devices
-[DeviceManager] [{SERIAL}] [FlashState] state is now FlashState
-[DeviceManager] [{SERIAL}] [FlashState] sending bootloader signal to /dev/ttyACM0
-[DeviceManager] [{SERIAL}] [TestState] state is now TestState
-[DeviceManager] [{SERIAL}] [ReadyState] state is now ReadyState
-[DeviceManager] Finished scan
-```
-Note that the order and dev files will vary. In some situations there may be multiple bootloader signals sent. Confirm that the device has been added to the database:
-```
-psql -d "$USBIPICE_DATABASE" -c 'select * from device;'
-```
-Expected output:
-```
-| serialid |    worker     | devicestatus |
-|----------|---------------|--------------|
-| {serial} | {worker name} |   available  |
-```
-
-The control does not have any immediate output. It will send periodic heartbeats to workers:
-```
-[Control] [Heartbeat] heartbeat success for debug-worker
-```
-In addition, it will receive logs from the workers. Note that log entries that happened before the control was started will not be displayed:
-```
-[debug-worker@1] [DeviceManager] Scanning for devices
-[debug-worker@1] [DeviceManager] [{serial}] [FlashState] state is now FlashState
-[debug-worker@1] [DeviceManager] [{serial}] [FlashState] sending bootloader signal to /dev/ttyACM0
-```
-
-## Running Client
-The client for pulse count experiments is provided in [usbipice.client.drivers.pulse_count](./src/usbipice/client/drivers/pulse_count/PulseCountClient.py). An [example usage](./examples/pulse_count_driver/main.py) is provided. All other examples use usbip. The client library can be installed separately using pip without having to clone the repo:
-```
-pip install git+https://github.com/heiljj/usbip-ice.git
-```
-Note that this does not include examples.
-
-
-## Workflow
-Vscode debug configurations are available for both the worker and control. There is also an assortment of vscode tasks. Notably, ```docker-build-all``` builds both firmware and the docker image. The ```compose-rebuild``` task builds the firmware and image, clears the database, and deploys/redeploys the compose stack. The task ```database-clear``` removes workers from the database and is useful to fix invalid worker/device states. This can also be done with ```psql -d "$USBIPICE_DATABASE" -c 'delete from worker;```.
-
-## Troubleshooting
+### Troubleshooting
 *Generally, most things can be fixed by clearing the database*
-### Worker fails to run, unable to add to database because it already exists
+#### Worker fails to run, unable to add to database because it already exists
 Clear the database, start the worker again.
-### Device goes to BrokenState
+#### Device goes to BrokenState
 This can happen occasionally even if everything is set up correctly. Clear the database, unplug and plug the device back in, then restart the worker. If it happens again, it's probably a configuration error. Ensure that you are running with sudo, as this is needed in order to upload the firmware. Ensure that the firmware has been properly built and that the configuration points to the correct path. If this has been done correctly, try manually flashing to the device.
 ```
 sudo picocom --baud 1200 /dev/ttyACM0
@@ -249,22 +254,18 @@ sudo umount [mount_location]
 ```
 Note that you will have to wait between commands for the device to respond, and that the exact device path may be different.
 
-### Client fails to reserve device
+#### Client fails to reserve device
 Ensure that the control server is actually accessible. Check whether the device is listed as 'available' under the database Device table. If the device is stuck at reserved, clear the database and start the worker again.
 
-## Usbip Information
-Usbip allows devices to be remotely controlled as through they were physically connected. This can be useful, but it is significantly slower than defining specific device behavior. It also requires significantly more setup. Usbip does not provide any means of authentication; any machine that can access the port is able to connect to the remove devices. The workers and client need to have usbip installed and enabled. This is through a kernel specific package.
-```
-sudo apt install "linux-tools-$(uname -r)"
-sudo modprobe usbip_core
-sudo modprobe usbip_host
-sudo modprobe vhci_hcd
-```
-Note that the modules will have to be reloaded after the device reboots. In addition, a usbip server needs to be started on the workers.
-```
-sudo usbipd -D
-```
 
-When running through a container, the image must be relatively similar to that of the host device. For example, the image ubuntu:noble-20240432 works with ubuntu noble 24.04. The kernel version must also match. The usbip linux-tools package mentioned earlier must be installed on both the host and the container, while the modules and usbip server must be started on the host. In order to run usbip from the container, the container needs to run with the volume mount ```/lib/modules:/lib/modules```. It does not appear that running usbip in an unprivileged container is possible, as the container also accesses files in ```/sys```.
+### Testing
+A [compose stack](./docker/test_compose.yml) is available for testing. This deploys the stack with some [patches](./src/usbipice/worker/test.py) to allow for virtual devices. The pulse count client can then be used normally.
 
-A iCEFARM client for reserving devices with the UsbipState is available in the [client library](./src/usbipice/client/drivers/usbip/UsbipClient.py).
+## Client
+The client for pulse count experiments is provided in [usbipice.client.drivers.pulse_count](./src/usbipice/client/drivers/pulse_count/PulseCountClient.py). An [example usage](./examples/pulse_count_driver/main.py) is provided. All other examples use usbip. The client library can be installed separately using pip without having to clone the repo:
+```
+pip install git+https://github.com/heiljj/usbip-ice.git
+```
+Note that this does not install examples.
+
+

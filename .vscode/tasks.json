@@ -48,7 +48,7 @@
                     "detached": true
                 },
                 "files": [
-                    "${workspaceFolder}/deploy/compose.yml"
+                    "${workspaceFolder}/docker/compose.yml"
                 ]
             }
         },
@@ -59,7 +59,7 @@
             "dockerCompose": {
                 "down": {},
                 "files": [
-                    "${workspaceFolder}/deploy/compose.yml"
+                    "${workspaceFolder}/docker/compose.yml"
                 ]
             }
         },
