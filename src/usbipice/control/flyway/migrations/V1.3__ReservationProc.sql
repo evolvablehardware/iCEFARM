@@ -1,7 +1,7 @@
 CREATE FUNCTION makeReservations(amount int, clientName varchar(255))
 RETURNS TABLE (
     "SerialID" varchar(255),
-    "Host" inet,
+    "Host" varchar(255),
     "WorkerPort" int
 )
 LANGUAGE plpgsql
@@ -10,7 +10,7 @@ $$
 BEGIN
     CREATE TEMPORARY TABLE res (
         "SerialID" varchar(255),
-        "Host" inet,
+        "Host" varchar(255),
         "WorkerPort" int
     ) ON COMMIT DROP;
 
@@ -69,7 +69,7 @@ $$;
 CREATE FUNCTION endReservations(client_name varchar(255), serial_ids varchar(255)[])
 RETURNS TABLE (
     "Device" varchar(255),
-    "WorkerIp" inet,
+    "WorkerIp" varchar(255),
     "WorkerServerPort" int
 )
 LANGUAGE plpgsql
@@ -78,7 +78,7 @@ $$
 BEGIN
     CREATE TEMPORARY TABLE res (
         "Device" varchar(255),
-        "WorkerIp" inet,
+        "WorkerIp" varchar(255),
         "WorkerServerPort" int
     ) ON COMMIT DROP;
 
@@ -107,7 +107,7 @@ $$;
 CREATE FUNCTION endAllReservations(client_name varchar(255))
 RETURNS TABLE (
     "Device" varchar(255),
-    "WorkerIp" inet,
+    "WorkerIp" varchar(255),
     "WorkerServerPort" int
 )
 LANGUAGE plpgsql
@@ -142,7 +142,9 @@ $$;
 CREATE FUNCTION handleReservationTimeouts()
 RETURNS TABLE (
     "Device" varchar(255),
-    "ClientName" varchar(255)
+    "ClientName" varchar(255),
+    "Host" varchar(255),
+    "ServerPort" int
 )
 LANGUAGE plpgsql
 AS
@@ -208,7 +210,7 @@ $$;
 
 CREATE FUNCTION getDeviceWorker(deviceserial varchar(255))
 RETURNS TABLE (
-    "Host" inet,
+    "Host" varchar(255),
     "Serverport" int
 )
 LANGUAGE plpgsql

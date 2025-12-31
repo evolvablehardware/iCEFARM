@@ -2,8 +2,8 @@ CREATE VIEW WorkerHeartbeats AS
 SELECT WorkerName, Host, ServerPort
 FROM Worker;
 
-CREATE PROCEDURE addWorker(wname varchar(255), Host inet, ServerPort int)
-LANGUAGE plpgsql 
+CREATE PROCEDURE addWorker(wname varchar(255), Host varchar(255), ServerPort int)
+LANGUAGE plpgsql
 AS
 $$
 BEGIN
@@ -42,7 +42,7 @@ $$;
 
 CREATE PROCEDURE heartbeatWorker(wname varchar(255))
 LANGUAGE plpgsql
-AS 
+AS
 $$
 BEGIN
     IF wname NOT IN (SELECT WorkerName FROM Worker) THEN
@@ -73,7 +73,7 @@ BEGIN
     INNER JOIN Device ON Worker.WorkerName = Device.Worker
     INNER JOIN Reservations ON Reservations.Device = Device.SerialId
     WHERE LastHeartbeat < t;
-    
+
     DELETE FROM Worker
     WHERE LastHeartbeat < t;
 END

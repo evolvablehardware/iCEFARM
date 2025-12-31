@@ -1,8 +1,8 @@
 CREATE TABLE Worker (
     WorkerName varchar(255) PRIMARY KEY,
-    Host inet NOT NULL,
+    Host varchar(255) NOT NULL,
     ServerPort int NOT NULL,
-    LastHeartbeat timestamp NOT NULL 
+    LastHeartbeat timestamp NOT NULL
 );
 
 CREATE TYPE DeviceState

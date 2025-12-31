@@ -1,0 +1,72 @@
+
+services:
+  db:
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+    healthcheck:
+      test: ["CMD", "pg_isready", "-q", "-U", "postgres"]
+      interval: 5s
+      timeout: 1s
+      retries: 2
+
+  flyway:
+    depends_on:
+        db:
+          condition: service_healthy
+
+    image: flyway/flyway
+    command: -url=jdbc:postgresql://db:5432/postgres -user=postgres -password=postgres migrate
+
+    volumes:
+      - ../src/usbipice/control/flyway/migrations:/flyway/sql
+
+  worker:
+    depends_on:
+      flyway:
+        condition: service_completed_successfully
+
+
+    image: runtest
+    build:
+      context: .
+      dockerfile: deploy/dockerfile
+
+    environment:
+      USBIPICE_DATABASE: 'postgresql://postgres:postgres@db:5432'
+
+      USBIPICE_VIRTUAL_IP: worker
+      USBIPICE_VIRTUAL_PORT: 8081
+
+      USBIPICE_CONTROL_SERVER: http://control:8080
+      USBIPICE_WORKER_NAME: host_worker
+      USBIPICE_WORKER_LOGS: /usr/local/app/worker_logs
+      USBIPICE_DEFAULT: src/usbipice/worker/firmware/default/build/default_firmware.uf2
+      USBIPICE_PULSE_COUNT: src/usbipice/worker/firmware/pulse_count/build/bitstream_over_usb.uf2
+
+    command: [".venv/bin/python3", "src/usbipice/worker/test.py"]
+
+    ports:
+      - target: 8081
+        published: 8081
+
+  control:
+    depends_on:
+      flyway:
+        condition: "service_completed_successfully"
+
+    image: runtest
+    build:
+      context: .
+      dockerfile: deploy/dockerfile
+    environment:
+      USBIPICE_DATABASE: 'postgresql://postgres:postgres@db:5432/postgres'
+
+    command: [".venv/bin/uvicorn", "usbipice.control.app:run_uvicorn", "--env-file", ".uvicorn_env_bridge", "--port", "8080", "--factory", "--host", "0.0.0.0"]
+
+    ports:
+      - target: 8080
+        published: 8080
+

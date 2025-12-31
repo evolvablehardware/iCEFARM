@@ -28,7 +28,7 @@ class WorkerDatabase(Database):
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
-                    cur.execute("CALL addWorker(%s::varchar(255), %s::inet, %s::int)", (self.worker_name, config.virtual_ip, config.virtual_server_port))
+                    cur.execute("CALL addWorker(%s::varchar(255), %s::varchar(255), %s::int)", (self.worker_name, config.virtual_ip, config.virtual_server_port))
                     conn.commit()
 
         except Exception:
