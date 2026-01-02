@@ -50,7 +50,7 @@ watchdog.start()
 start_time = time.time()
 
 # Returns dictionary mapping device_serial -> {file_path -> pulses}
-pulses = client.evaluate(BITSTREAM_PATHS)
+pulses = client.evaluateEach(BITSTREAM_PATHS)
 if not pulses:
     raise Exception("Did not receive any pulses")
 
