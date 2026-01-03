@@ -1,7 +1,7 @@
 from __future__ import annotations
 from logging import Logger
 
-from usbipice.worker import EventSender
+from usbipice.utils import EventSender
 
 class DeviceEventSender:
     """Allows for sending event notifications to client's event server, as well as sending

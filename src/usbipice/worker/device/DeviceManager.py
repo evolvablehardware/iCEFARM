@@ -6,12 +6,11 @@ import atexit
 import pyudev
 
 from usbipice.utils.dev import *
-from usbipice.worker import WorkerDatabase
 from usbipice.worker.device import Device
 
 import typing
 if typing.TYPE_CHECKING:
-    from usbipice.worker import Config, EventSender
+    from usbipice.worker import Config, EventSender, WorkerDatabase
 
 class ManagerLogger(LoggerAdapter):
     def __init__(self, logger, extra=None):
@@ -23,11 +22,11 @@ class ManagerLogger(LoggerAdapter):
 class DeviceManager:
     """Tracks device events and routes them to their corresponding Device object. Also listens to kernel
     device events to identify usbip disconnects."""
-    def __init__(self, event_sender: EventSender, config: Config, logger: Logger):
+    def __init__(self, event_sender: EventSender, database: WorkerDatabase, config: Config, logger: Logger):
         self.config: Config = config
         self.logger: Logger = ManagerLogger(logger)
         self.event_sender: EventSender = event_sender
-        self.database: WorkerDatabase = WorkerDatabase(config, self.logger)
+        self.database = database
 
         atexit.register(self.onExit)
 

@@ -39,10 +39,10 @@ services:
       - target: 8081
         published: 8081
 
-    image: runtest
+    image: usbipiceproject/usbipice-worker:all
     build:
       context: .
-      dockerfile: deploy/dockerfile
+      dockerfile: docker/dockerfile
 
     volumes:
       - /dev:/dev
@@ -79,7 +79,7 @@ services:
     privileged: true
     network_mode: host
 
-    image: runtest
+    image: usbipiceproject/usbipice-worker:all
     build:
       context: .
       dockerfile: deploy/dockerfile

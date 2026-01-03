@@ -10,11 +10,12 @@ from flask_socketio import SocketIO
 from socketio import ASGIApp
 from asgiref.wsgi import WsgiToAsgi
 
-from usbipice.utils.web import SyncAsyncServer, flask_socketio_adapter_connect, flask_socketio_adapter_on, inject_and_return_json
+from usbipice.worker import Config, WorkerDatabase
 from usbipice.worker.device import DeviceManager
-from usbipice.worker import Config, EventSender
 
+from usbipice.utils import EventSender
 from usbipice.utils import RemoteLogger
+from usbipice.utils.web import SyncAsyncServer, flask_socketio_adapter_connect, flask_socketio_adapter_on, inject_and_return_json
 
 # 100 bitstreams
 MAX_REQUEST_SIZE = 104.2 * 8000 * 100
@@ -22,7 +23,8 @@ MAX_REQUEST_SIZE = 104.2 * 8000 * 100
 def create_app(app: Flask, socketio: SocketIO | SyncAsyncServer, config: Config, logger: logging.Logger):
 
     event_sender = EventSender(socketio, config.libpg_string, logger)
-    manager = DeviceManager(event_sender, config, logger)
+    database = WorkerDatabase(config, logger)
+    manager = DeviceManager(event_sender, database, config, logger)
 
     sock_id_to_client_id = {}
     id_lock = threading.Lock()
@@ -99,6 +101,12 @@ def create_app(app: Flask, socketio: SocketIO | SyncAsyncServer, config: Config,
             manager.handleRequest(serial, event, contents)
 
     return manager
+
+    # TODO
+    @socketio.on("graceful_shutdown")
+    @flask_socketio_adapter_on
+    def shutdown(sid, data):
+        pass
 
 def run_debug():
     logger = logging.getLogger(__name__)

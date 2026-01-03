@@ -1,14 +1,17 @@
 """Makes it possible for a specific device state to be requested from the client."""
 from typing import List
 
-STATE_VALUE_CHECKERS = {}
-STATE_RESERVATION_CONSTRUCTORS = {}
+state_value_checkers = {}
+state_reservation_constructors = {}
+
+def get_registered_reservables() -> List[str]:
+    return list(state_reservation_constructors.keys())
 
 def get_reservation_state_fac(state, kind, args):
     """Creates a factory for switching states based on a reservation request.
     Returns False if the event does not contain the correct arguments for the
     requested state or the state does not exist."""
-    fn = STATE_RESERVATION_CONSTRUCTORS.get(kind)
+    fn = state_reservation_constructors.get(kind)
 
     if not fn:
         return False
@@ -35,7 +38,7 @@ def reservable(name, *args: List[str]):
     [ASDf39TFDFG] hello!
     """
     def res(cls):
-        if name in STATE_RESERVATION_CONSTRUCTORS:
+        if name in state_reservation_constructors:
             raise Exception(f"reservable {name} is already registered (cls {cls})")
 
         def check_state(event):
@@ -45,7 +48,7 @@ def reservable(name, *args: List[str]):
 
             return True
 
-        STATE_VALUE_CHECKERS[name] = check_state
+        state_value_checkers[name] = check_state
 
         def make_state_fac(state, event):
             json_args = []
@@ -55,7 +58,7 @@ def reservable(name, *args: List[str]):
 
             return lambda : cls(state, *json_args)
 
-        STATE_RESERVATION_CONSTRUCTORS[name] = make_state_fac
+        state_reservation_constructors[name] = make_state_fac
 
         return cls
 

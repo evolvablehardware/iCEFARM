@@ -1,6 +1,6 @@
 from logging import LoggerAdapter
 
-from usbipice.worker import EventSender
+from usbipice.utils import EventSender
 
 class ControlEventSenderLogger(LoggerAdapter):
     def __init__(self, logger, extra=None):
