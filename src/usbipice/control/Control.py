@@ -51,7 +51,7 @@ class Control:
         return list(map(lambda row : row["serial"], data))
 
     def reserve(self, client_id: str, amount: int, kind:str, args: dict) -> dict:
-        if (con_info := self.database.reserve(amount, client_id)) is False:
+        if (con_info := self.database.reserve(amount, client_id, kind)) is False:
             return False
 
         for row in con_info:

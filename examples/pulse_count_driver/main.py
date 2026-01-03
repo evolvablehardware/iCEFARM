@@ -36,15 +36,15 @@ BUILD_DIR = "examples/pulse_count_driver/build"
 # If you have more than one device, feel free to increase this number. This
 # particular client evaluates each circuit once on each of the devices,
 # but the distribution method can be changed by modifying the client.
-NUM_DEVICES = 2
+NUM_DEVICES = 1
 
 # ID for the client. Must be unique.
 CLIENT_NAME = "read default example"
 
 # Url to the control server.
-CONTROL_SERVER = "http://10.43.70.21:8080"
+CONTROL_SERVER = "http://localhost:8080"
 
-if not CONTROL_SERVER:
+if not (CONTROL_SERVER):
     CONTROL_SERVER = os.environ.get("USBIPICE_CONTROL_SERVER")
 #################################################
 

@@ -1,4 +1,4 @@
-CREATE FUNCTION makeReservations(amount int, clientName varchar(255))
+CREATE FUNCTION makeReservations(amount int, clientName varchar(255), reservationType varchar(255))
 RETURNS TABLE (
     "SerialID" varchar(255),
     "Host" varchar(255),
@@ -18,7 +18,7 @@ BEGIN
     SELECT Device.SerialID, Host, Worker.ServerPort
     FROM Device
     INNER JOIN Worker ON Worker.WorkerName = Device.Worker
-    WHERE DeviceStatus = 'available'
+    WHERE DeviceStatus = 'available' AND reservationType = ANY(Worker.Reservables)
     LIMIT amount;
 
     UPDATE Device

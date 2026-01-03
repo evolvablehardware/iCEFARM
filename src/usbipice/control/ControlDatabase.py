@@ -12,10 +12,10 @@ class ControlDatabase(Database):
         ip, port = row[0], row[1]
         return f"http://{ip}:{port}"
 
-    def reserve(self, amount: int, clientname: str) -> dict:
+    def reserve(self, amount: int, clientname: str, reservation_type: str) -> dict:
         """Reserves amount devices for clientname. Returns as {serial, ip, serverport}"""
         return self.getData(
-            "SELECT * FROM makeReservations(%s::int, %s::varchar(255))", (amount, clientname),
+            "SELECT * FROM makeReservations(%s::int, %s::varchar(255), %s::varchar(255))", (amount, clientname, reservation_type),
             ["serial", "ip", "serverport"], stringify=["ip"]
         )
 

@@ -1,9 +1,11 @@
 from __future__ import annotations
 from logging import LoggerAdapter
+from importlib.metadata import version
 
 import psycopg
 
 from usbipice.utils import Database
+from usbipice.worker.device.state.reservable import get_registered_reservables
 
 import typing
 if typing.TYPE_CHECKING:
@@ -25,10 +27,13 @@ class WorkerDatabase(Database):
         self.worker_name = config.worker_name
         self.logger = WorkerDataBaseLogger(logger)
 
+        usbipice_version = version("usbipice")
+        reservables = get_registered_reservables()
+
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
-                    cur.execute("CALL addWorker(%s::varchar(255), %s::varchar(255), %s::int)", (self.worker_name, config.virtual_ip, config.virtual_server_port))
+                    cur.execute("CALL addWorker(%s::varchar(255), %s::varchar(255), %s::int, %s::varchar(255), %s::varchar(255)[])", (self.worker_name, config.virtual_ip, config.virtual_server_port, usbipice_version, reservables))
                     conn.commit()
 
         except Exception:

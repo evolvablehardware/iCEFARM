@@ -2,7 +2,10 @@ CREATE TABLE Worker (
     WorkerName varchar(255) PRIMARY KEY,
     Host varchar(255) NOT NULL,
     ServerPort int NOT NULL,
-    LastHeartbeat timestamp NOT NULL
+    LastHeartbeat timestamp NOT NULL,
+    UsbipiceVersion varchar(255) NOT NULL,
+    Reservables varchar(255)[] NOT NULL,
+    ShuttingDown bool NOT NULL
 );
 
 CREATE TYPE DeviceState
