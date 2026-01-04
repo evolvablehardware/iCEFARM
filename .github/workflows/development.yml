@@ -1,0 +1,72 @@
+# TODO
+# this and main should be done in the same action,
+# more trouble than its worth right now
+name: upload-dev
+
+on:
+  push:
+    branches:
+      - 'development'
+
+env:
+    IMAGE: 'usbipiceproject/usbipice-worker:amd-dev'
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build amd
+        uses: docker/build-push-action@v6
+        with:
+          load: true
+          tags: usbipiceproject/usbipice-worker:amd-dev
+          file: docker/Dockerfile
+          platforms: linux/amd64
+          cache-from: type=registry,ref=usbipiceproject/usbipice-worker:amd-dev
+          cache-to: type=inline, mode=max
+
+      - name: Compose Up
+        run: docker compose -f docker/test_compose.yml up -d
+
+      - name: Wait for compose
+        run: sleep 2m
+
+      - name: Run Tests
+        run: docker compose -f docker/test_compose.yml exec client .venv/bin/python3 tests/pulsecount_stack.py
+
+      - name: Compose Logs
+        run: docker compose -f docker/test_compose.yml logs
+
+      - name: Compose Down
+        run: docker compose -f docker/test_compose.yml down
+
+      - name: Push amd
+        run: docker push usbipiceproject/usbipice-worker:amd-dev
+
+      - name: Build/Push arm
+        uses: docker/build-push-action@v6
+        with:
+            push: true
+            load: true
+            tags: usbipiceproject/usbipice-worker:arm-dev
+            file: docker/Dockerfile
+            platforms: linux/arm64
+            cache-from: type=registry,ref=usbipiceproject/usbipice-worker:arm-dev
+            cache-to: type=inline, mode=max
+
+      - name: Create Multiarch
+        run: docker buildx imagetools create -t usbipiceproject/usbipice-worker:all-dev usbipiceproject/usbipice-worker:arm-dev usbipiceproject/usbipice-worker:amd-dev
