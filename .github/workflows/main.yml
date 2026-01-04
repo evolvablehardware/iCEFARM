@@ -5,6 +5,9 @@ on:
     branches:
       - 'main'
 
+env:
+  IMAGE: usbipiceproject/usbipice-worker:amd
+
 jobs:
   upload:
     runs-on: ubuntu-latest
@@ -64,5 +67,3 @@ jobs:
 
       - name: Create Multiarch
         run: docker buildx imagetools create -t usbipiceproject/usbipice-worker:all usbipiceproject/usbipice-worker:arm usbipiceproject/usbipice-worker:amd
-
-
