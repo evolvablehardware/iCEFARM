@@ -105,9 +105,14 @@ def create_app(app: Flask, socketio: SocketIO | SyncAsyncServer, config: Config,
     @socketio.on("graceful_shutdown")
     @flask_socketio_adapter_on
     def shutdown(sid, data):
-        logger.warning("Graceful shutdown initilized")
         database.enableShutDown()
-        socketio.emit("graceful_shutdown_initilized", "")
+
+        # this seems really dumb but the SyncAsyncServer adapter uses creates a new event
+        # loop, so calling this directly results in nested event loops :/
+        # TODO we should really adapt to the flask_socketio interface instead of socketio-server
+        logger.warning("Graceful shutdown initilized")
+        threading.Thread(target=lambda : socketio.emit("graceful_shutdown_initilized"), name='graceful-shutdown-notifier', daemon=True).start()
+
         def monitor():
             database.waitUntilNoReservations()
             manager.onExit()

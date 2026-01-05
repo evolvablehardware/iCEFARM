@@ -50,7 +50,9 @@ services:
 
     privileged: true
 
-    # these are needed for udev???? not sure why...
+    # https://stackoverflow.com/questions/49687378/how-to-get-hosts-udev-events-from-a-docker-container
+    # udev uses the AF_NETLINK socket to receive events from the kernel, which is why this fixes stuff
+    # TODO get rid of this option
     network_mode: host
     user: root
 
