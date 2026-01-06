@@ -5,6 +5,7 @@ import threading
 import requests
 
 from usbipice.control import ControlDatabase
+from usbipice.control.webapp import build_page
 
 import typing
 if typing.TYPE_CHECKING:
@@ -15,6 +16,10 @@ class Control:
         self.event_sender = event_sender
         self.database = ControlDatabase(database_url)
         self.logger = logger
+
+    # TODO this feels out of place
+    def getApp(self):
+        return build_page(self.database)
 
     def extend(self, client_id: str, serials: list[str]) -> list[str]:
         return self.database.extend(client_id, serials)

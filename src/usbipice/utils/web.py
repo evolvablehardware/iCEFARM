@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+import json
 from functools import wraps
 
 from flask import Response, jsonify, request
@@ -19,14 +20,18 @@ def inject_and_return_json(func):
 
     @wraps(func)
     def handler_wrapper(*args):
-        if request.content_type != "application/json":
-            return Response(status=400)
-        try:
-            json = request.get_json()
-        except Exception:
-            return Response(status=400)
+        if request.content_type == "application/json":
+            try:
+                js = request.get_json()
+            except Exception:
+                return Response(status=400)
+        else:
+            try:
+                js = json.loads(request.args.get("json"))
+            except Exception:
+                return Response(status=400)
 
-        args = json_to_args(json, parameter_strings)
+        args = json_to_args(js, parameter_strings)
 
         if not typecheck(func, args):
             return Response(status=400)

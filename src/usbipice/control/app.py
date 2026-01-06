@@ -3,7 +3,7 @@ import logging
 import sys
 import threading
 
-from flask import Flask, request
+from flask import Flask, request, send_file
 from flask_socketio import SocketIO
 from socketio import ASGIApp
 from asgiref.wsgi import WsgiToAsgi
@@ -35,6 +35,14 @@ def create_app(app: Flask, socketio: SocketIO | SyncAsyncServer, base_logger: lo
     heartbeat_config = HeartbeatConfig()
     heartbeat = Heartbeat(event_sender, DATABASE_URL, heartbeat_config, logger)
     heartbeat.start()
+
+    @app.get("/")
+    def get_app():
+        return control.getApp()
+
+    @app.get("/style.css")
+    def style():
+        return send_file("./assets/style.css")
 
     @app.get("/reserve")
     @inject_and_return_json

@@ -1,7 +1,3 @@
-CREATE VIEW WorkerHeartbeats AS
-SELECT WorkerName, Host, ServerPort
-FROM Worker;
-
 CREATE PROCEDURE addWorker(wname varchar(255), Host varchar(255), ServerPort int, workerVersion varchar(255), reservables varchar(255)[])
 LANGUAGE plpgsql
 AS

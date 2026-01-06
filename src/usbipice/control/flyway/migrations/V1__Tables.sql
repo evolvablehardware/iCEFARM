@@ -22,4 +22,9 @@ CREATE TABLE Reservations (
     Device varchar(255) PRIMARY KEY REFERENCES Device(SerialId) ON DELETE CASCADE,
     ClientName varchar(255) NOT NULL,
     Until timestamp NOT NULL
-)
+);
+
+CREATE VIEW DeviceReservations AS
+SELECT Device.SerialId, Device.worker, Device.DeviceStatus, Reservations.ClientName
+FROM Device
+LEFT JOIN Reservations ON Reservations.Device = Device.SerialId;

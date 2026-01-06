@@ -47,8 +47,15 @@ class ControlDatabase(Database):
     def getWorkers(self) -> dict:
         """Gets information about all of the workers, returns as a list of {name, ip, port}"""
         return self.getData(
-            "SELECT * FROM WorkerHeartbeats", tuple(),
-            ["name", "ip", "port"], stringify=["ip", "port"]
+            "SELECT * FROM Worker", tuple(),
+            ["name", "ip", "port", "heartbeat", "version", "reservables", "shutting_down"], stringify=["ip", "port"]
+        )
+
+    def getDevices(self) -> dict:
+        """Returns current devices, as a list of {serial, worker, status}."""
+        return self.getData(
+            "SELECT * FROM DeviceReservations", tuple(),
+            ["serial", "worker", "status", "client_id"], stringify=["status"]
         )
 
     def heartbeatWorker(self, name: str):

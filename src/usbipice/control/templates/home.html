@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section workers>
+    <h2> Workers ({{workers.online}} online)</h2>
+
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Location</th>
+            <th>Version</th>
+            <th>Reservables</th>
+            <th>Shutting Down</th>
+            <th>Heartbeat</th>
+        </tr>
+
+        {% for row in workers.rows %}
+        <tr>
+            <td>{{row.name}}</td>
+            <td>{{row.url}}</td>
+            <td>{{row.version}}</td>
+            <td>{{row.reservables}}</td>
+            <td>{{row.shutting_down}}</td>
+            <td>
+                <div class="button-container">
+                    <a href="{{row.url + '/heartbeat'}}" target="_blank"><button>Heartbeat</button></a>
+                </div>
+            </td>
+
+        </tr>
+        {% endfor %}
+    </table>
+
+</section>
+
+<section devices>
+    <h2>Devices ({{devices.total}} total, {{devices.available}} available, {{devices.reserved}} reserved, {{devices.broken}} broken)</h2>
+
+    <table>
+        <tr>
+            <th>Serial</th>
+            <th>Worker</th>
+            <th>Status</th>
+            <th>End Reservation</th>
+            <th>Reboot</th>
+            <th>Delete</th>
+        </tr>
+
+        {% for row in devices.rows %}
+        <tr>
+            <td>{{row.serial}}</td>
+            <td>{{row.worker}}</td>
+            <td>{{row.status}}</td>
+
+            <td>
+                <div class="button-container">
+                    <a href="{{row.end_reservation}}" target="_blank">
+                        <button>End Reservation</button>
+                    </a>
+                </div>
+            </td>
+
+            <td>
+                <div class="button-container">
+                    <a href="{{row.reboot}}" target="_blank">
+                        <button>Reboot</button>
+                    </a>
+                </div>
+            </td>
+
+            <td>
+                <div class="button-container">
+                    <a href="{{row.delete}}" target="_blank">
+                        <button>Delete</button>
+                    </a>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</section>
+{% endblock %}
