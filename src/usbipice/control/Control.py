@@ -47,7 +47,9 @@ class Control:
                 return False
 
             try:
-                res = requests.get(f"{url}/reboot", timeout=10)
+                res = requests.get(f"{url}/reboot", json={
+                    "serial": serial
+                }, timeout=10)
 
                 if res.status_code != 200:
                     raise Exception
@@ -66,7 +68,9 @@ class Control:
                 return False
 
             try:
-                res = requests.get(f"{url}/delete", timeout=10)
+                res = requests.get(f"{url}/delete", json={
+                    "serial": serial
+                    }, timeout=10)
 
                 if res.status_code != 200:
                     raise Exception
