@@ -40,6 +40,43 @@ class Control:
         except Exception:
             self.logger.warning(f"[Control] failed to send unreserve command to worker {worker_url} device {serial}")
 
+    def reboot(self, serials: list[str]):
+        out = []
+        for serial in serials:
+            if not (url := self.database.getDeviceWorkerUrl(serial)):
+                return False
+
+            try:
+                res = requests.get(f"{url}/reboot", timeout=10)
+
+                if res.status_code != 200:
+                    raise Exception
+
+                out.append(serial)
+
+            except Exception:
+                self.logger.warning(f"[Control] failed to send reboot command to worker {url} device {serial}")
+
+        return out
+
+    def delete(self, serials: list[str]):
+        out = []
+        for serial in serials:
+            if not (url := self.database.getDeviceWorkerUrl(serial)):
+                return False
+
+            try:
+                res = requests.get(f"{url}/delete", timeout=10)
+
+                if res.status_code != 200:
+                    raise Exception
+
+                out.append(serial)
+            except Exception:
+                self.logger.warning(f"[Control] failed to send delete command to worker {url} device {serial}")
+
+        return out
+
     def end(self, client_id: str, serials: list[str]) -> list[str]:
         data = self.database.end(client_id, serials)
         for row in data:

@@ -44,6 +44,16 @@ def create_app(app: Flask, socketio: SocketIO | SyncAsyncServer, base_logger: lo
     def style():
         return send_file("./assets/style.css")
 
+    @app.get("/reboot")
+    @inject_and_return_json
+    def reboot(serials: list[str]):
+        return control.reboot(serials)
+
+    @app.get("/delete")
+    @inject_and_return_json
+    def delete(serials: list[str]):
+        return control.delete(serials)
+
     @app.get("/reserve")
     @inject_and_return_json
     def make_reservations(amount: int, name: str, kind: str, args: dict):

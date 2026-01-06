@@ -77,6 +77,10 @@ class AbstractState:
 
         return
 
+    def reboot(self):
+        """Attempt to restore device state after request by client by switching to the"""
+        self.logger.warning("Got reboot request but not implemented for this state")
+
     def handleExit(self):
         """Cleanup"""
 

@@ -111,6 +111,35 @@ class DeviceManager:
 
         return dev.handleUnreserve()
 
+    def reboot(self, serial: str):
+        with self._dev_lock:
+            dev = self._devs.get(serial)
+
+        if not dev:
+            return False
+
+        return dev.reboot()
+
+    def delete(self, serial: str):
+        with self._dev_lock:
+            dev = self._devs.get(serial)
+
+        if not dev:
+            return False
+
+        dev.handleDeviceEvent()
+        with self._dev_lock:
+            if serial in self._devs:
+                del self._devs[serial]
+
+        context = pyudev.Context().list_devices()
+
+        for dev in context:
+            if get_serial(dict(dev)) == serial:
+                self.handleDevEvent("add", dev)
+
+        return True
+
     def onExit(self):
         """Callback for cleanup on program exit"""
         with self._dev_lock:

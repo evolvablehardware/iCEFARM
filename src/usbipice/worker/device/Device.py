@@ -85,6 +85,12 @@ class Device:
             if self._device:
                 self._device.handleExit()
 
+    def reboot(self):
+        self.logger.info("rebooting")
+        with self._device_lock:
+            if self._device:
+                self._device.reboot()
+
     def switch(self, state_factory):
         with self._device_lock:
             if self._device:

@@ -45,6 +45,16 @@ def create_app(app: Flask, socketio: SocketIO | SyncAsyncServer, config: Config,
         database.handleReservationChange()
         return res
 
+    @app.get("/reboot")
+    @inject_and_return_json
+    def reboot(serial: str):
+        return manager.reboot(serial)
+
+    @app.get("/delete")
+    @inject_and_return_json
+    def delete(serial: str):
+        return manager.delete(serial)
+
     @socketio.on("connect")
     @flask_socketio_adapter_connect
     def connection(sid, environ, auth):

@@ -149,6 +149,9 @@ class PulseCountState(AbstractState):
         self.reader.exit()
         self.ser.close()
 
+    def reboot(self):
+        self.switch(lambda : PulseCountStateFlasher(self.device))
+
 class Reader:
     def __init__(self, port: serial.Serial):
         self.port = port
