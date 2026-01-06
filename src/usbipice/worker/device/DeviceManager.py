@@ -127,7 +127,7 @@ class DeviceManager:
         if not dev:
             return False
 
-        dev.handleDeviceEvent()
+        dev.handleExit()
         with self._dev_lock:
             if serial in self._devs:
                 del self._devs[serial]
