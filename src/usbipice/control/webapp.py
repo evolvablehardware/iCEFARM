@@ -37,6 +37,7 @@ class DeviceRow:
         self.serial = serial
         self.worker = worker
         self.status = status
+        self.client_id = client_id
 
         js = "?json=" + json.dumps({
             "serials": [self.serial],
