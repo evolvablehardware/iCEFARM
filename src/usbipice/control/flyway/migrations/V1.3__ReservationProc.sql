@@ -150,7 +150,7 @@ LANGUAGE plpgsql AS $$ BEGIN
         INNER JOIN worker ON device.worker_id= worker.id;
 
     DELETE FROM reservations
-    WHERE device IN (
+    WHERE reservations.device_id IN (
             SELECT res.device_id
             FROM res
         );

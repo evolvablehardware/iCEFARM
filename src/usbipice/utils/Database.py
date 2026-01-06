@@ -28,7 +28,10 @@ class Database:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
                     cur.execute(sql, args)
-                    return cur.fetchall()
+                    if sql[0:4] != "CALL":
+                        return cur.fetchall()
+
+                    return True
         except Exception:
             return False
 
