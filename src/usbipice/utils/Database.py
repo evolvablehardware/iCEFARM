@@ -2,7 +2,7 @@ import psycopg
 from psycopg.types.enum import Enum, EnumInfo, register_enum
 from typing import List
 
-class DeviceState(Enum):
+class DeviceStatus(Enum):
     available = 0
     reserved = 1
     await_flash_default = 2
@@ -17,8 +17,8 @@ class Database:
 
         try:
             with psycopg.connect(self.url) as conn:
-                info = EnumInfo.fetch(conn, "DeviceState")
-                register_enum(info, conn, DeviceState)
+                info = EnumInfo.fetch(conn, "devicestatus")
+                register_enum(info, conn, DeviceStatus)
 
         except Exception:
             raise Exception("Failed to connect to database")

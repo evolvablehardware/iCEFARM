@@ -228,23 +228,3 @@ RETURNS TABLE (
     FROM reservations
     WHERE device = device_id;
 END $$;
-
-CREATE FUNCTION get_device_worker(device_id varchar(255))
-RETURNS TABLE (
-    worker_host varchar(255),
-    worker_port int
-)
-LANGUAGE plpgsql AS $$ BEGIN
-    IF device_id NOT IN (
-        SELECT id
-        FROM device
-    ) THEN RAISE EXCEPTION 'Device id does not exist';
-    END IF;
-
-    RETURN QUERY
-    SELECT worker.host,
-        worker.port
-    FROM device
-        INNER JOIN worker ON device.worker_id = worker.id
-    WHERE device.id = device_id;
-END $$;

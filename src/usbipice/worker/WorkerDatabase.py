@@ -36,7 +36,7 @@ class WorkerDatabase(Database):
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
-                    cur.execute("CALL addWorker(%s::varchar(255), %s::varchar(255), %s::int, %s::varchar(255), %s::varchar(255)[])", (self.worker_name, config.virtual_ip, config.virtual_server_port, usbipice_version, reservables))
+                    cur.execute("CALL add_worker(%s::varchar(255), %s::varchar(255), %s::int, %s::varchar(255), %s::varchar(255)[])", (self.worker_name, config.virtual_ip, config.virtual_server_port, usbipice_version, reservables))
                     conn.commit()
 
         except Exception:
@@ -49,7 +49,7 @@ class WorkerDatabase(Database):
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
-                    cur.execute("CALL addDevice(%s::varchar(255), %s::varchar(255))", (deviceserial, self.worker_name))
+                    cur.execute("CALL add_device(%s::varchar(255), %s::varchar(255))", (deviceserial, self.worker_name))
                     conn.commit()
         except Exception:
             self.logger.error(f"failed to add device {deviceserial}")
@@ -62,7 +62,7 @@ class WorkerDatabase(Database):
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
-                    cur.execute("CALL updateDeviceStatus(%s::varchar(255), %s::DeviceState)", (deviceserial, status))
+                    cur.execute("CALL update_device_status(%s::varchar(255), %s::DeviceState)", (deviceserial, status))
                     conn.commit()
         except Exception:
             self.logger.error(f"failed to update device {deviceserial} to status {status}")
@@ -72,7 +72,7 @@ class WorkerDatabase(Database):
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
-                    cur.execute("CALL shutdownWorker(%s::varchar(255))", (self.worker_name,))
+                    cur.execute("CALL shutdown_worker(%s::varchar(255))", (self.worker_name,))
                     conn.commit()
         except Exception:
             self.logger.error("Failed to enable shut down mode")
@@ -84,7 +84,7 @@ class WorkerDatabase(Database):
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
-                    cur.execute("SELECT * FROM hasReservations(%s::varchar(255))", (self.worker_name,))
+                    cur.execute("SELECT * FROM has_reservations(%s::varchar(255))", (self.worker_name,))
                     return cur.fetchall()[0][0]
 
         except Exception:
@@ -107,8 +107,8 @@ class WorkerDatabase(Database):
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
-                    cur.execute("SELECT * FROM removeWorker(%s::varchar(255))", (self.worker_name,))
+                    cur.execute("SELECT * FROM remove_worker(%s::varchar(255))", (self.worker_name,))
                     data = cur.fetchall()
-        except Exception as e:
+        except Exception:
             self.logger.warning(f"failed to remove worker {self.worker_name} before exit")
             return
