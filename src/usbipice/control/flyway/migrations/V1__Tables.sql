@@ -1,30 +1,30 @@
-CREATE TABLE Worker (
-    WorkerName varchar(255) PRIMARY KEY,
-    Host varchar(255) NOT NULL,
-    ServerPort int NOT NULL,
-    LastHeartbeat timestamp NOT NULL,
-    UsbipiceVersion varchar(255) NOT NULL,
-    Reservables varchar(255)[] NOT NULL,
-    ShuttingDown bool NOT NULL
+CREATE TABLE worker (
+    id              varchar(255)    PRIMARY KEY,
+    host            varchar(255)    NOT NULL,
+    port            int             NOT NULL,
+    heartbeat       timestamp       NOT NULL,
+    farm_version    varchar(255)    NOT NULL,
+    reservables     varchar(255)[]  NOT NULL,
+    shutting_down   bool            NOT NULL
 );
 
-CREATE TYPE DeviceState
+CREATE TYPE devicestatus
 AS
 ENUM('available', 'reserved', 'await_flash_default', 'flashing_default', 'testing', 'broken');
 
-CREATE TABLE Device (
-    SerialId varchar(255) PRIMARY KEY NOT NULL,
-    Worker varchar(255) REFERENCES Worker(WorkerName) ON DELETE CASCADE NOT NULL,
-    DeviceStatus DeviceState NOT NULL
+CREATE TABLE device (
+    id              varchar(255)    PRIMARY KEY NOT NULL,
+    worker_id       varchar(255)    REFERENCES worker(name) ON DELETE CASCADE NOT NULL,
+    device_status   devicestatus    NOT NULL
 );
 
-CREATE TABLE Reservations (
-    Device varchar(255) PRIMARY KEY REFERENCES Device(SerialId) ON DELETE CASCADE,
-    ClientName varchar(255) NOT NULL,
-    Until timestamp NOT NULL
+CREATE TABLE reservations (
+    device_id       varchar(255)    PRIMARY KEY REFERENCES device(id) ON DELETE CASCADE,
+    client_id       varchar(255)    NOT NULL,
+    until           timestamp       NOT NULL
 );
 
-CREATE VIEW DeviceReservations AS
-SELECT Device.SerialId, Device.worker, Device.DeviceStatus, Reservations.ClientName
-FROM Device
-LEFT JOIN Reservations ON Reservations.Device = Device.SerialId;
+CREATE OR REPLACE VIEW device_reservations
+SELECT device.id, device.worker_id, device.device_status, reservations.client_id
+FROM device
+LEFT JOIN reservations ON reservations.device = device.id;

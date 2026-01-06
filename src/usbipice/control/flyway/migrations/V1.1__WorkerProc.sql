@@ -1,87 +1,96 @@
-CREATE PROCEDURE addWorker(wname varchar(255), Host varchar(255), ServerPort int, workerVersion varchar(255), reservables varchar(255)[])
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
-    IF wname IN (SELECT WorkerName FROM Worker) THEN
-        RAISE EXCEPTION 'Worker already exists';
-    END IF;
-
-    INSERT INTO Worker
-    (WorkerName, Host, ServerPort, LastHeartbeat, UsbipiceVersion, Reservables, ShuttingDown)
-    VALUES(wname, Host, ServerPort, CURRENT_TIMESTAMP, workerVersion, reservables, 'false');
-END
-$$;
-
-CREATE PROCEDURE shutdownWorker(wname varchar(255))
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
-    UPDATE Worker
-    SET ShuttingDown = 'true'
-    WHERE WorkerName = wname;
-END
-$$;
-
-CREATE FUNCTION removeWorker(wname varchar(255))
-RETURNS TABLE (
-    "ClientId" varchar(255),
-    "SerialId" varchar(255)
+CREATE PROCEDURE add_worker(
+    id varchar(255),
+    host varchar(255),
+    port int,
+    farm_version varchar(255),
+    reservables varchar(255) []
 )
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
-    IF wname NOT IN (SELECT WorkerName FROM Worker) THEN
-        RAISE EXCEPTION 'Worker does not exist';
+LANGUAGE plpgsql AS $$ BEGIN
+    IF name IN (
+        SELECT worker.name
+        FROM worker
+    ) THEN RAISE EXCEPTION 'Worker id already exists';
     END IF;
 
-    RETURN QUERY SELECT ClientName, Device
-    FROM Reservations
-    INNER JOIN Device on Reservations.Device = Device.SerialId
-    WHERE Device.Worker = wname;
+    INSERT INTO worker (
+            id,
+            host,
+            port,
+            heartbeat,
+            farm_version,
+            reservables,
+            shutdown_down
+        )
+    VALUES (
+            id,
+            host,
+            port,
+            CURRENT_TIMESTAMP,
+            farm_version,
+            reservables,
+            'false'
+        );
+    END $$;
 
-    DELETE FROM Worker
-    WHERE WorkerName = wname;
-END
-$$;
+    CREATE PROCEDURE shutdown_worker(wid varchar(255))
+    LANGUAGE plpgsql AS $$ BEGIN
+    UPDATE worker
+    SET shutdown_down = 'true'
+    WHERE id = wid;
+END $$;
 
-CREATE PROCEDURE heartbeatWorker(wname varchar(255))
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
-    IF wname NOT IN (SELECT WorkerName FROM Worker) THEN
-        RAISE EXCEPTION 'Worker does not exist';
-    END IF;
-
-    UPDATE Worker
-    SET LastHeartbeat = CURRENT_TIMESTAMP
-    WHERE WorkerName = wname ;
-END
-$$;
-
-CREATE FUNCTION handleWorkerTimeouts(s int)
+CREATE FUNCTION remove_worker(wid varchar(255))
 RETURNS TABLE (
-    "SerialId" varchar(255),
-    "ClientName" varchar(255),
-    "WorkerName" varchar(255)
+    client_id varchar(255),
+    device_id varchar(255)
 )
-LANGUAGE plpgsql
-AS
-$$
-DECLARE t timestamp;
-BEGIN
-    t := CURRENT_TIMESTAMP - s * interval '1 second';
+LANGUAGE plpgsql AS $$ BEGIN
+    IF wid NOT IN (
+        SELECT id
+        FROM worker
+    ) THEN RAISE EXCEPTION 'Worker id does not exist';
+    END IF;
+
     RETURN QUERY
-    SELECT Device.SerialId, Reservations.ClientName, Worker.WorkerName
-    FROM Worker
-    INNER JOIN Device ON Worker.WorkerName = Device.Worker
-    INNER JOIN Reservations ON Reservations.Device = Device.SerialId
-    WHERE LastHeartbeat < t;
+    SELECT device_id, client_id
+    FROM reservations
+        INNER JOIN device on device_id = device.device_id
+    WHERE device.worker_id = wid;
 
-    DELETE FROM Worker
-    WHERE LastHeartbeat < t;
-END
-$$;
+    DELETE FROM worker
+    WHERE id = wid;
+    END $$;
+
+    CREATE PROCEDURE heartbeat_worker(wid varchar(255))
+    LANGUAGE plpgsql AS $$ BEGIN
+    IF wid NOT IN (
+        SELECT id
+        FROM worker
+    ) THEN RAISE EXCEPTION 'Worker id does not exist';
+    END IF;
+
+    UPDATE worker
+    SET heartbeat = CURRENT_TIMESTAMP
+    WHERE id = wid;
+END $$;
+
+CREATE FUNCTION handle_worker_timeouts(s int)
+RETURNS TABLE (
+    serial_id varchar(255),
+    client_id varchar(255),
+    worker_id varchar(255)
+) LANGUAGE plpgsql AS $$ BEGIN
+    DECLARE t timestamp;
+    BEGIN t := CURRENT_TIMESTAMP - s * interval '1 second';
+    RETURN QUERY
+    SELECT device.id,
+        reservations.client_id,
+        worker.id
+    FROM worker
+        INNER JOIN device ON worker.id = device.worker_id
+        INNER JOIN reservations ON reservations.device_id = device.id
+    WHERE heartbeat < t;
+
+    DELETE FROM worker
+    WHERE  heartbeat < t;
+END $$;
