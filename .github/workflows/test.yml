@@ -29,8 +29,8 @@ jobs:
           tags: usbipiceproject/usbipice-worker:amd
           file: docker/Dockerfile
           platforms: linux/amd64
-          cache-from: type=registry,ref=usbipiceproject/usbipice-worker:amd
-          cache-to: type=inline, mode=max
+          cache-from: type=registry,ref=usbipiceproject/usbipice-worker:buildcache
+          cache-to: type=registry,ref=usbipiceproject/usbipice-worker:buildcache,mode=max
 
       - name: Compose Up
         run: docker compose -f docker/test_compose.yml up -d
