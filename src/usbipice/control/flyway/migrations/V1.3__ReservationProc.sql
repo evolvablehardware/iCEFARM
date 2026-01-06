@@ -1,243 +1,230 @@
-CREATE FUNCTION makeReservations(amount int, clientName varchar(255), reservationType varchar(255))
-RETURNS TABLE (
-    "SerialID" varchar(255),
-    "Host" varchar(255),
-    "WorkerPort" int
-)
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
-    CREATE TEMPORARY TABLE res (
-        "SerialID" varchar(255),
-        "Host" varchar(255),
-        "WorkerPort" int
+CREATE FUNCTION make_reservations (
+    amount int,
+    client_name varchar(255),
+    reservation_type varchar(255)
+) RETURNS TABLE (
+    device_id varchar(255),
+    worker_host varchar(255),
+    worker_port int
+) LANGUAGE plpgsql AS $$
+    BEGIN CREATE TEMPORARY TABLE res (
+        device_id varchar(255),
+        worker_host varchar(255),
+        worker_port int
     ) ON COMMIT DROP;
 
-    INSERT INTO res("SerialID", "Host", "WorkerPort")
-    SELECT Device.SerialID, Host, Worker.ServerPort
-    FROM Device
-    INNER JOIN Worker ON Worker.WorkerName = Device.Worker
-    WHERE DeviceStatus = 'available' AND reservationType = ANY(Worker.Reservables) AND NOT Worker.ShuttingDown
+    INSERT INTO res(device_id, worker_host, worker_port)
+    SELECT device.id,
+        worker.host,
+        worker.port
+    FROM device
+        INNER JOIN worker ON worker.id = device.worker_id
+    WHERE device_status = 'available'
+        AND reservation_type = ANY(worker.reservables)
+        AND NOT worker.shutting_down
     LIMIT amount;
 
-    UPDATE Device
-    SET DeviceStatus = 'reserved'
-    WHERE Device.SerialID IN (SELECT res."SerialID" FROM res);
+    UPDATE device
+    SET device_status = 'reserved'
+    WHERE device.id IN (
+            SELECT res.device_id
+            FROM res
+        );
 
-    INSERT INTO Reservations(Device, ClientName, Until)
-    SELECT res."SerialID", clientName, CURRENT_TIMESTAMP + interval '1 hour'
+    INSERT INTO reservations(device_id, client_id, until)
+    SELECT res.device_id,
+        client_name,
+        CURRENT_TIMESTAMP + interval '1 hour'
     FROM res;
 
-    RETURN QUERY SELECT * FROM res;
-END
-$$;
+    RETURN QUERY
+    SELECT *
+    FROM res;
+END $$;
 
-CREATE FUNCTION hasReservations(worker_name varchar(255))
+CREATE FUNCTION has_reservations(wid varchar(255))
 RETURNS bool
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
+LANGUAGE plpgsql AS $$ BEGIN
     RETURN EXISTS (
-        SELECT * FROM Reservations
-        INNER JOIN Device ON Reservations.Device = Device.SerialId
-        INNER JOIN Worker ON Worker.WorkerName = Device.Worker
+        SELECT *
+        FROM reservations
+            INNER JOIN device ON reservations.device_id = device.id
+            INNER JOIN worker ON worker.id = device.worker_id
     );
-END
-$$;
+END $$;
 
-CREATE FUNCTION extendReservations(client_name varchar(255), serial_ids varchar(255)[])
-RETURNS TABLE (
-    "Device" varchar(255)
+CREATE FUNCTION extend_reservations(
+    client_name varchar(255),
+    serial_ids varchar(255) []
 )
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
+RETURNS TABLE (
+    device_id varchar(255)
+)
+LANGUAGE plpgsql AS $$ BEGIN
     RETURN QUERY
-    UPDATE Reservations
-    SET Until = CURRENT_TIMESTAMP + interval '1 hour'
-    WHERE Device = ANY(serial_ids)
-    AND ClientName = client_name
-    RETURNING Device;
-END
-$$;
+    UPDATE reservations
+    SET until = CURRENT_TIMESTAMP + interval '1 hour'
+    WHERE device_id = ANY(serial_ids)
+        AND client_id = client_name
+    RETURNING device_id;
+END $$;
 
-CREATE FUNCTION extendAllReservations(client_name varchar(255))
+CREATE FUNCTION extend_all_reservations(client_name varchar(255))
 RETURNS TABLE (
-    "Device" varchar(255)
-)
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
+    device_id varchar(255)
+    )
+LANGUAGE plpgsql AS $$ BEGIN
     RETURN QUERY
-    UPDATE Reservations
-    SET Until = CURRENT_TIMESTAMP + interval '1 hour'
-    WHERE ClientName = client_name
-    RETURNING Device;
-END
-$$;
+    UPDATE reservations
+    SET until = CURRENT_TIMESTAMP + interval '1 hour'
+    WHERE client_id = client_name
+    RETURNING device_id;
+END $$;
 
-CREATE FUNCTION endReservations(client_name varchar(255), serial_ids varchar(255)[])
-RETURNS TABLE (
-    "Device" varchar(255),
-    "WorkerIp" varchar(255),
-    "WorkerServerPort" int
-)
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
+CREATE FUNCTION end_reservations(
+    client_name varchar(255),
+    serial_ids varchar(255) []
+) RETURNS TABLE (
+    device_id varchar(255),
+    worker_host varchar(255),
+    worker_port int
+) LANGUAGE plpgsql AS $$ BEGIN
     CREATE TEMPORARY TABLE res (
-        "Device" varchar(255),
-        "WorkerIp" varchar(255),
-        "WorkerServerPort" int
+        device_id varchar(255),
+        worker_host varchar(255),
+        worker_port int
     ) ON COMMIT DROP;
 
-    INSERT INTO res("Device")
-    SELECT Device
-    FROM Reservations
-    WHERE ClientName = client_name
-    AND Device = ANY(serial_ids);
+    INSERT INTO res(device_id)
+    SELECT device_id
+    FROM reservations
+    WHERE client_id = client_name
+        AND device_id = ANY(serial_ids);
 
     RETURN QUERY
-    SELECT res."Device", Worker.Host, Worker.ServerPort
+    SELECT device_id,
+        worker.host,
+        worker.port
     FROM res
-    INNER JOIN Reservations ON res."Device" = Reservations.Device
-    INNER JOIN Device ON res."Device" = Device.SerialID
-    INNER JOIN Worker ON Device.Worker = Worker.WorkerName;
+        INNER JOIN reservations ON res.device_id = reservations.device_id
+        INNER JOIN device ON res.device_id = device.id
+        INNER JOIN worker ON device.worker_id = worker.id;
 
-    DELETE FROM Reservations
-    WHERE Device IN (SELECT res."Device" FROM res);
+    DELETE FROM reservations
+    WHERE device_id IN (
+            SELECT res.device_id
+            FROM res
+        );
 
-    UPDATE Device
-    SET DeviceStatus = 'await_flash_default'
-    WHERE Device.SerialID IN (SELECT res."Device" FROM res);
-END
-$$;
+    UPDATE device
+    SET deviceStatus = 'await_flash_default'
+    WHERE device.id IN (
+            SELECT res.device_id
+            FROM res
+        );
+END $$;
 
-CREATE FUNCTION endAllReservations(client_name varchar(255))
+CREATE FUNCTION end_all_reservations (client_name varchar(255))
 RETURNS TABLE (
-    "Device" varchar(255),
-    "WorkerIp" varchar(255),
-    "WorkerServerPort" int
+    device_id varchar(255),
+    worker_host varchar(255),
+    worker_port int
 )
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
+LANGUAGE plpgsql AS $$ BEGIN
     CREATE TEMPORARY TABLE res (
-        "Device" varchar(255)
+        device_id varchar(255)
     ) ON COMMIT DROP;
 
-    INSERT INTO res("Device")
-    SELECT Device
-    FROM Reservations
-    WHERE ClientName = client_name;
+    INSERT INTO res(device_id)
+    SELECT reservations.device_id
+    FROM reservations
+    WHERE client_id = client_name;
 
     RETURN QUERY
-    SELECT res."Device", Worker.Host, Worker.ServerPort
+    SELECT res.device_id,
+        worker.host,
+        worker.port
     FROM res
-    INNER JOIN Reservations ON res."Device" = Reservations.Device
-    INNER JOIN Device ON res."Device" = Device.SerialID
-    INNER JOIN Worker ON Device.Worker = Worker.WorkerName;
+        INNER JOIN reservations ON res.device_id = reservations.device_id
+        INNER JOIN device ON res.device_id = device.id
+        INNER JOIN worker ON device.worker_id= worker.id;
 
-    DELETE FROM Reservations
-    WHERE Device IN (SELECT res."Device" FROM res);
+    DELETE FROM reservations
+    WHERE reservations.device_id IN (
+            SELECT res.device_id
+            FROM res
+        );
 
-    UPDATE Device
-    SET DeviceStatus = 'await_flash_default'
-    WHERE Device.SerialID IN (SELECT res."Device" FROM res);
-END
-$$;
+    UPDATE device
+    SET device_status = 'await_flash_default'
+    WHERE device.id IN (
+            SELECT res.device_id
+            FROM res
+        );
+END $$;
 
-CREATE FUNCTION handleReservationTimeouts()
+CREATE FUNCTION handle_reservation_timeouts ()
 RETURNS TABLE (
-    "Device" varchar(255),
-    "ClientName" varchar(255),
-    "Host" varchar(255),
-    "ServerPort" int
-)
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
+    device_id varchar(255),
+    client_id varchar(255),
+    worker_host varchar(255),
+    worker_port int
+) LANGUAGE plpgsql AS $$ BEGIN
     CREATE TEMPORARY TABLE res (
-        "Device" varchar(255)
+       device_id varchar(255)
     ) ON COMMIT DROP;
 
-    INSERT INTO res("Device")
-    SELECT Device
-    FROM Reservations
-    WHERE Until < CURRENT_TIMESTAMP;
-
+    INSERT INTO res(device_id)
+    SELECT reservations.device_id
+    FROM reservations
+    WHERE until < CURRENT_TIMESTAMP;
     RETURN QUERY
-    SELECT res."Device", Reservations.ClientName, Worker.Host, Worker.ServerPort
+    SELECT res.device_id,
+        reservations.client_id,
+        worker.host,
+        worker.port
     FROM res
-    INNER JOIN Reservations ON res."Device" = Reservations.Device
-    INNER JOIN Device on Device.SerialId = res."Device"
-    INNER JOIN Worker on Device.Worker = Worker.WorkerName;
+        INNER JOIN reservations ON res.device_id = reservations.device_id
+        INNER JOIN device on device.id= res.device_id
+        INNER JOIN worker on device.worker_id = worker.id;
 
+    DELETE FROM reservations
+    WHERE reservations.device_id IN (
+            SELECT res.device_id
+            FROM res
+        );
 
-    DELETE FROM Reservations
-    WHERE Device IN (SELECT res."Device" FROM res);
+    UPDATE device
+    SET device_status = 'await_flash_default'
+    WHERE device.id IN (
+            SELECT res.device_id
+            FROM res
+        );
+END $$;
 
-    UPDATE Device
-    SET DeviceStatus = 'await_flash_default'
-    WHERE Device.SerialID IN (SELECT res."Device" FROM res);
-END
-$$;
-
-CREATE FUNCTION getReservationsEndingSoon(mins int)
+CREATE FUNCTION get_reservations_ending_soon(mins int)
 RETURNS TABLE (
-    "Device" varchar(255)
+    device_id varchar(255)
 )
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
+LANGUAGE plpgsql AS $$ BEGIN
     RETURN QUERY
-    SELECT Reservations.Device
-    FROM Reservations
-    WHERE Reservations.Until < CURRENT_TIMESTAMP + interval '1 second' * mins;
-END
-$$;
+    SELECT reservations.device_id
+    FROM reservations
+    WHERE reservations.until < CURRENT_TIMESTAMP + interval '1 second' * mins;
+END $$;
 
-CREATE FUNCTION getDeviceCallBack(deviceserial varchar(255))
+CREATE FUNCTION get_device_callback(did varchar(255))
 RETURNS TABLE (
-    "ClientId" varchar(255)
-)
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
-    IF deviceserial NOT IN (SELECT SerialId FROM Device) THEN
-        RAISE EXCEPTION 'SerialID does not exist';
+    client_id varchar(255)
+) LANGUAGE plpgsql AS $$ BEGIN
+    IF did NOT IN (
+        SELECT id
+        FROM device
+    ) THEN RAISE EXCEPTION 'Device id does not exist';
     END IF;
 
-    RETURN QUERY SELECT ClientName FROM Reservations
-    WHERE Device = deviceserial;
-END
-$$;
-
-CREATE FUNCTION getDeviceWorker(deviceserial varchar(255))
-RETURNS TABLE (
-    "Host" varchar(255),
-    "Serverport" int
-)
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
-    IF deviceserial NOT IN (SELECT SerialId FROM Device) THEN
-        RAISE EXCEPTION 'SerialID does not exist';
-    END IF;
-
-    RETURN QUERY SELECT Worker.Host, Worker.ServerPort
-    FROM Device
-    INNER JOIN Worker ON Device.Worker = Worker.WorkerName
-    WHERE Device.SerialId = deviceserial;
-END
-$$;
+    RETURN QUERY
+    SELECT reservations.client_id
+    FROM reservations
+    WHERE did = reservations.device_id;
+END $$;
