@@ -1,5 +1,7 @@
 FROM --platform=$BUILDPLATFORM ubuntu:noble-20251013 AS firmware-builder
-RUN apt-get update && apt-get install -y make cmake gcc-arm-none-eabi linux-tools-generic git python3 build-essential
+RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    apt-get update && apt-get install -y make cmake gcc-arm-none-eabi linux-tools-generic git python3 build-essential
 
 WORKDIR /usr/local/build
 RUN git clone --depth 1 https://github.com/npat-efault/picocom.git
@@ -28,7 +30,9 @@ RUN make
 
 
 FROM ubuntu:noble-20251013 AS picocom-builder
-RUN apt-get update && apt-get install -y make cmake gcc-arm-none-eabi linux-tools-generic git python3 build-essential
+RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    apt-get update && apt-get install -y make cmake gcc-arm-none-eabi linux-tools-generic git python3 build-essential
 
 WORKDIR /usr/local/build
 RUN git clone --depth 1 https://github.com/npat-efault/picocom.git
@@ -39,7 +43,9 @@ RUN make
 FROM ubuntu:noble-20251013
 WORKDIR /usr/local/app
 
-RUN apt-get update && apt-get install -y python3 python3-pip python3-venv sudo udev linux-tools-generic && rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
+RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    apt-get update && apt-get install -y python3 python3-pip python3-venv sudo udev linux-tools-generic && rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
 
 RUN mkdir -p /run/udev
 
