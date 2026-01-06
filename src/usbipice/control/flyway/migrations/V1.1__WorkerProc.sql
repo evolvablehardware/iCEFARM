@@ -79,9 +79,11 @@ RETURNS TABLE (
     serial_id varchar(255),
     client_id varchar(255),
     worker_id varchar(255)
-) LANGUAGE plpgsql AS $$ BEGIN
-    DECLARE t timestamp;
-    BEGIN t := CURRENT_TIMESTAMP - s * interval '1 second';
+)
+LANGUAGE plpgsql AS $$
+DECLARE t timestamp;
+BEGIN
+    t := CURRENT_TIMESTAMP - s * interval '1 second';
     RETURN QUERY
     SELECT device.id,
         reservations.client_id,
@@ -92,5 +94,5 @@ RETURNS TABLE (
     WHERE heartbeat < t;
 
     DELETE FROM worker
-    WHERE  heartbeat < t;
+    WHERE heartbeat < t;
 END $$;

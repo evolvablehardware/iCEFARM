@@ -14,7 +14,7 @@ ENUM('available', 'reserved', 'await_flash_default', 'flashing_default', 'testin
 
 CREATE TABLE device (
     id              varchar(255)    PRIMARY KEY NOT NULL,
-    worker_id       varchar(255)    REFERENCES worker(name) ON DELETE CASCADE NOT NULL,
+    worker_id       varchar(255)    REFERENCES worker(id) ON DELETE CASCADE NOT NULL,
     device_status   devicestatus    NOT NULL
 );
 
@@ -24,7 +24,7 @@ CREATE TABLE reservations (
     until           timestamp       NOT NULL
 );
 
-CREATE OR REPLACE VIEW device_reservations
+CREATE OR REPLACE VIEW device_reservations AS
 SELECT device.id, device.worker_id, device.device_status, reservations.client_id
 FROM device
-LEFT JOIN reservations ON reservations.device = device.id;
+LEFT JOIN reservations ON reservations.device_id = device.id;

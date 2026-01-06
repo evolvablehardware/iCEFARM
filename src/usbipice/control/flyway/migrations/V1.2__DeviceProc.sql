@@ -16,7 +16,7 @@ LANGUAGE plpgsql AS $$ BEGIN
     VALUES(did, wid, 'await_flash_default');
 END $$;
 
-CREATE PROCEDURE update_device_status(did varchar(255), dstate DeviceState)
+CREATE PROCEDURE update_device_status(did varchar(255), dstate devicestatus)
 LANGUAGE plpgsql AS $$ BEGIN
     IF did NOT IN (
         SELECT id

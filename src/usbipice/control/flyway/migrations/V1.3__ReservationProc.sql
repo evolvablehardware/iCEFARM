@@ -128,7 +128,7 @@ CREATE FUNCTION end_all_reservations (client_name varchar(255))
 RETURNS TABLE (
     device_id varchar(255),
     worker_host varchar(255),
-    worker_ port int
+    worker_port int
 )
 LANGUAGE plpgsql AS $$ BEGIN
     CREATE TEMPORARY TABLE res (
