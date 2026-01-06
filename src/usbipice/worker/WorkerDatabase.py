@@ -11,7 +11,7 @@ from usbipice.worker.device.state.reservable import get_registered_reservables
 import typing
 if typing.TYPE_CHECKING:
     from usbipice.worker import Config
-    from usbipice.utils import DeviceState
+    from usbipice.utils import DeviceStatus
 
 class WorkerDataBaseLogger(LoggerAdapter):
     def __init__(self, logger, extra=None):
@@ -57,12 +57,12 @@ class WorkerDatabase(Database):
 
         return True
 
-    def updateDeviceStatus(self, deviceserial: str, status: DeviceState) -> bool:
+    def updateDeviceStatus(self, deviceserial: str, status: DeviceStatus) -> bool:
         """Updates the status field of a device."""
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
-                    cur.execute("CALL update_device_status(%s::varchar(255), %s::DeviceState)", (deviceserial, status))
+                    cur.execute("CALL update_device_status(%s::varchar(255), %s::devicestatus)", (deviceserial, status))
                     conn.commit()
         except Exception:
             self.logger.error(f"failed to update device {deviceserial} to status {status}")
@@ -91,7 +91,6 @@ class WorkerDatabase(Database):
             self.logger.error("Failed to check for reservations")
 
         return None
-
 
     def handleReservationChange(self):
         with self.cv:

@@ -6,8 +6,8 @@ CREATE PROCEDURE add_worker(
     reservables varchar(255) []
 )
 LANGUAGE plpgsql AS $$ BEGIN
-    IF name IN (
-        SELECT worker.name
+    IF id IN (
+        SELECT worker.id
         FROM worker
     ) THEN RAISE EXCEPTION 'Worker id already exists';
     END IF;
@@ -19,7 +19,7 @@ LANGUAGE plpgsql AS $$ BEGIN
             heartbeat,
             farm_version,
             reservables,
-            shutdown_down
+            shutting_down
         )
     VALUES (
             id,
@@ -35,7 +35,7 @@ LANGUAGE plpgsql AS $$ BEGIN
     CREATE PROCEDURE shutdown_worker(wid varchar(255))
     LANGUAGE plpgsql AS $$ BEGIN
     UPDATE worker
-    SET shutdown_down = 'true'
+    SET shutting_down = 'true'
     WHERE id = wid;
 END $$;
 

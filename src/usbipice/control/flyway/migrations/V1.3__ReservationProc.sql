@@ -13,7 +13,7 @@ CREATE FUNCTION make_reservations (
         worker_port int
     ) ON COMMIT DROP;
 
-    INSERT INTO res(device_id, host, port)
+    INSERT INTO res(device_id, worker_host, worker_port)
     SELECT device.id,
         worker.host,
         worker.port
@@ -21,7 +21,7 @@ CREATE FUNCTION make_reservations (
         INNER JOIN worker ON worker.id = device.worker_id
     WHERE device_status = 'available'
         AND reservation_type = ANY(worker.reservables)
-        AND NOT worker.shutdown_down
+        AND NOT worker.shutting_down
     LIMIT amount;
 
     UPDATE device
@@ -31,9 +31,9 @@ CREATE FUNCTION make_reservations (
             FROM res
         );
 
-    INSERT INTO reservations(device, client_id, until)
+    INSERT INTO reservations(device_id, client_id, until)
     SELECT res.device_id,
-        client_id,
+        client_name,
         CURRENT_TIMESTAMP + interval '1 hour'
     FROM res;
 
@@ -71,7 +71,7 @@ END $$;
 
 CREATE FUNCTION extend_all_reservations(client_name varchar(255))
 RETURNS TABLE (
-    "Device" varchar(255)
+    device_id varchar(255)
     )
 LANGUAGE plpgsql AS $$ BEGIN
     RETURN QUERY
@@ -136,7 +136,7 @@ LANGUAGE plpgsql AS $$ BEGIN
     ) ON COMMIT DROP;
 
     INSERT INTO res(device_id)
-    SELECT device
+    SELECT reservations.device_id
     FROM reservations
     WHERE client_id = client_name;
 
@@ -146,7 +146,7 @@ LANGUAGE plpgsql AS $$ BEGIN
         worker.port
     FROM res
         INNER JOIN reservations ON res.device_id = reservations.device_id
-        INNER JOIN device ON res.device_id = device.device_id
+        INNER JOIN device ON res.device_id = device.id
         INNER JOIN worker ON device.worker_id= worker.id;
 
     DELETE FROM reservations
@@ -175,7 +175,7 @@ RETURNS TABLE (
     ) ON COMMIT DROP;
 
     INSERT INTO res(device_id)
-    SELECT device
+    SELECT reservations.device_id
     FROM reservations
     WHERE until < CURRENT_TIMESTAMP;
     RETURN QUERY
@@ -189,7 +189,7 @@ RETURNS TABLE (
         INNER JOIN worker on device.worker_id = worker.id;
 
     DELETE FROM reservations
-    WHERE device IN (
+    WHERE reservations.device_id IN (
             SELECT res.device_id
             FROM res
         );
@@ -213,18 +213,18 @@ LANGUAGE plpgsql AS $$ BEGIN
     WHERE reservations.until < CURRENT_TIMESTAMP + interval '1 second' * mins;
 END $$;
 
-CREATE FUNCTION get_device_callback(device_id varchar(255))
+CREATE FUNCTION get_device_callback(did varchar(255))
 RETURNS TABLE (
     client_id varchar(255)
 ) LANGUAGE plpgsql AS $$ BEGIN
-    IF device_id NOT IN (
+    IF did NOT IN (
         SELECT id
         FROM device
     ) THEN RAISE EXCEPTION 'Device id does not exist';
     END IF;
 
     RETURN QUERY
-    SELECT client_id
+    SELECT reservations.client_id
     FROM reservations
-    WHERE device = device_id;
+    WHERE did = reservations.device_id;
 END $$;

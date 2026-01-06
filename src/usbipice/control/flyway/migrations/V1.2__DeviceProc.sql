@@ -1,6 +1,6 @@
 CREATE PROCEDURE add_device(did varchar(255), wid varchar(255))
 LANGUAGE plpgsql AS $$ BEGIN
-    IF worker NOT IN (
+    IF wid NOT IN (
         SELECT id
         FROM worker
     ) THEN RAISE EXCEPTION 'Worker id does not exist';
