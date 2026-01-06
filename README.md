@@ -80,6 +80,10 @@ In addition, it will receive logs from the workers. Note that log entries that h
 [host_worker@1] [DeviceManager] [{serial}] [FlashState] sending bootloader signal to /dev/ttyACM0
 ```
 
+A control panel is available on ```8080:/``` of the control:
+```http://localhost:8080```
+This includes an overview of the system state, along with some actions. The end reservation action removes a devices reservation. The reboot action sends a reboot signal to the devices state object. In the case of the pulse count state, this means attempting to flash the device with the pulse count firmware and opening a new serial port. The delete action effectively flashes the device to the default firmware. Note that this should only be done if the device is not reserved.
+
 The [pulse count example client](./examples/pulse_count_driver/main.py) can now be used.
 
 Stop the stack:
