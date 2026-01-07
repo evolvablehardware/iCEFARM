@@ -13,7 +13,8 @@ dependencies = [
     "schedule",
     "pyserial",
     "python-dotenv",
-    "asgiref"
+    "asgiref",
+    "pytest"
 ]
 
 [build-system]

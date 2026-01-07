@@ -19,14 +19,19 @@ class ControlDatabase(Database):
             ["serial", "ip", "serverport"], stringify=["ip"]
         )
 
-
     def extend(self, name: str, serials: list[str]) -> list[str]:
         """Extends the reservation time of the serials under the name of the client. Returns the extended serials"""
-        return self.execute("SELECT * FROM extend_reservations(%s::varchar(255), %s::varchar(255)[])", (name, serials))
+        if (data := self.execute("SELECT * FROM extend_reservations(%s::varchar(255), %s::varchar(255)[])", (name, serials))):
+            return data[0]
+
+        return False
 
     def extendAll(self, name: str) -> list[str]:
         """Extends the reservation time of all serials under the name of the client. Returns the extended serials."""
-        return self.execute("SELECT * FROM extend_all_reservations(%s::varchar(255))", (name,))
+        if (data := self.execute("SELECT * FROM extend_all_reservations(%s::varchar(255))", (name,))):
+            return data[0]
+
+        return False
 
     def end(self, name: str, serials: list[str]):
         """Ends the reservation of serials under the name of the client.

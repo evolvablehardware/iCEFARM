@@ -64,9 +64,9 @@ LANGUAGE plpgsql AS $$ BEGIN
     RETURN QUERY
     UPDATE reservations
     SET until = CURRENT_TIMESTAMP + interval '1 hour'
-    WHERE device_id = ANY(serial_ids)
+    WHERE reservations.device_id = ANY(serial_ids)
         AND client_id = client_name
-    RETURNING device_id;
+    RETURNING reservations.device_id;
 END $$;
 
 CREATE FUNCTION extend_all_reservations(client_name varchar(255))
@@ -77,8 +77,8 @@ LANGUAGE plpgsql AS $$ BEGIN
     RETURN QUERY
     UPDATE reservations
     SET until = CURRENT_TIMESTAMP + interval '1 hour'
-    WHERE client_id = client_name
-    RETURNING device_id;
+    WHERE reservations.client_id = client_name
+    RETURNING reservations.device_id;
 END $$;
 
 CREATE FUNCTION end_reservations(
@@ -96,13 +96,13 @@ CREATE FUNCTION end_reservations(
     ) ON COMMIT DROP;
 
     INSERT INTO res(device_id)
-    SELECT device_id
+    SELECT reservations.device_id
     FROM reservations
     WHERE client_id = client_name
-        AND device_id = ANY(serial_ids);
+        AND reservations.device_id = ANY(serial_ids);
 
     RETURN QUERY
-    SELECT device_id,
+    SELECT reservations.device_id,
         worker.host,
         worker.port
     FROM res
@@ -111,13 +111,13 @@ CREATE FUNCTION end_reservations(
         INNER JOIN worker ON device.worker_id = worker.id;
 
     DELETE FROM reservations
-    WHERE device_id IN (
+    WHERE reservations.device_id IN (
             SELECT res.device_id
             FROM res
         );
 
     UPDATE device
-    SET deviceStatus = 'await_flash_default'
+    SET device_status = 'await_flash_default'
     WHERE device.id IN (
             SELECT res.device_id
             FROM res

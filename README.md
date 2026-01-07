@@ -244,6 +244,11 @@ sudo USBIPICE_DATABASE="$USBIPICE_DATABASE" USBIPICE_WORKER_CONFIG=$USBIPICE_WOR
 ### Workflow
 Vscode debug configurations are available for both the worker and control. There is also an assortment of vscode tasks. The task ```database-clear``` removes workers from the database and is useful to fix invalid worker/device states. This can also be done with ```psql -d "$USBIPICE_DATABASE" -c 'delete from worker;```.
 
+### Testing
+The tests assume that you already have a worker and the control setup. Tests can be run with pytest:
+```pytest ./tests --url [control url]```
+Note that if you do not specify the test directory, and have pico-sdk symlinks, pytest may pick up additional tests from dependencies. Currently, two picos are required to run the tests. If you wish to run the tests without picos, you can instead run the worker from ```worker/test.py```. This applies patches to emulate device behavior without needing physical access.
+
 ### Troubleshooting
 *Generally, most things can be fixed by clearing the database*
 #### Worker fails to run, unable to add to database because it already exists
