@@ -46,7 +46,7 @@ services:
       USBIPICE_DEFAULT: src/usbipice/worker/firmware/default/build/default_firmware.uf2
       USBIPICE_PULSE_COUNT: src/usbipice/worker/firmware/pulse_count/build/bitstream_over_usb.uf2
 
-    command: [".venv/bin/pytest", "./tests", "--url", "http://control:8080"]
+    command: [".venv/bin/python3", "src/usbipice/worker/test.py"]
 
     ports:
       - target: 8081
