@@ -2,6 +2,7 @@ __pycache__
 .venv
 .vscode
 .git
+.pytest_cache
 
 client_media
 worker_media
