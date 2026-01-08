@@ -9,6 +9,7 @@ import os
 import inspect
 import types
 from configparser import ConfigParser
+import itertools
 
 from pexpect import fdpexpect
 
@@ -149,3 +150,52 @@ def generate_circuit(hz, build_dir, build_script="src/usbipice/utils/build.sh", 
     subprocess.run(["bash", build_script, build_dir, pcf_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
 
     return os.path.join(build_dir, "top.bin"), clk / incr / 1000
+
+# Ideally would inherit dict but that doesn't behave nicely
+class MappedQueues:
+    """
+    Manages a dict[Any, list[Any]] so that new lists are
+    created if a key does not already exist. Empty list values
+    mean that the corresponding key is treated as through it does
+    not exist.
+    """
+    def __init__(self):
+        self.state = {}
+
+    def __getitem__(self, key) -> list:
+        if key not in self.state:
+            self.state[key] = []
+
+        return self.state[key]
+
+    def append(self, key, value):
+        self[key].append(value)
+
+    def pop(self, key, amount) -> list:
+        """Pops up to amount items from queue key. If less
+        than amount items are in queue key, all items will
+        be popped.."""
+        out = []
+
+        for _ in range(amount):
+            if key not in self:
+                return out
+
+            out += self[key].pop()
+
+        return out
+
+    def __bool__(self):
+        return any(self.state.values())
+
+    def __contains__(self, value):
+        return bool(self.state.get(value))
+
+    def __iter__(self):
+        return itertools.dropwhile(self.__getitem__, self.state)
+
+    def keys(self):
+        return list(iter(self))
+
+    def values(self):
+        return [self[key] for key in self]
