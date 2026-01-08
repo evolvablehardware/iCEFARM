@@ -51,7 +51,7 @@ class Device:
                 return
 
             with self._device.switching_lock:
-                self.logger.debug(f"device {dev["DEVPATH"]}")
+                self.logger.debug(f'device {dev["DEVPATH"]}')
 
                 if action == "add":
                     self._device.handleAdd(dev)

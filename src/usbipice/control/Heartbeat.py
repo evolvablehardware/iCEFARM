@@ -119,7 +119,7 @@ class Heartbeat:
                     return
 
                 for row in data:
-                    self.__notifyEnd(row["client_id"], row["serial"], f"http://{row["workerip"]}:{row["workerport"]}")
+                    self.__notifyEnd(row["client_id"], row["serial"], f'http://{row["workerip"]}:{row["workerport"]}')
                     self.logger.info(f"Reservation for device {row['serial']} by client {row['client_id']} ended")
 
             threading.Thread(target=run, name="heartbeat-reservation-timeouts", daemon=True).start()

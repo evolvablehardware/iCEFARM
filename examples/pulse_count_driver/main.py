@@ -23,7 +23,8 @@ BITSTREAM_PATHS = ["examples/pulse_count_driver/precompiled_circuits/circuit_gen
 # Target kHz of circuits. These circuits will be automatically generated, compiled, and evaluated.
 # Usage requires yosys, nextpnr-ice40, and icepack. If you don't have these tools installed,
 # set this to [] and it will be ignored.
-COMPILE_PULSES = [1, 2, 4, 16, 64]
+COMPILE_PULSES = []
+#COMPILE_PULSES = [1, 2, 4, 16, 64]
 
 # Determines distribution method. If set to true, circuits are evaluated
 # once on each device. If set to false, circuits are semi-evenly distributed
