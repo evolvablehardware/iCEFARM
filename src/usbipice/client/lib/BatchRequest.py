@@ -1,10 +1,10 @@
 import uuid
 import threading
+import math
 from collections import Counter
 from collections.abc import Generator
 
 from usbipice.utils import MappedQueues
-
 
 class Evaluation:
     """
@@ -12,11 +12,16 @@ class Evaluation:
     multiple serials to one Evaluation will result in faster evaluations than
     providing multiple Evaluations of the same bitstream.
     """
-    #TODO freeze request values, __hash__ by value
     def __init__(self, serials: set[str], request: dict):
         self.serials = serials
         self.request = request
         self.id = str(uuid.uuid4())
+
+    def __eq__(self, other):
+        return self.id  == other.id
+
+    def __hash__(self):
+        return hash(self.id)
 
 class EvaluationBundle:
     """
@@ -70,40 +75,6 @@ class AbstractBatchFactory:
 
         self.awaiting_results: dict[str, set] = {}
 
-    def getResults(self) -> Generator[tuple[Evaluation, dict]]:
-        """Produces results as they are processed."""
-        with self.result_cv:
-            if not self.results:
-                self.result_cv.wait_for(lambda : self.results)
-
-            for evaluation_id, result in self.results:
-                evaluation = self.bundle.evaluation_lookup.get(evaluation_id)
-                yield evaluation, result
-
-            self.results = []
-
-            if self.bundle.empty and not self.awaiting_results:
-                return
-
-    def _addBatch(self, batch: dict[set[str], list[Evaluation]]):
-        """Adds batch to awaiting results."""
-        for serials, evaluations in batch.items():
-            for serial in serials:
-                if serial not in self.awaiting_results:
-                    self.awaiting_results[serial] = set()
-
-                self.awaiting_results[serial] += set(evaluation.id for evaluation in evaluations)
-
-    def getBatches(self) -> Generator[dict[set[str], list[Evaluation]]]:
-        """Produces batches for client to consume."""
-
-    def processResult(self, serial, evaluation_id, result):
-        """Must be called when evaluations are received from workers."""
-
-class QuickBatchFactory(AbstractBatchFactory):
-    """
-    Sends all batches to workers without any delay.
-    """
     def processResult(self, serial, evaluation_id, result):
         with self.result_cv:
             if serial not in self.awaiting_results:
@@ -116,19 +87,57 @@ class QuickBatchFactory(AbstractBatchFactory):
             self.results.append((evaluation_id, result))
             self.result_cv.notify_all()
 
-    def getBatches(self):
+    def getResults(self) -> Generator[tuple[Evaluation, dict]]:
+        """Produces results as they are processed."""
+        while True:
+            with self.result_cv:
+                if not self.results:
+                    self.result_cv.wait_for(lambda : self.results)
+
+                for evaluation_id, result in self.results:
+                    evaluation = self.bundle.evaluation_lookup.get(evaluation_id)
+                    yield evaluation, result
+
+                self.results = []
+
+                if self.bundle.empty and not self.awaiting_results:
+                    return
+
+    def _addBatch(self, batch: dict[set[str], list[Evaluation]]):
+        """Adds batch to awaiting results."""
+        for serials, evaluations in batch.items():
+            for serial in serials:
+                if serial not in self.awaiting_results:
+                    self.awaiting_results[serial] = set()
+
+                self.awaiting_results[serial] += set(evaluation.id for evaluation in evaluations)
+
+    def getBatches(self) -> Generator[dict[set[str], list[Evaluation]]]:
+        """Produces batches for client to consume."""
         for batch in self.bundle:
             with self.result_cv:
-                self._addBatch(batch)
-                yield batch
+                if self.awaiting_results:
+                    self.result_cv.wait_for(self._readyForBatch)
+                    self._addBatch(batch)
+                    yield batch
 
-        return
+    def _readyForBatch(self):
+        pass
+
+class QuickBatchFactory(AbstractBatchFactory):
+    """
+    Sends all batches to workers without any delay.
+    """
+    def _readyForBatch(self):
+        return True
 
 class PatientBatchFactory(AbstractBatchFactory):
     """
     Waits until all workers have finished processing a batch
     before sending a new one.
     """
+    def _readyForBatch(self):
+        return not self.awaiting_results
 
 class BalancedBatchFactory(AbstractBatchFactory):
     """
@@ -136,3 +145,11 @@ class BalancedBatchFactory(AbstractBatchFactory):
     waits until a threshold of results have been received
     before sending more batches.
     """
+    def __init__(self, bundle, target_batches=2):
+        super().__init__(bundle)
+        self.target_batches = target_batches
+
+    def _readyForBatch(self):
+        highest_queued = max(map(len, self.awaiting_results.values()))
+        batches = math.ceil(highest_queued / self.bundle.batch_size)
+        return bool(self.target_batches - batches)
