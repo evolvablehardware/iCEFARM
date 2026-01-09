@@ -23,7 +23,7 @@ def test_end_serial(client_fac):
         client.end(serials)
         assert not client.getSerials()
 
-def test_stack(client_fac):
+def test_evaluate_bitstreams(client_fac):
     with client_fac() as client:
         BITSTREAM_PATHS = ["examples/pulse_count_driver/precompiled_circuits/circuit_generated_2Khz.bin",
                     "examples/pulse_count_driver/precompiled_circuits/circuit_generated_8Khz.bin",
@@ -36,12 +36,7 @@ def test_stack(client_fac):
         watchdog.name = "watchdog-timeout"
         watchdog.start()
 
-        pulses = client.evaluateEach(BITSTREAM_PATHS)
-        if not pulses:
-            raise Exception("Did not receive any pulses")
+        pulses = list(client.evaluateBitstreams(BITSTREAM_PATHS))
 
-        assert len(pulses) == 1
-
-        for circuit_map in pulses.values():
-            for path in BITSTREAM_PATHS:
-                assert path in circuit_map
+        assert len(pulses) ==  3
+        assert set(BITSTREAM_PATHS) == set(item[1] for item in pulses)

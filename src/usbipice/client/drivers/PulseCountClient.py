@@ -53,7 +53,6 @@ class PulseCountClient(PulseCountBaseClient):
             yield result
 
         del self.batch_factories[factory.bundle.id]
-        return
 
     def evaluateEvaluations(self, evaluations: list[PulseCountEvaluation], batch_size=5):
         batch_factory = BalancedBatchFactory(EvaluationBundle(evaluations, batch_size))
@@ -66,4 +65,5 @@ class PulseCountClient(PulseCountBaseClient):
         serials = set(serials)
 
         evaluations = [PulseCountEvaluation(serials, bitstream) for bitstream in bitstreams]
-        return self.evaluateEvaluations(evaluations)
+        for serial, evaluation, pulses in self.evaluateEvaluations(evaluations):
+            yield serial, evaluation.filepath, pulses
