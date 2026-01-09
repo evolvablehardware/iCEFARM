@@ -1,12 +1,17 @@
 from __future__ import annotations
-import uuid
-from typing import List
 
 from usbipice.client.lib import AbstractEventHandler, register, BaseClient
+from usbipice.client.lib.BatchRequest import Evaluation
+
+class PulseCountEvaluation(Evaluation):
+    def __init__(self, serials, filepath):
+        super().__init__(serials)
+        self.filepath = filepath
 
 class PulseCountEventHandler(AbstractEventHandler):
-    @register("results", "serial", "results")
-    def results(self, serial: str, results: dict[str, int]):
+    @register("results", "batch_id", "serial", "results")
+    # batch_id -> evaluation_id -> pulses
+    def results(self, serial: str, results: dict[str, dict[str, list]]):
         """Called when ALL bitstreams have been evaluated. Results maps
         from the file parameter used in the request body to the
         pulse amount."""
@@ -15,15 +20,19 @@ class PulseCountBaseClient(BaseClient):
     def reserve(self, amount):
         return super().reserve(amount, "pulsecount", {})
 
-    def evaluate(self, serials: List[str], bitstreams: dict[uuid.UUID, str]) -> List[str]:
-        """Queues bitstreams for evaluations on devices serials. Identifiers are used when
-        sending back the results - these should be unique and not reused."""
+    def evaluateBatch(self, batch_id: str, evaluations: list[PulseCountEvaluation]):
+        """Evaluates a batch of PulseCountEvaluations. The Evaluations must share
+        the same set of serials."""
+        if len(set([evaluation.serials for evaluation in evaluations])) != 1:
+            raise Exception("Pulsecount evaluation commands contain different serials")
 
         files = {}
-        for iden, path in bitstreams.items():
-            with open(path, "rb") as f:
-                files[str(iden)] = f.read().decode("cp437")
+        for evaluation in evaluations:
+            with open(evaluation.filepath, "rb") as f:
+                files[evaluation.id] = f.read().decode("cp437")
 
-        return self.requestBatchWorker(serials, "evaluate", {
-            "files": files
+        # files -> [data, id]
+        return self.requestBatchWorker(list(evaluations[0].serials), "evaluate", {
+            "files": files,
+            "batch_id": batch_id
         })

@@ -1,110 +1,69 @@
 from __future__ import annotations
 import threading
-import uuid
-from typing import Dict, List
+from typing import Dict
+from collections.abc import Generator
 
-from usbipice.client.lib.pulsecount import PulseCountBaseClient, PulseCountEventHandler
+from usbipice.client.lib.pulsecount import PulseCountBaseClient, PulseCountEventHandler, PulseCountEvaluation
 from usbipice.client.lib import register
 from usbipice.client.lib.utils import LoggerEventHandler, ReservationExtender
+from usbipice.client.lib.BatchRequest import PatientBatchFactory, EvaluationBundle
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from usbipice.client.lib.BatchRequest import AbstractBatchFactory, Evaluation
 
 class PulseCountClient(PulseCountBaseClient):
-    # TODO threadsafe evals
-    """NOTE: this implementation is intended only for single threaded use.
-        Evaluates bitstreams for pulse counts. Evaluation is done on each device."""
     def __init__(self, url, client_name, logger, log_events=False):
         super().__init__(url, client_name, logger)
 
+        self.addEventHandler(ReservationExtender(self.server, self, logger))
         if log_events:
             self.addEventHandler(LoggerEventHandler(self.server, logger))
 
-        self.addEventHandler(ReservationExtender(self.server, self, logger))
+        self.batch_factories: dict[str, AbstractBatchFactory] = {}
+
+        class ResultHandler(PulseCountEventHandler):
+            def __init__(self, event_server, client: PulseCountClient):
+                super().__init__(event_server)
+                self.client = client
+
+            @register("results", "batch_id", "serial", "results")
+            def results(self, batch_id: str, serial: str, results: Dict[str, int]):
+                factory = self.client.batch_factories.get(batch_id)
+                if not factory:
+                    return
+
+                for uid, pulses in results:
+                    factory.processResult(serial, uid, pulses)
+
         self.addEventHandler(ResultHandler(self.server, self))
 
-        self.cv = threading.Condition()
-        self.results = {}
-        self.uuid_map = {}
-        self.remaining_serials = set()
+    def evaluateFactory(self, factory: AbstractBatchFactory) -> Generator[tuple[str, Evaluation, dict]]:
+        self.batch_factories[factory.bundle.id] = factory
 
-    def _addResult(self, serial, value):
-        with self.cv:
-            self.results[serial] = value
-            self.remaining_serials.remove(serial)
+        def evaluate_batches():
+            for evaluations in factory.getBatches():
+                # TODO not sure why super(type(self), self) doesn't work here
+                for serial_group in evaluations.values():
+                    PulseCountBaseClient.evaluateBatch(self, factory.bundle.id, serial_group)
 
-            if not self.remaining_serials:
-                self.cv.notify_all()
+        threading.Thread(target=evaluate_batches, name="batch-sender").start()
 
-    def evaluateEach(self, bitstream_paths: List[str]) -> Dict[Dict[str, int]]:
-        """Evaluates a list of bitstream paths. Each bitstream is evaluated once
-        on each device. Returns as {serial -> {path -> pulses}}.
-        """
-        self.uuid_map = {}
-        self.results = {}
-        self.remaining_serials = set()
+        for result in factory.getResults():
+            yield result
 
-        for path in bitstream_paths:
-            self.uuid_map[str(uuid.uuid4())] = path
+        del self.batch_factories[factory.bundle.id]
+        return
 
-        self.remaining_serials = self.getSerials()
+    def evaluateEvaluations(self, evaluations: list[PulseCountEvaluation], batch_size=5):
+        batch_factory = PatientBatchFactory(EvaluationBundle(evaluations, batch_size))
+        return self.evaluateFactory(batch_factory)
 
-        super().evaluate(self.getSerials(), self.uuid_map)
+    def evaluateBitstreams(self, bitstreams, serials=None):
+        if not serials:
+            serials = self.getSerials()
 
-        with self.cv:
-            if self.remaining_serials:
-                self.cv.wait_for(lambda : not self.remaining_serials)
+        serials = set(serials)
 
-        values = {}
-
-        for key, value in self.results.items():
-            paths = map(self.uuid_map.get, value.keys())
-            values[key] = dict(zip(paths, value.values()))
-
-        return values
-
-    def evaluateQuick(self, bitstream_paths: List[str]) -> Dict[Dict[str, int]]:
-        """Evaluates a list of bitstream paths. Bitstreams are distributed semi-evenly
-        across all devices that are currently reserved. No guarantees are given
-        about which device a bitstream may be evaluated on.
-        """
-        self.uuid_map = {}
-        self.results = {}
-        self.remaining_serials = set()
-
-        for path in bitstream_paths:
-            self.uuid_map[str(uuid.uuid4())] = path
-
-        self.remaining_serials = self.getSerials()
-
-        queue = list(self.uuid_map.keys())
-        serial_allocations = {serial: {} for serial in self.remaining_serials}
-        while queue:
-            for serial in serial_allocations:
-                if not queue:
-                    break
-
-                uid = queue.pop()
-                serial_allocations[serial][uid] = self.uuid_map[uid]
-
-        for serial, paths in serial_allocations.items():
-            super().evaluate([serial], paths)
-            self.logger.info(f"Allocated {list(paths.values())} to {serial}")
-
-        with self.cv:
-            if self.remaining_serials:
-                self.cv.wait_for(lambda : not self.remaining_serials)
-
-        values = {}
-
-        for key, value in self.results.items():
-            paths = map(self.uuid_map.get, value.keys())
-            values[key] = dict(zip(paths, value.values()))
-
-        return values
-
-class ResultHandler(PulseCountEventHandler):
-    def __init__(self, event_server, client: PulseCountClient):
-        super().__init__(event_server)
-        self.client = client
-
-    @register("results", "serial", "results")
-    def results(self, serial: str, results: Dict[str, int]):
-        self.client._addResult(serial, results)
+        evaluations = [PulseCountEvaluation(serials, bitstream) for bitstream in bitstreams]
+        return self.evaluateEvaluations(evaluations)

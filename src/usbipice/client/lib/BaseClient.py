@@ -119,8 +119,6 @@ class BaseClient(BaseAPI):
                 self.logger.error(f"Could not get connection info for batch request serials: {batch_serials}")
                 continue
 
-
-
             if not self.server.sendWorker(info.url(), "request", {
                 "serial": batch_serials,
                 "event": event,

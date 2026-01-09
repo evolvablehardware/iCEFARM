@@ -27,7 +27,9 @@ BITSTREAM_SIZE = 0 #TODO
 class Bitstream:
     location: str
     name: str
+    batch_id: str
 
+# TODO add flush amount
 @reservable("pulsecount")
 class PulseCountStateFlasher(AbstractState):
     def start(self):
@@ -41,6 +43,9 @@ class PulseCountState(AbstractState):
         self.bitstream_queue: list[Bitstream] = []
         # name -> pulses
         self.results = {}
+        self.result_amount = 0
+        # TODO configurable by client
+        self.flush_threshold = 4
 
         # ensure new ports show correctly
         time.sleep(2)
@@ -69,9 +74,8 @@ class PulseCountState(AbstractState):
         port = port[0].get("DEVNAME")
         return serial.Serial(port, BAUD, timeout=0.1)
 
-
-    @AbstractState.register("evaluate", "files")
-    def queue(self, files):
+    @AbstractState.register("evaluate", "files", "batch_id")
+    def queue(self, files, batch_id):
         media_path = self.device.media_path
         paths = [str(media_path.joinpath(str(uuid.uuid4()))) for _ in range(len(files))]
 
@@ -84,7 +88,7 @@ class PulseCountState(AbstractState):
 
         with self.cv:
             for path, name in zip(paths, files.keys()):
-                self.bitstream_queue.append(Bitstream(path, name))
+                self.bitstream_queue.append(Bitstream(path, name, batch_id))
 
             self.cv.notify_all()
 
@@ -131,15 +135,21 @@ class PulseCountState(AbstractState):
                     self.bitstream_queue.append(bitstream)
                     continue
 
-            self.results[bitstream.name] = result
+            if bitstream.batch_id not in self.results:
+                self.results[bitstream.batch_id] = []
+
+            self.results[bitstream.batch_id].append((bitstream.name, result))
+            self.result_amount += 1
             os.remove(bitstream.location)
 
             with self.cv:
-                if not self.bitstream_queue:
-                    if not self.sender.finished(self.results):
-                        self.logger.error("failed to send results")
+                if not self.bitstream_queue or self.result_amount >= self.flush_threshold:
+                    for batch_id, pulses in self.results.items():
+                        if not self.sender.finished(batch_id, pulses):
+                            self.logger.error("failed to send results")
 
                     self.results = {}
+                    self.result_amount = 0
 
     def handleExit(self):
         self.exiting = True
@@ -210,8 +220,9 @@ class PulseCountEventSender:
     def __init__(self, event_sender):
         self.event_sender = event_sender
 
-    def finished(self, pulses):
+    def finished(self, batch_id, pulses):
         return self.event_sender.sendDeviceEvent({
             "event": "results",
-            "results": pulses
+            "results": pulses,
+            "batch_id": batch_id
         })

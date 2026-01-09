@@ -181,7 +181,7 @@ class MappedQueues:
             if key not in self:
                 return out
 
-            out += self[key].pop()
+            out.append(self[key].pop())
 
         return out
 
@@ -192,10 +192,17 @@ class MappedQueues:
         return bool(self.state.get(value))
 
     def __iter__(self):
-        return itertools.dropwhile(self.__getitem__, self.state)
+        return itertools.takewhile(self.__getitem__, self.state)
 
     def keys(self):
         return list(iter(self))
 
     def values(self):
         return [self[key] for key in self]
+
+def batch(l, amount):
+    batches = [[] for _ in range(amount)]
+    for i, item in enumerate(l):
+        batches[i % amount].append(item)
+
+    return batches

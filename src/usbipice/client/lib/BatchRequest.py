@@ -12,9 +12,8 @@ class Evaluation:
     multiple serials to one Evaluation will result in faster evaluations than
     providing multiple Evaluations of the same bitstream.
     """
-    def __init__(self, serials: set[str], request: dict):
-        self.serials = serials
-        self.request = request
+    def __init__(self, serials: set[str]):
+        self.serials = frozenset(serials)
         self.id = str(uuid.uuid4())
 
     def __eq__(self, other):
@@ -43,7 +42,7 @@ class EvaluationBundle:
         serial_amounts = Counter()
         batch = {}
 
-        search_order = sorted(self.queue.keys(), len)
+        search_order = sorted(self.queue.keys(), key=len)
         for serials in search_order:
             slots = min(self.batch_size - serial_amounts[serial] for serial in serials)
             if not slots:
@@ -83,24 +82,24 @@ class AbstractBatchFactory:
             if evaluation_id not in self.awaiting_results[serial]:
                 return
 
-            self.awaiting_results[serial][evaluation_id] -= evaluation_id
-            self.results.append((evaluation_id, result))
+            self.awaiting_results[serial] -= {evaluation_id}
+            self.results.append((serial, evaluation_id, result))
             self.result_cv.notify_all()
 
-    def getResults(self) -> Generator[tuple[Evaluation, dict]]:
+    def getResults(self) -> Generator[tuple[str, Evaluation, dict]]:
         """Produces results as they are processed."""
         while True:
             with self.result_cv:
                 if not self.results:
                     self.result_cv.wait_for(lambda : self.results)
 
-                for evaluation_id, result in self.results:
+                for serial, evaluation_id, result in self.results:
                     evaluation = self.bundle.evaluation_lookup.get(evaluation_id)
-                    yield evaluation, result
+                    yield serial, evaluation, result
 
                 self.results = []
 
-                if self.bundle.empty and not self.awaiting_results:
+                if self.bundle.empty and not any(self.awaiting_results.values()):
                     return
 
     def _addBatch(self, batch: dict[set[str], list[Evaluation]]):
@@ -110,16 +109,17 @@ class AbstractBatchFactory:
                 if serial not in self.awaiting_results:
                     self.awaiting_results[serial] = set()
 
-                self.awaiting_results[serial] += set(evaluation.id for evaluation in evaluations)
+                self.awaiting_results[serial] |= set(evaluation.id for evaluation in evaluations)
 
     def getBatches(self) -> Generator[dict[set[str], list[Evaluation]]]:
         """Produces batches for client to consume."""
         for batch in self.bundle:
             with self.result_cv:
-                if self.awaiting_results:
+                if not self._readyForBatch():
                     self.result_cv.wait_for(self._readyForBatch)
-                    self._addBatch(batch)
-                    yield batch
+
+                self._addBatch(batch)
+                yield batch
 
     def _readyForBatch(self):
         pass
@@ -137,7 +137,7 @@ class PatientBatchFactory(AbstractBatchFactory):
     before sending a new one.
     """
     def _readyForBatch(self):
-        return not self.awaiting_results
+        return not any(self.awaiting_results.values())
 
 class BalancedBatchFactory(AbstractBatchFactory):
     """
