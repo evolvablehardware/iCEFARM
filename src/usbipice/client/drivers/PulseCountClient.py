@@ -6,7 +6,7 @@ from collections.abc import Generator
 from usbipice.client.lib.pulsecount import PulseCountBaseClient, PulseCountEventHandler, PulseCountEvaluation
 from usbipice.client.lib import register
 from usbipice.client.lib.utils import LoggerEventHandler, ReservationExtender
-from usbipice.client.lib.BatchRequest import PatientBatchFactory, EvaluationBundle
+from usbipice.client.lib.BatchRequest import BalancedBatchFactory, EvaluationBundle
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -56,7 +56,7 @@ class PulseCountClient(PulseCountBaseClient):
         return
 
     def evaluateEvaluations(self, evaluations: list[PulseCountEvaluation], batch_size=5):
-        batch_factory = PatientBatchFactory(EvaluationBundle(evaluations, batch_size))
+        batch_factory = BalancedBatchFactory(EvaluationBundle(evaluations, batch_size))
         return self.evaluateFactory(batch_factory)
 
     def evaluateBitstreams(self, bitstreams, serials=None):

@@ -6,11 +6,15 @@ import atexit
 from pathlib import Path
 import shutil
 import threading
+import math
 
 from usbipice.client.drivers import PulseCountClient
-from usbipice.utils import generate_circuit
+from usbipice.client.lib.pulsecount import PulseCountEvaluation
+from usbipice.utils import generate_circuit, batch
 
 #################################################
+# Whether to evaluate circuits on each pico, or distribute them evenly
+EVALUATE_EACH = True
 # Whether to log all data received from workers/control
 EVENT_LOGGING = True
 # Paths to bin circuits to evaluate.
@@ -23,13 +27,9 @@ BITSTREAM_PATHS = ["examples/pulse_count_driver/precompiled_circuits/circuit_gen
 # Target kHz of circuits. These circuits will be automatically generated, compiled, and evaluated.
 # Usage requires yosys, nextpnr-ice40, and icepack. If you don't have these tools installed,
 # set this to [] and it will be ignored.
-COMPILE_PULSES = [1, 2, 4, 16, 64]
+# COMPILE_PULSES = [1, 2, 4, 16, 64]
+COMPILE_PULSES = []
 
-# Determines distribution method. If set to true, circuits are evaluated
-# once on each device. If set to false, circuits are semi-evenly distributed
-# across devices and evaluated only once - no guarantees are given about which
-# device from the reservation pool they may be evaluated on.
-EVALUATE_EACH = False
 # Directory to build circuits in
 BUILD_DIR = "examples/pulse_count_driver/build"
 
@@ -100,51 +100,51 @@ if COMPILE_PULSES:
         BITSTREAM_PATHS.append(new_location)
         logger.info(f"Circuit compiled with approximately {actual_khz:.2f}kHz.")
 
-NUM_BITSTREAMS = len(BITSTREAM_PATHS)
+BITSTREAMS_PER_DEVICE = len(BITSTREAM_PATHS) / NUM_DEVICES
 if EVALUATE_EACH:
-    NUM_BITSTREAMS *= NUM_DEVICES
+    BITSTREAMS_PER_DEVICE *= NUM_DEVICES
 
 # Raise exception if evaluation takes suspiciously long
 def timeout():
     raise Exception("Watchdog timeout")
-watchdog = threading.Timer(NUM_BITSTREAMS * 20, timeout)
+watchdog = threading.Timer(BITSTREAMS_PER_DEVICE * 20, timeout)
 watchdog.daemon = True
 watchdog.name = "watchdog-timeout"
 watchdog.start()
 
+evaluations = []
+
 if EVALUATE_EACH:
-    logger.info(f"Expected wait time: {5.4 * NUM_BITSTREAMS:.2f} seconds")
+    # Create a PulseCountEvaluation on all serials for each bitstream
+    for bitstream in BITSTREAM_PATHS:
+        evaluations.append(PulseCountEvaluation(devices, bitstream))
 else:
-    logger.info(f"Expected wait time: {5.4 * NUM_BITSTREAMS / NUM_DEVICES:.2f} seconds")
+    # Split bitstreams into batches
+    batches = batch(BITSTREAM_PATHS, NUM_DEVICES)
+    for serial, batches in zip(client.getSerials(), batches):
+        # Assign a batch to each serial and create PulseCountEvaluations
+        # for bitstreams in that batch
+        for bitstream in batches:
+            evaluations.append(PulseCountEvaluation([serial], bitstream))
+
+if EVALUATE_EACH:
+    logger.info(f"Expected wait time: {5.4 * BITSTREAMS_PER_DEVICE:.2f} seconds")
+else:
+    logger.info(f"Expected wait time: {5.4 * math.ceil(BITSTREAMS_PER_DEVICE):.2f} seconds")
 
 logger.info("Sending bitstreams...")
 
 start_time = time.time()
 
-# Returns dictionary mapping device_serial -> {file_path -> pulses}
-if EVALUATE_EACH:
-    pulses = client.evaluateEach(BITSTREAM_PATHS)
-else:
-    pulses = client.evaluateQuick(BITSTREAM_PATHS)
+# Returns results as they come in
+for serial, evaluation, result in client.evaluateEvaluations(evaluations):
+    print(f"Serial {serial}, bitstream {evaluation.filepath}, result {result}")
 
-if not pulses:
-    raise Exception("Did not receive any pulses")
 
 elapsed = time.time() - start_time
 
 print(f"Total elapsed evaluation time: {elapsed:.2f}")
-print(f"Average circuit evaluation time: {elapsed / NUM_BITSTREAMS:.2f}")
+print(f"Average circuit evaluation time: {elapsed / (BITSTREAMS_PER_DEVICE * NUM_DEVICES):.2f}")
 
-if EVALUATE_EACH:
-    # Pulse count firmware spends 5s per evaluation
-    print(f"Total latency: {elapsed - 5 * NUM_BITSTREAMS:.2f}")
-    print(f"Average latency: {(elapsed / NUM_BITSTREAMS) - 5:.2f}")
-else:
-    print(f"Total latency: {elapsed - 5 * (NUM_BITSTREAMS / NUM_DEVICES):.2f}")
-    print(f"Average latency: {(elapsed / (NUM_BITSTREAMS / NUM_DEVICES)) - 5:.2f}")
-
-
-for serial, paths in pulses.items():
-    print(f"Serial {serial}:")
-    for path in paths:
-        print(f"\t{path}: {pulses[serial][path]}")
+print(f"Total latency: {elapsed - 5 * BITSTREAMS_PER_DEVICE:.2f}")
+print(f"Average latency: {(elapsed / BITSTREAMS_PER_DEVICE) - 5:.2f}")

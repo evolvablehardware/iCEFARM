@@ -145,11 +145,14 @@ class BalancedBatchFactory(AbstractBatchFactory):
     waits until a threshold of results have been received
     before sending more batches.
     """
-    def __init__(self, bundle, target_batches=2):
+    def __init__(self, bundle, target_batches=4):
         super().__init__(bundle)
         self.target_batches = target_batches
 
     def _readyForBatch(self):
+        if not any(self.awaiting_results.values()):
+            return True
+
         highest_queued = max(map(len, self.awaiting_results.values()))
         batches = math.ceil(highest_queued / self.bundle.batch_size)
         return bool(self.target_batches - batches)
