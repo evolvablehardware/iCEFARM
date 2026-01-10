@@ -1,5 +1,5 @@
 [project]
-name = "usbipice"
+name = "icefarm"
 version = "0.1.0"
 dependencies = [
     "Flask",
