@@ -34,8 +34,8 @@
 
                 "USBIPICE_DATABASE": "${env:USBIPICE_DATABASE}",
                 "USBIPICE_CONTROL_SERVER": "http://localhost:8080",
-                "USBIPICE_DEFAULT": "src/usbipice/worker/firmware/default/build/default_firmware.uf2",
-                "USBIPICE_PULSE_COUNT": "src/usbipice/worker/firmware/pulse_count/build/bitstream_over_usb.uf2"
+                "USBIPICE_DEFAULT": "src/icefarm/worker/firmware/default/build/default_firmware.uf2",
+                "USBIPICE_PULSE_COUNT": "src/icefarm/worker/firmware/pulse_count/build/bitstream_over_usb.uf2"
             },
             // TODO
             // "preLaunchTask": "database-clear"
@@ -54,8 +54,8 @@
 
                 "USBIPICE_DATABASE": "${env:USBIPICE_DATABASE}",
                 "USBIPICE_CONTROL_SERVER": "http://localhost:8080",
-                "USBIPICE_DEFAULT": "src/usbipice/worker/firmware/default/build/default_firmware.uf2",
-                "USBIPICE_PULSE_COUNT": "src/usbipice/worker/firmware/pulse_count/build/bitstream_over_usb.uf2"
+                "USBIPICE_DEFAULT": "src/icefarm/worker/firmware/default/build/default_firmware.uf2",
+                "USBIPICE_PULSE_COUNT": "src/icefarm/worker/firmware/pulse_count/build/bitstream_over_usb.uf2"
             },
             // TODO
             // "preLaunchTask": "database-clear"

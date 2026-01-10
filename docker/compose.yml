@@ -26,7 +26,7 @@ services:
     command: -url=jdbc:postgresql://localhost:5433/postgres -user=postgres -password=postgres migrate
 
     volumes:
-      - ../src/usbipice/control/flyway/migrations:/flyway/sql
+      - ../src/icefarm/control/flyway/migrations:/flyway/sql
 
     network_mode: host
 
@@ -63,10 +63,10 @@ services:
       USBIPICE_CONTROL_SERVER: http://localhost:8080
       USBIPICE_WORKER_NAME: host_worker
       USBIPICE_WORKER_LOGS: /usr/local/app/worker_logs
-      USBIPICE_DEFAULT: src/usbipice/worker/firmware/default/build/default_firmware.uf2
-      USBIPICE_PULSE_COUNT: src/usbipice/worker/firmware/pulse_count/build/bitstream_over_usb.uf2
+      USBIPICE_DEFAULT: src/icefarm/worker/firmware/default/build/default_firmware.uf2
+      USBIPICE_PULSE_COUNT: src/icefarm/worker/firmware/pulse_count/build/bitstream_over_usb.uf2
 
-    command: [".venv/bin/uvicorn", "usbipice.worker.app:run_uvicorn", "--env-file", ".uvicorn_env_bridge", "--port", "8081", "--factory", "--host", "0.0.0.0"]
+    command: [".venv/bin/uvicorn", "icefarm.worker.app:run_uvicorn", "--env-file", ".uvicorn_env_bridge", "--port", "8081", "--factory", "--host", "0.0.0.0"]
 
   control:
     depends_on:
@@ -88,4 +88,4 @@ services:
     environment:
       USBIPICE_DATABASE: 'postgresql://postgres:postgres@localhost:5433/postgres'
 
-    command: [".venv/bin/uvicorn", "usbipice.control.app:run_uvicorn", "--env-file", ".uvicorn_env_bridge", "--port", "8080", "--factory", "--host", "0.0.0.0"]
+    command: [".venv/bin/uvicorn", "icefarm.control.app:run_uvicorn", "--env-file", ".uvicorn_env_bridge", "--port", "8080", "--factory", "--host", "0.0.0.0"]
