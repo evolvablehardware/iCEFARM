@@ -24,7 +24,7 @@
             "name": "Worker",
             "type": "debugpy",
             "request": "launch",
-            "module": "usbipice.worker.app",
+            "module": "icefarm.worker.app",
             "console": "integratedTerminal",
             "sudo": true,
             "env": {
@@ -44,7 +44,7 @@
             "name": "Fake Worker",
             "type": "debugpy",
             "request": "launch",
-            "module": "usbipice.worker.test",
+            "module": "icefarm.worker.test",
             "console": "integratedTerminal",
             "sudo": true,
             "env": {
@@ -64,7 +64,7 @@
             "name": "Control",
             "type": "debugpy",
             "request": "launch",
-            "module": "usbipice.control.app",
+            "module": "icefarm.control.app",
             "console": "integratedTerminal",
             "env": {
                 "USBIPICE_DATABASE": "${env:USBIPICE_DATABASE}",

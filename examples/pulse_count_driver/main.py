@@ -8,9 +8,9 @@ import shutil
 import threading
 import math
 
-from usbipice.client.drivers import PulseCountClient
-from usbipice.client.lib.pulsecount import PulseCountEvaluation
-from usbipice.utils import generate_circuit, batch
+from icefarm.client.drivers import PulseCountClient
+from icefarm.client.lib.pulsecount import PulseCountEvaluation
+from icefarm.utils import generate_circuit, batch
 
 #################################################
 # Whether to evaluate circuits on each pico, or distribute them evenly

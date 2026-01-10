@@ -1,7 +1,7 @@
 import functools
 from contextlib import contextmanager
 
-from usbipice.client.drivers import PulseCountClient
+from icefarm.client.drivers import PulseCountClient
 
 @contextmanager
 def get_client(control_url, name, logger, devices=1):
