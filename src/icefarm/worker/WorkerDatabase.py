@@ -3,8 +3,6 @@ from logging import LoggerAdapter
 from importlib.metadata import version
 import threading
 
-import psycopg
-
 from icefarm.utils import Database
 from icefarm.worker.device.state.reservable import get_registered_reservables
 
@@ -26,7 +24,7 @@ class WorkerDatabase(Database):
         self.logger = WorkerDataBaseLogger(logger)
         self.cv = threading.Condition()
 
-        usbipice_version = version("usbipice")
+        usbipice_version = version("icefarm")
         reservables = get_registered_reservables()
 
         args = (self.worker_name, config.virtual_ip, config.virtual_server_port, usbipice_version, reservables)
