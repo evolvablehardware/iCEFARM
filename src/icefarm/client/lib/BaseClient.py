@@ -64,10 +64,13 @@ class BaseClient(BaseAPI):
     def addEventHandler(self, eh: AbstractEventHandler):
         self.server.addEventHandler(eh)
 
-    def waitForDevicesAvailable(self, amount):
-        self.waiter.waitForAmountAvailable(amount)
+    def reserve(self, amount: int, kind: str, args: str, wait_for_available=False):
+        if self.available() > amount and not wait_for_available:
+            raise Exception("Not enough devices available")
+        else:
+            self.logger.warning("Not enough devices available, waiting for availability.")
+            self.waiter.waitForAmountAvailable(amount)
 
-    def reserve(self, amount: int, kind: str, args: str):
         with self.reservation_lock:
             serials = super().reserve(amount, kind, args)
 
