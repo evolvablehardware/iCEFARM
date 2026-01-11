@@ -1,5 +1,11 @@
+from __future__ import annotations
 from logging import Logger
+import threading
 from icefarm.client.lib import AbstractEventHandler, register
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from icefarm.client.lib import BaseAPI
 
 class DefaultBaseEventHandler(AbstractEventHandler):
     @register("reservation ending soon", "serial")
@@ -36,3 +42,23 @@ class ReservationExtender(AbstractEventHandler):
             self.logger.info(f"refreshed reservation of {serial}")
         else:
             self.logger.error(f"failed to refresh reservation of device {serial}")
+
+class AvailabilityWaiter(AbstractEventHandler):
+    def __init__(self, event_server, client: BaseAPI):
+        super().__init__(event_server)
+        self.client = client
+        self.last_available = 0
+        self.cv = threading.Condition()
+
+    @register("devices_available", "amount")
+    def available(self, amount):
+        self.last_available = amount
+        with self.cv:
+            self.cv.notify_all()
+
+    def waitForAmountAvailable(self, amount):
+        if self.client.available() >= amount:
+            return
+
+        with self.cv:
+            self.cv.wait_for(lambda : amount <= self.last_available)

@@ -7,7 +7,9 @@ CREATE FUNCTION make_reservations (
     worker_host varchar(255),
     worker_port int
 ) LANGUAGE plpgsql AS $$
-    BEGIN CREATE TEMPORARY TABLE res (
+DECLARE amount_found int8;
+BEGIN
+    CREATE TEMPORARY TABLE res (
         device_id varchar(255),
         worker_host varchar(255),
         worker_port int
@@ -23,6 +25,11 @@ CREATE FUNCTION make_reservations (
         AND reservation_type = ANY(worker.reservables)
         AND NOT worker.shutting_down
     LIMIT amount;
+
+    SELECT COUNT(*) INTO amount_found FROM res;
+    IF amount_found != amount THEN
+        RAISE EXCEPTION 'Not enough devices';
+    END iF;
 
     UPDATE device
     SET device_status = 'reserved'
@@ -40,6 +47,15 @@ CREATE FUNCTION make_reservations (
     RETURN QUERY
     SELECT *
     FROM res;
+END $$;
+
+CREATE FUNCTION get_amount_available()
+RETURNS int8
+LANGUAGE plpgsql AS $$
+DECLARE amount int8;
+BEGIN
+    SELECT COUNT(*) INTO amount FROM device WHERE device_status = 'available';
+	RETURN amount;
 END $$;
 
 CREATE FUNCTION has_reservations(wid varchar(255))
@@ -163,7 +179,7 @@ LANGUAGE plpgsql AS $$ BEGIN
         );
 END $$;
 
-CREATE FUNCTION handle_reservation_timeouts ()
+CREATE FUNCTION handle_reservation_timeouts()
 RETURNS TABLE (
     device_id varchar(255),
     client_id varchar(255),

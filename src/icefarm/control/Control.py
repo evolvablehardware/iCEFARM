@@ -86,6 +86,14 @@ class Control:
         data = self.database.endAll(client_id)
         return list(map(lambda row : row["serial"], data))
 
+    def getAvailable(self):
+        if (amount := self.database.getDevicesAvailable()) is False:
+            return False
+
+        return {
+            "amount": amount
+        }
+
     def reserve(self, client_id: str, amount: int, kind:str, args: dict) -> dict:
         if (con_info := self.database.reserve(amount, client_id, kind)) is False:
             return False

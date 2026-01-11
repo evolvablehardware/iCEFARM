@@ -1,10 +1,5 @@
 from __future__ import annotations
-import threading
-
-import psycopg
-
 from icefarm.utils import Database
-
 
 class ControlDatabase(Database):
 
@@ -94,3 +89,9 @@ class ControlDatabase(Database):
             "SELECT * FROM handle_reservation_timeouts()", tuple(),
             ["serial", "client_id", "workerip", "workerport"], stringify=["workerip", "workerport"]
         )
+
+    def getDevicesAvailable(self) -> int:
+        if not (data := self.execute("SELECT * FROM get_amount_available()", tuple())):
+            return None
+
+        return data[0][0]

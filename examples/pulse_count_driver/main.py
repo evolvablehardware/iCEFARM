@@ -65,8 +65,16 @@ client = PulseCountClient(CONTROL_SERVER, CLIENT_NAME, logger, log_events=EVENT_
 # If this happens, see the troubleshooting section of the README.
 atexit.register(client.stop)
 
+available = client.available()
+logger.info(f"{available} available devices for reservation.")
+
+if available < NUM_DEVICES:
+    logger.info("Waiting for enough devices to become available.")
+    client.waitForDevicesAvailable(NUM_DEVICES)
+
 # Reserves a device from the system. Since this is the pulse count client,
 # the device will automatically be set to the pulse count device behavior.
+
 logger.info("Reserving devices. This may take up to 30 seconds.")
 devices = client.reserve(NUM_DEVICES)
 if not devices:

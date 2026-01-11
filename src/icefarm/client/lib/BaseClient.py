@@ -5,6 +5,7 @@ from itertools import groupby
 import threading
 
 from icefarm.client.lib import BaseAPI, EventServer, AbstractEventHandler, register
+from icefarm.client.lib.utils import AvailabilityWaiter
 
 class BaseClientEventHandler(AbstractEventHandler):
     """Updates the available serials of a client. Provides initialization
@@ -48,8 +49,13 @@ class BaseClient(BaseAPI):
     def __init__(self, url: str, client_name: str, logger: Logger):
         super().__init__(url, client_name, logger)
         self.server = EventServer(client_name, [], logger)
+
         self.eh = BaseClientEventHandler(self.server, self)
         self.addEventHandler(self.eh)
+
+        self.waiter = AvailabilityWaiter(self.server, self)
+        self.addEventHandler(self.waiter)
+
         self.server.connectControl(url)
 
         # TODO track multiple initializations
@@ -57,6 +63,9 @@ class BaseClient(BaseAPI):
 
     def addEventHandler(self, eh: AbstractEventHandler):
         self.server.addEventHandler(eh)
+
+    def waitForDevicesAvailable(self, amount):
+        self.waiter.waitForAmountAvailable(amount)
 
     def reserve(self, amount: int, kind: str, args: str):
         with self.reservation_lock:

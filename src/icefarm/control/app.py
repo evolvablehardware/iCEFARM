@@ -54,6 +54,10 @@ def create_app(app: Flask, socketio: SocketIO | SyncAsyncServer, base_logger: lo
     def delete(serials: list[str]):
         return control.delete(serials)
 
+    @app.get("/available")
+    def available():
+        return control.getAvailable()
+
     @app.get("/reserve")
     @inject_and_return_json
     def make_reservations(amount: int, name: str, kind: str, args: dict):
