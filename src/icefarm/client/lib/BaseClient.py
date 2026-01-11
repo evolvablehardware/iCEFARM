@@ -65,9 +65,10 @@ class BaseClient(BaseAPI):
         self.server.addEventHandler(eh)
 
     def reserve(self, amount: int, kind: str, args: str, wait_for_available=False):
-        if self.available() > amount and not wait_for_available:
-            raise Exception("Not enough devices available")
-        else:
+        if self.available() > amount:
+            if not wait_for_available:
+                raise Exception("Not enough devices available")
+
             self.logger.warning("Not enough devices available, waiting for availability.")
             self.waiter.waitForAmountAvailable(amount)
 
