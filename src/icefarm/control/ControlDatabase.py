@@ -1,5 +1,10 @@
 from __future__ import annotations
+import threading
+
+import psycopg
+
 from icefarm.utils import Database
+
 
 class ControlDatabase(Database):
 
@@ -89,3 +94,19 @@ class ControlDatabase(Database):
             "SELECT * FROM handle_reservation_timeouts()", tuple(),
             ["serial", "client_id", "workerip", "workerport"], stringify=["workerip", "workerport"]
         )
+
+    def listenAvailable(self, callback):
+        def l():
+            with psycopg.connect(self.url, autocommit=True) as conn:
+                conn.execute("LISTEN device_available")
+                gen = conn.notifies()
+
+                for notif in gen:
+                    try:
+                        amount = notif.payload[1:-1]
+                        callback(int(amount))
+                    except Exception:
+                        pass
+
+        threading.Thread(target=l, daemon=True, name="devies-available-listener").start()
+

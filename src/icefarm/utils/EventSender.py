@@ -163,6 +163,14 @@ class EventSender(Database):
 
         return self.sendClient(client_id, contents)
 
+    def sendAll(self, contents: dict):
+        if not (contents := self.__packageContents("meta", contents)):
+            return False
+
+        sessions = list(self.sessions.values())
+        for session in sessions:
+            session.send(contents)
+
     def __packageContents(self, serial: str, contents: dict):
         contents["serial"] = serial
         contents = {

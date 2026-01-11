@@ -17,6 +17,14 @@ class Control:
         self.database = ControlDatabase(database_url)
         self.logger = logger
 
+        def update_available(amount):
+            self.event_sender.sendAll({
+                "event": "devices_available",
+                "amount": amount
+            })
+
+        self.database.listenAvailable(update_available)
+
     # TODO this feels out of place
     def getApp(self):
         return build_page(self.database)
