@@ -24,6 +24,7 @@ class Control:
             })
 
         self.database.listenAvailable(update_available)
+        self.database.listenReservations(self.event_sender.sendDeviceReservationEnd)
 
     # TODO this feels out of place
     def getApp(self):
@@ -34,19 +35,6 @@ class Control:
 
     def extendAll(self, client_id: str) -> list[str]:
         return self.database.extendAll(client_id)
-
-    def __notifyEnd(self, client_id: str, serial: str, worker_url: str):
-        self.event_sender.sendDeviceReservationEnd(serial, client_id)
-
-        try:
-            res = requests.get(f"{worker_url}/unreserve", json={
-                "serial": serial
-            }, timeout=10)
-
-            if res.status_code != 200:
-                raise Exception
-        except Exception:
-            self.logger.warning(f"[Control] failed to send unreserve command to worker {worker_url} device {serial}")
 
     def reboot(self, serials: list[str]):
         out = []
@@ -91,17 +79,11 @@ class Control:
 
     def end(self, client_id: str, serials: list[str]) -> list[str]:
         data = self.database.end(client_id, serials)
-        for row in data:
-            self.__notifyEnd(client_id, row['serial'], f"http://{row['workerip']}:{row['workerport']}")
-
         return list(map(lambda row : row["serial"], data))
 
 
     def endAll(self, client_id: str) -> list[str]:
         data = self.database.endAll(client_id)
-        for row in data:
-            self.__notifyEnd(client_id, row["serial"], f"http://{row['workerip']}:{row['workerport']}")
-
         return list(map(lambda row : row["serial"], data))
 
     def reserve(self, client_id: str, amount: int, kind:str, args: dict) -> dict:

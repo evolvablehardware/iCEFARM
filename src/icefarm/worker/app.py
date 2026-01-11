@@ -26,6 +26,12 @@ def create_app(app: Flask, socketio: SocketIO | SyncAsyncServer, config: Config,
     database = WorkerDatabase(config, logger)
     manager = DeviceManager(event_sender, database, config, logger)
 
+    def handle_res_end(serial, client_id):
+        if manager.unreserve(serial):
+            database.handleReservationChange()
+
+    database.listenReservations(handle_res_end)
+
     sock_id_to_client_id = {}
     id_lock = threading.Lock()
 
@@ -37,13 +43,6 @@ def create_app(app: Flask, socketio: SocketIO | SyncAsyncServer, config: Config,
     @inject_and_return_json
     def reserve(serial: str, kind: str, args: dict):
         return manager.reserve(serial, kind, args)
-
-    @app.get("/unreserve")
-    @inject_and_return_json
-    def devices_bus(serial: str):
-        res = manager.unreserve(serial)
-        database.handleReservationChange()
-        return res
 
     @app.get("/reboot")
     @inject_and_return_json

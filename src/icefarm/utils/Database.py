@@ -1,6 +1,9 @@
+import json
+import threading
+from typing import List
+
 import psycopg
 from psycopg.types.enum import Enum, EnumInfo, register_enum
-from typing import List
 
 class DeviceStatus(Enum):
     available = 0
@@ -57,3 +60,33 @@ class Database:
                     out[i][col] = str(row[col])
 
         return out
+
+    def listenReservations(self, callback):
+        def l():
+            with psycopg.connect(self.url, autocommit=True) as conn:
+                conn.execute("LISTEN reservation_updates")
+                gen = conn.notifies()
+
+                for notif in gen:
+                    try:
+                        js = json.loads(notif.payload)
+                        callback(js["device_id"], js["client_id"])
+                    except Exception:
+                        pass
+
+        threading.Thread(target=l, daemon=True, name="reservation-update-listener").start()
+
+    def listenAvailable(self, callback):
+        def l():
+            with psycopg.connect(self.url, autocommit=True) as conn:
+                conn.execute("LISTEN device_available")
+                gen = conn.notifies()
+
+                for notif in gen:
+                    try:
+                        amount = notif.payload[1:-1]
+                        callback(int(amount))
+                    except Exception:
+                        pass
+
+        threading.Thread(target=l, daemon=True, name="devies-available-listener").start()
