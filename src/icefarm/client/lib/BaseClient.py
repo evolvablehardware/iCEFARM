@@ -64,13 +64,25 @@ class BaseClient(BaseAPI):
     def addEventHandler(self, eh: AbstractEventHandler):
         self.server.addEventHandler(eh)
 
-    def reserve(self, amount: int, kind: str, args: str, wait_for_available=False):
-        if self.available() > amount:
+    def reserve(self, amount: int, kind: str, args: str, wait_for_available=False, available_timeout=None):
+        if self.available() < amount:
             if not wait_for_available:
                 raise Exception("Not enough devices available")
 
             self.logger.warning("Not enough devices available, waiting for availability.")
+
+            def raise_():
+                raise Exception("Reservation timeout")
+
+            if available_timeout:
+                timer = threading.Timer(available_timeout, raise_)
+                timer.daemon = True
+                timer.name = "reserve-timeout-monitor"
+                timer.start()
+
             self.waiter.waitForAmountAvailable(amount)
+            if available_timeout:
+                timer.cancel()
 
         with self.reservation_lock:
             serials = super().reserve(amount, kind, args)
