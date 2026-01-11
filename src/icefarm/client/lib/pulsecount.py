@@ -17,8 +17,8 @@ class PulseCountEventHandler(AbstractEventHandler):
         pulse amount."""
 
 class PulseCountBaseClient(BaseClient):
-    def reserve(self, amount, **kwargs):
-        return super().reserve(amount, "pulsecount", {}, **kwargs)
+    def reserve(self, amount, wait_for_available=False, available_timeout=60):
+        return super().reserve(amount, "pulsecount", {}, wait_for_available=wait_for_available, available_timeout=available_timeout)
 
     def evaluateBatch(self, batch_id: str, evaluations: list[PulseCountEvaluation]):
         """Evaluates a batch of PulseCountEvaluations. The Evaluations must share

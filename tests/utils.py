@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from icefarm.client.drivers import PulseCountClient
 
 @contextmanager
-def get_client(control_url, name, logger, devices=1, available_timeout=None):
+def get_client(control_url, name, logger, devices=1, available_timeout=60):
     """Enables the use of with syntax:
     >>> with get_client(*args) as client:
             client.evaluateEach(BITSTREAM_PATHS)
