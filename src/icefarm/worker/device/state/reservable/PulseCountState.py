@@ -35,6 +35,7 @@ class PulseCountStateFlasher(AbstractState):
     def start(self):
         pulse_fac = lambda : PulseCountState(self.device)
         self.switch(lambda : FlashState(self.device, self.config.pulse_firmware_path, pulse_fac))
+
 class PulseCountState(AbstractState):
     def __init__(self, state):
         super().__init__(state)
@@ -174,25 +175,31 @@ class Reader:
         self.thread.start()
 
     def read(self):
-        while self.port.is_open and not self.exiting:
-            data = self.port.read(self.port.in_waiting or 1)
-            if not data:
-                continue
-            data = str(data)
+        last_read = ""
+        while True:
+            while self.port.is_open and not self.exiting and "\\r\\n" not in last_read:
+                if (data := self.port.read(self.port.in_waiting or 1)):
+                    last_read += str(data)[2:-1]
 
-            pulses = re.search("pulses: ([0-9]+)", data)
+            if "\\r\\n" not in last_read:
+                break
+
+            line = last_read[:last_read.index("\\r\\n")]
+            last_read = last_read[last_read.index("\\r\\n") + 4:]
+
+            pulses = re.search("pulses: ([0-9]+)", line)
             if pulses:
                 with self.cv:
                     self.last_pulse = pulses.group(1)
                     self.cv.notify_all()
 
-            timeout = re.search("Watchdog timeout", data)
+            timeout = re.search("Watchdog timeout", line)
             if timeout:
                 with self.cv:
                     self.last_pulse = False
                     self.cv.notify_all()
 
-            wait = re.search("Waiting for bitstream transfer", data)
+            wait = re.search("Waiting for bitstream transfer", line)
             if wait:
                 with self.cv:
                     self.ready = True

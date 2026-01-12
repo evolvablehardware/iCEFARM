@@ -36,7 +36,7 @@ BUILD_DIR = "examples/pulse_count_driver/build"
 # If you have more than one device, feel free to increase this number. This
 # particular client evaluates each circuit once on each of the devices,
 # but the distribution method can be changed by modifying the client.
-NUM_DEVICES = 2
+NUM_DEVICES = 1
 
 # Whether to wait for devices to become available if
 # not enough devices are available
