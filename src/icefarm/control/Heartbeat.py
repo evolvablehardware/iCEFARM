@@ -15,17 +15,14 @@ if typing.TYPE_CHECKING:
 # TODO get values from config
 class HeartbeatConfig:
     def __init__(self):
-       self.heartbeat_poll_seconds: str = 15
-       self.timeout_poll_seconds: str = 15
-       self.timeout_duration_seconds: str = 60
-       self.reservation_poll_seconds: str = 30
-       self.reservation_expiring_poll_seconds: str = 300
-       self.reservation_expiring_notify_at_seconds: str = 20 * 60
+        self.heartbeat_poll_seconds: str = 15
+        self.timeout_poll_seconds: str = 15
+        self.timeout_duration_seconds: str = 60
+        self.reservation_poll_seconds: str = 30
+        self.reservation_expiring_poll_seconds: str = 300
+        self.reservation_expiring_notify_at_seconds: str = 20 * 60
 
 class HeartbeatLogger(LoggerAdapter):
-    def __init__(self, logger, extra=None):
-        super().__init__(logger, extra)
-
     def process(self, msg, kwargs):
         return f"[Heartbeat] {msg}", kwargs
 
@@ -50,21 +47,6 @@ class Heartbeat:
 
         self.thread = threading.Thread(target=run, daemon=True, name="heartbeat")
         self.thread.start()
-
-    # TODO duplicated from control.Control
-    # not sure where to put this
-    def __notifyEnd(self, client_id: str, serial: str, worker_url: str):
-        self.event_sender.sendDeviceReservationEnd(serial, client_id)
-
-        try:
-            res = requests.get(f"{worker_url}/unreserve", json={
-                "serial": serial
-            }, timeout=10)
-
-            if res.status_code != 200:
-                raise Exception
-        except Exception:
-            self.logger.warning(f"[Control] failed to send unreserve command to worker {worker_url} device {serial}")
 
     def __startHeartBeatWorkers(self):
         def do():
@@ -119,7 +101,6 @@ class Heartbeat:
                     return
 
                 for row in data:
-                    self.__notifyEnd(row["client_id"], row["serial"], f'http://{row["workerip"]}:{row["workerport"]}')
                     self.logger.info(f"Reservation for device {row['serial']} by client {row['client_id']} ended")
 
             threading.Thread(target=run, name="heartbeat-reservation-timeouts", daemon=True).start()
