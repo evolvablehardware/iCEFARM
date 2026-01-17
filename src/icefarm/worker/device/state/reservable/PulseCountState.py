@@ -205,9 +205,14 @@ class Reader:
                     self.ready = True
                     self.cv.notify_all()
 
+            if self.exiting:
+                return
+
     def waitUntilReady(self):
         with self.cv:
-            self.cv.wait_for(lambda : self.ready)
+            if not self.ready:
+                self.cv.wait_for(lambda : self.ready)
+
             self.ready = False
 
     def waitUntilPulse(self):

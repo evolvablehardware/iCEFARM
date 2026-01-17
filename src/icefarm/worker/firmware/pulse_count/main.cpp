@@ -29,6 +29,8 @@
 #include "ice_fpga.h"
 #include "ice_led.h"
 
+#include "pulse_count.pio.h"
+
 static const unsigned long bitstreamSizeLengthBytes = 104090;
 uint8_t bitstream[bitstreamSizeLengthBytes] = {};
 
@@ -45,11 +47,6 @@ uint32_t numReceivedBitstreamBytes = 0;
 #endif
 
 #define GPIO_PIN 20
-int pulse_count = 0;
-
-void count(uint gpio, uint32_t e) {
-    pulse_count++;
-}
 
 enum STATES
 {
@@ -152,7 +149,15 @@ int main(void)
     gpio_disable_pulls(GPIO_PIN);
     gpio_put(GPIO_PIN, false);
     gpio_set_dir(GPIO_PIN, GPIO_IN);
-    gpio_set_irq_enabled_with_callback(GPIO_PIN, GPIO_IRQ_EDGE_RISE, true, &count);
+
+    PIO pio;
+    uint sm;
+    uint offset;
+
+    pio_claim_free_sm_and_add_program(&count_pulses_program, &pio, &sm, &offset);
+    pio_sm_config config = count_pulses_program_get_default_config(offset);
+    pio_sm_init(pio, sm, offset, &config);
+    pio_sm_set_enabled(pio, sm, true);
 
     while (1) {
         startTime = get_absolute_time();
@@ -339,12 +344,25 @@ int main(void)
                 {
                     char buf[128];
                     FlashTimePacket flashTimes = benchmarkFlashTime(bitstream, bitstreamSizeLengthBytes);
-                    pulse_count = 0;
+
+                    // set pulse count register to 0
+                    pio_sm_exec(pio, sm, pio_encode_set(pio_x, 0));
+
                     int time = to_ms_since_boot(get_absolute_time());
-                    time += 5000;
+                    time += 1000;
+
                     while (to_ms_since_boot(get_absolute_time()) < time) {
                         tud_task();
                     }
+
+                    // move pulse count register to isr
+                    pio_sm_exec(pio, sm, pio_encode_mov(pio_isr, pio_x));
+                    // push isr to rx fifo
+                    pio_sm_exec(pio, sm, pio_encode_push(false, false));
+                    // pulse counter starts at 0 and decrements rather than
+                    // counting up
+                    uint32_t pulse_count = UINT32_MAX - pio_sm_get_blocking(pio, sm);
+
                     snprintf(buf,
                             128,
                             "FPGA Flash times (us): init %lld, start %lld, open %lld, write %lld, close %lld\r\n, pulses: %d\r\n",
