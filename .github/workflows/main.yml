@@ -40,7 +40,7 @@ jobs:
         run: docker compose -f docker/test_compose.yml up -d
 
       - name: Wait for compose
-        run: sleep 20s
+        run: sleep 2m
 
       - name: Run Tests
         run: docker compose -f docker/test_compose.yml exec client .venv/bin/pytest ./tests --url http://control:8080
