@@ -138,9 +138,9 @@ else:
             evaluations.append(PulseCountEvaluation([serial], bitstream))
 
 if EVALUATE_EACH:
-    logger.info(f"Expected wait time: {5.4 * BITSTREAMS_PER_DEVICE:.2f} seconds")
+    logger.info(f"Expected wait time: {1.4 * BITSTREAMS_PER_DEVICE:.2f} seconds")
 else:
-    logger.info(f"Expected wait time: {5.4 * math.ceil(BITSTREAMS_PER_DEVICE):.2f} seconds")
+    logger.info(f"Expected wait time: {1.4 * math.ceil(BITSTREAMS_PER_DEVICE):.2f} seconds")
 
 logger.info("Sending bitstreams...")
 
@@ -156,5 +156,5 @@ elapsed = time.time() - start_time
 print(f"Total elapsed evaluation time: {elapsed:.2f}")
 print(f"Average circuit evaluation time: {elapsed / (BITSTREAMS_PER_DEVICE * NUM_DEVICES):.2f}")
 
-print(f"Total latency: {elapsed - 5 * BITSTREAMS_PER_DEVICE:.2f}")
+print(f"Total latency: {elapsed - 1 * BITSTREAMS_PER_DEVICE:.2f}")
 print(f"Average latency: {(elapsed / BITSTREAMS_PER_DEVICE) - 5:.2f}")
