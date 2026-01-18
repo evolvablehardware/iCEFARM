@@ -45,8 +45,8 @@ class FakeSerial:
     def write(self, data):
         self.data_length += len(data)
         if self.data_length >= BITSTREAM_LENGTH:
-            self.queue += "pulses: 12345\n"
-            self.queue += "Waiting for bitstream transfer\n"
+            self.queue += "pulses: 12345\\r\\n"
+            self.queue += "Waiting for bitstream transfer\\r\\n"
 
     def flush(self):
         pass
