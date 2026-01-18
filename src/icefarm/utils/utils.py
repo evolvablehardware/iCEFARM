@@ -113,7 +113,7 @@ def json_to_args(json, parameters):
 
     return values
 
-def generate_circuit(hz, build_dir, build_script="src/usbipice/utils/build.sh", pcf_path="src/usbipice/utils/pico_ice.pcf", clk=48000000):
+def generate_circuit(hz, build_dir, build_script="src/icefarm/utils/build.sh", pcf_path="src/icefarm/utils/pico_ice.pcf", clk=48000000):
     """Builds a circuit of approximately hz."""
     if not os.path.isdir(build_dir):
         os.mkdir(build_dir)
