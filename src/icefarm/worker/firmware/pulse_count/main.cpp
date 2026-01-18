@@ -361,7 +361,7 @@ int main(void)
                     pio_sm_exec(pio, sm, pio_encode_push(false, false));
                     // pulse counter starts at 0 and decrements rather than
                     // counting up
-                    uint32_t pulse_count = UINT32_MAX - pio_sm_get_blocking(pio, sm) -1;
+                    uint32_t pulse_count = UINT32_MAX - pio_sm_get_blocking(pio, sm) + 1;
 
                     snprintf(buf,
                             128,
