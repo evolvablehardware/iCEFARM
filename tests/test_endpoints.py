@@ -1,4 +1,5 @@
 import threading
+import sys
 # TODO once control availability notifications are done,
 # wait for those before returning. Currently a test exits immediately,
 # so a redundant pico is needed to buffer default firmware flashing
@@ -30,7 +31,8 @@ def test_evaluate_bitstreams(client_fac):
                     "examples/pulse_count_driver/precompiled_circuits/circuit_generated_32Khz.bin"]
 
         def timeout():
-            raise Exception("Watchdog timeout")
+            sys.exit("Watchdog timeout")
+
         watchdog = threading.Timer(len(BITSTREAM_PATHS) * 20, timeout)
         watchdog.daemon = True
         watchdog.name = "watchdog-timeout"
