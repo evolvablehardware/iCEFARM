@@ -97,10 +97,7 @@ class Control:
     def getDevicesAvailable(self):
         return self.database.getDevicesAvailable()
 
-    def reserve(self, client_id: str, amount: int, kind:str, args: dict) -> dict:
-        if (con_info := self.database.reserve(amount, client_id, kind)) is False:
-            return False
-
+    def _sendReservationNotifications(self, con_info, kind, args):
         for row in con_info:
             def send_reserve():
                 ip = row["ip"]
@@ -122,4 +119,16 @@ class Control:
             thread = threading.Thread(target=send_reserve, name="send-reservation")
             thread.start()
 
+    def reserve(self, client_id: str, amount: int, kind: str, args: dict) -> dict:
+        if (con_info := self.database.reserve(amount, client_id, kind)) is False:
+            return False
+
+        self._sendReservationNotifications(con_info, kind, args)
+        return con_info
+
+    def reserveSerials(self, client_id: str, serials: list[str], kind: str, args: dict) -> dict:
+        if (con_info := self.database.reserveSerials(client_id, serials, kind)) is False:
+            return False
+
+        self._sendReservationNotifications(con_info, kind, args)
         return con_info

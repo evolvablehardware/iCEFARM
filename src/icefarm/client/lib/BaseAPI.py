@@ -85,18 +85,7 @@ class BaseAPI:
 
         return self.request(conn_info.url(), endpoint, json, files=files)
 
-    def reserve(self, amount: int, kind: str, args: dict) -> dict:
-        """Reserves amount devices with subscription_url as a event server.
-        Returns successful reservations as a dict of serial -> bus"""
-        json = {
-            "amount": amount,
-            "name": self.name,
-            "kind": kind,
-            "args": args
-        }
-
-        data = self.requestControl("reserve", json)
-
+    def _addConnectionData(self, data):
         if data is False:
             return False
 
@@ -110,6 +99,30 @@ class BaseAPI:
             out.append(serial)
 
         return out
+
+    def reserve(self, amount: int, kind: str, args: dict) -> dict:
+        """Reserves amount devices with subscription_url as a event server.
+        Returns successful reservations as a dict of serial -> bus"""
+        json = {
+            "amount": amount,
+            "name": self.name,
+            "kind": kind,
+            "args": args
+        }
+
+        return self._addConnectionData(self.requestControl("reserve", json))
+
+    def reserveSpecific(self, serials: list[str], kind: str, args: dict) -> dict:
+        json = {
+            "name": self.name,
+            "kind": kind,
+            "args": args,
+            "serials": serials
+        }
+
+        return self._addConnectionData(self.requestControl("reserveserials", json))
+
+
 
     def available(self) -> int:
         data = self.requestControl("available", {})

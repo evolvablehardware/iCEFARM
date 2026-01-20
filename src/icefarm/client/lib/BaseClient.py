@@ -104,6 +104,26 @@ class BaseClient(BaseAPI):
             self.eh.waitUntilInitilized(connected)
             return connected
 
+    def reserveSpecific(self, serials, kind, args):
+        serials = super().reserveSpecific(serials, kind, args)
+
+        if not serials:
+            return serials
+
+        connected = []
+
+        for serial in serials:
+            info = self.getConnectionInfo(serial)
+
+            if not info:
+                self.logger.error(f"could not get connection info for serial {serial}")
+
+            self.server.connectWorker(info.url())
+            connected.append(serial)
+
+        self.eh.waitUntilInitilized(connected)
+        return connected
+
     def removeSerial(self, serial):
         conn_info = self.getConnectionInfo(serial)
         super().removeSerial(serial)

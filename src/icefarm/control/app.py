@@ -67,6 +67,11 @@ def create_app(app: Flask, socketio: SocketIO | SyncAsyncServer, base_logger: lo
     def make_reservations(amount: int, name: str, kind: str, args: dict):
         return control.reserve(name, amount, kind, args)
 
+    @app.get("/reserveserials")
+    @inject_and_return_json
+    def make_specific_reservations(name: str, kind: str, args: dict, serials: list[str]):
+        return control.reserveSerials(name, serials, kind, args)
+
     @app.get("/extend")
     @inject_and_return_json
     def extend(name: str, serials: list):

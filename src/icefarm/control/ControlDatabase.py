@@ -19,6 +19,12 @@ class ControlDatabase(Database):
             ["serial", "ip", "serverport"], stringify=["ip"]
         )
 
+    def reserveSerials(self, client_id: str, serials: list[str], kind: str) -> dict:
+        return self.getData(
+            "SELECT * FROM make_specific_reservations(%s::varchar(255), %s::varchar(255)[], %s::varchar(255))", (client_id, serials, kind),
+            ["serial", "ip", "serverport"], stringify=["ip"]
+        )
+
     def extend(self, name: str, serials: list[str]) -> list[str]:
         """Extends the reservation time of the serials under the name of the client. Returns the extended serials"""
         if (data := self.execute("SELECT * FROM extend_reservations(%s::varchar(255), %s::varchar(255)[])", (name, serials))):
