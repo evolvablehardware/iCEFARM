@@ -56,7 +56,11 @@ def create_app(app: Flask, socketio: SocketIO | SyncAsyncServer, base_logger: lo
 
     @app.get("/available")
     def available():
-        return control.getAvailable()
+        return control.getAmountAvailable()
+
+    @app.get("/devices")
+    def devices():
+        return control.getDevicesAvailable()
 
     @app.get("/reserve")
     @inject_and_return_json

@@ -49,6 +49,56 @@ BEGIN
     FROM res;
 END $$;
 
+CREATE FUNCTION make_specific_reservations(client_name varchar(255), serial_ids varchar(255)[], reservation_type varchar(255))
+RETURNS TABLE (
+    device_id varchar(255),
+    worker_host varchar(255),
+    worker_port int
+) LANGUAGE plpgsql AS $$
+DECLARE amount_found int8;
+DECLARE expected int8;
+BEGIN
+    CREATE TEMPORARY TABLE res (
+        device_id varchar(255),
+        worker_host varchar(255),
+        worker_port int
+    ) ON COMMIT DROP;
+
+    INSERT INTO res(device_id, worker_host, worker_port)
+    SELECT device.id,
+        worker.host,
+        worker.port
+    FROM device
+        INNER JOIN worker ON worker.id = device.worker_id
+    WHERE device_status = 'available'
+        AND device.id = ANY(serial_ids)
+        AND reservation_type = ANY(worker.reservables)
+        AND NOT worker.shutting_down;
+
+    SELECT COUNT(*) INTO amount_found FROM res;
+    SELECT CARDINALITY(serial_ids) INTO expected;
+    IF amount_found != expected THEN
+        RAISE EXCEPTION 'Some serials not available';
+    END iF;
+
+    UPDATE device
+    SET device_status = 'reserved'
+    WHERE device.id IN (
+            SELECT res.device_id
+            FROM res
+        );
+
+    INSERT INTO reservations(device_id, client_id, until)
+    SELECT res.device_id,
+        client_name,
+        CURRENT_TIMESTAMP + interval '1 hour'
+    FROM res;
+
+    RETURN QUERY
+    SELECT *
+    FROM res;
+END $$;
+
 CREATE FUNCTION get_amount_available()
 RETURNS int8
 LANGUAGE plpgsql AS $$
@@ -56,6 +106,16 @@ DECLARE amount int8;
 BEGIN
     SELECT COUNT(*) INTO amount FROM device WHERE device_status = 'available';
 	RETURN amount;
+END $$;
+
+CREATE FUNCTION get_available_devices()
+RETURNS TABLE (
+    serial_ids varchar(255)
+)
+LANGUAGE plpgsql AS $$ BEGIN
+    RETURN QUERY
+    SELECT id from device
+    WHERE device.device_status = 'available';
 END $$;
 
 CREATE FUNCTION has_reservations(wid varchar(255))

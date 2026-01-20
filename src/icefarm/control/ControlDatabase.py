@@ -90,8 +90,15 @@ class ControlDatabase(Database):
             ["serial", "client_id", "workerip", "workerport"], stringify=["workerip", "workerport"]
         )
 
-    def getDevicesAvailable(self) -> int:
+    def getAmountAvailable(self) -> int:
         if not (data := self.execute("SELECT * FROM get_amount_available()", tuple())):
-            return None
+            return False
 
         return data[0][0]
+
+    def getDevicesAvailable(self) -> list[str]:
+        if (data := self.getData("SELECT * FROM get_available_devices()", tuple(), ["serial_ids"])) is False:
+            return False
+
+        return list(map(lambda x : x["serial_ids"], data))
+

@@ -118,6 +118,9 @@ class BaseAPI:
 
         return data["amount"]
 
+    def availableDevices(self) -> list[str]:
+        return self.requestControl("devices", {})
+
     def extend(self, serials: list[str]) -> list[str]:
         """Extends the reservation on serials for by hour. The serials must be reserved under the client's name.
         Returns the serials that were extended."""
