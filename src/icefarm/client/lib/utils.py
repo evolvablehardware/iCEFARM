@@ -37,8 +37,9 @@ class ReservationExtender(AbstractEventHandler):
         self.client = client
         self.logger = logger
 
+    @register("reservation ending soon", "serial")
     def handleReservationEndingSoon(self, serial: str):
-        if self.client.extend[serial]:
+        if self.client.extend([serial]):
             self.logger.info(f"refreshed reservation of {serial}")
         else:
             self.logger.error(f"failed to refresh reservation of device {serial}")

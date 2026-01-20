@@ -119,4 +119,4 @@ class Heartbeat:
 
             threading.Thread(target=run, name="heartbeat-reservation-ending-soon", daemon=True).start()
 
-        schedule.every(self.config.reservation_poll_seconds).seconds.do(do)
+        schedule.every(self.config.reservation_expiring_poll_seconds).seconds.do(do)
