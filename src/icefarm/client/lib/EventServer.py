@@ -2,6 +2,7 @@ from __future__ import annotations
 from logging import LoggerAdapter
 import threading
 import json
+from dataclasses import dataclass
 
 import socketio
 
@@ -21,15 +22,17 @@ class SocketLogger(LoggerAdapter):
     def process(self, msg, kwargs):
         return f"[socket@{self.url}] {msg}", kwargs
 
+@dataclass
 class Event:
-    def __init__(self, serial, event, contents):
-        self.serial = serial
-        self.event = event
-        self.contents = contents
+    serial: str
+    event: str
+    contents: dict
 
 class EventServer:
-    """Hosts a server for the workers and heartbeat process to send events to. When an event is received,
-    it calls the corresponding method of the EventHandlers starting at the 0 index."""
+    """
+    Maintains websockets with the iCEFARM control and workers. Allows commands to be sent to the workers
+    and dispatches received events to EventHandlers. EventHandlers receive events in the order they were added.
+    """
     def __init__(self, client_id, eventhandlers: list[AbstractEventHandler], logger):
         self.client_id = client_id
         self.logger = EventLogger(logger)
@@ -47,10 +50,15 @@ class EventServer:
         self.eventhandlers.append(eh)
 
     def handleEvent(self, event: Event):
+        """
+        Dispatches an Event to the eventhandlers. This may be called directly rather than as a result of a websocket message,
+        but care needs to be taken not to produce recursive behavior.
+        """
         for eh in self.eventhandlers:
             eh.handleEvent(event)
 
-    def __createSocket(self, url):
+    def _createSocket(self, url):
+        """Connects a socket to url and adds related handlers."""
         sio = socketio.Client()
 
         logger = SocketLogger(self.logger, url)
@@ -102,7 +110,7 @@ class EventServer:
             if url in self.worker_sockets:
                 return
 
-            self.worker_sockets[url] = self.__createSocket(url)
+            self.worker_sockets[url] = self._createSocket(url)
 
     def sendWorker(self, url, event, data: dict):
         """Sends data to worker socket."""
@@ -124,7 +132,7 @@ class EventServer:
 
     def connectControl(self, url):
         with self.control_lock:
-            self.control_socket = self.__createSocket(url)
+            self.control_socket = self._createSocket(url)
 
     def disconnectWorker(self, url):
         with self.worker_lock:

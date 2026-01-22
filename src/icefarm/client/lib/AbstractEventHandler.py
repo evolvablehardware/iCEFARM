@@ -7,7 +7,8 @@ if TYPE_CHECKING:
 REGISTERED_METHODS = {}
 
 class JsonMethodCall:
-    def __init__(self, name, args):
+    """Allows attribute to be called with json arguments."""
+    def __init__(self, name: str, args: list[str]):
         self.name = name
         self.parms = args
 
@@ -49,7 +50,8 @@ class AbstractEventHandler:
     def sendEvent(self, event: Event):
         self.event_server.sendEvent(event)
 
-    def handleEvent(self, event):
+    def handleEvent(self, event: Event):
+        """Dispatches event to registered methods."""
         search = [type(self)]
         attr = None
 

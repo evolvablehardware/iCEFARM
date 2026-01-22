@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from icefarm.client.lib.BatchRequest import AbstractBatchFactory, Evaluation
 
 class PulseCountClient(PulseCountBaseClient):
+    """Main client for pulse count experiments."""
     def __init__(self, url, client_name, logger, log_events=False):
         super().__init__(url, client_name, logger)
 
@@ -23,6 +24,7 @@ class PulseCountClient(PulseCountBaseClient):
         self.batch_factories: dict[str, AbstractBatchFactory] = {}
 
         class ResultHandler(PulseCountEventHandler):
+            """Receives and processes results of circuit evaluations."""
             def __init__(self, event_server, client: PulseCountClient):
                 super().__init__(event_server)
                 self.client = client
@@ -38,14 +40,13 @@ class PulseCountClient(PulseCountBaseClient):
 
         self.addEventHandler(ResultHandler(self.server, self))
 
-    def evaluateFactory(self, factory: AbstractBatchFactory) -> Generator[tuple[str, Evaluation, dict]]:
+    def evaluateFactory(self, factory: AbstractBatchFactory) -> Generator[tuple[str, Evaluation, int]]:
         self.batch_factories[factory.bundle.id] = factory
 
         def evaluate_batches():
             for evaluations in factory.getBatches():
-                # TODO not sure why super(type(self), self) doesn't work here
                 for serial_group in evaluations.values():
-                    PulseCountBaseClient.evaluateBatch(self, factory.bundle.id, serial_group)
+                    self.evaluateBatch(factory.bundle.id, serial_group)
 
         threading.Thread(target=evaluate_batches, name="batch-sender").start()
 
@@ -54,11 +55,12 @@ class PulseCountClient(PulseCountBaseClient):
 
         del self.batch_factories[factory.bundle.id]
 
-    def evaluateEvaluations(self, evaluations: list[PulseCountEvaluation], batch_size=5):
-        batch_factory = BalancedBatchFactory(EvaluationBundle(evaluations, batch_size))
-        return self.evaluateFactory(batch_factory)
+    def evaluateEvaluations(self, evaluations: list[PulseCountEvaluation], batch_size=5) -> Generator[tuple[str, Evaluation, int]]:
+        return self.evaluateFactory(BalancedBatchFactory(EvaluationBundle(evaluations, batch_size)))
 
-    def evaluateBitstreams(self, bitstreams, serials=None):
+    def evaluateBitstreams(self, bitstreams: list[str], serials=None) -> Generator[tuple[str, str, int]]:
+        """Sends bitstream filepaths to be evaluated by iCEFARM. If serials are not specified, bitstreams
+        are evaluated on each reserved device. Results are received as (serial, filepath, pulses)."""
         if not serials:
             serials = self.getSerials()
 

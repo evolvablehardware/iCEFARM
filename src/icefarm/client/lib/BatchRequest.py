@@ -3,6 +3,8 @@ import threading
 import math
 from collections import Counter
 from collections.abc import Generator
+from abc import ABC
+from typing import Any
 
 from icefarm.utils import MappedQueues
 
@@ -13,6 +15,9 @@ class Evaluation:
     providing multiple Evaluations of the same bitstream.
     """
     def __init__(self, serials: set[str]):
+        if not serials:
+            raise Exception("Serials cannot be empty")
+
         self.serials = frozenset(serials)
         self.id = str(uuid.uuid4())
 
@@ -24,7 +29,8 @@ class Evaluation:
 
 class EvaluationBundle:
     """
-    Bundles Evaluations into efficient batches for client consumption.
+    Bundles Evaluations into efficient batches that can be sent gradually rather than
+    all at once.
     """
     def __init__(self, evaluations: list[Evaluation], batch_size):
         self.queue = MappedQueues()
@@ -39,6 +45,10 @@ class EvaluationBundle:
         self.id = str(uuid.uuid4())
 
     def __next__(self) -> dict[set[str], list[Evaluation]]:
+        """
+        Produces the next batch. Batches are produced so that each Evaluation with multiple serials are sent in the same batch
+        and the maximum evaluations are sent without exceeding the batch size amount of circuits for any serial.
+        """
         serial_amounts = Counter()
         batch = {}
 
@@ -62,19 +72,19 @@ class EvaluationBundle:
     def __iter__(self):
         return self
 
-class AbstractBatchFactory:
+class AbstractBatchFactory(ABC):
     """
-    Produces batches for client to consume and processes
-    results
+    Produces batches for client consumption.
     """
     def __init__(self, bundle: EvaluationBundle):
+        super().__init__()
         self.bundle = bundle
         self.results: list[tuple[Evaluation, dict]] = []
         self.result_cv = threading.Condition()
 
         self.awaiting_results: dict[str, set] = {}
 
-    def processResult(self, serial, evaluation_id, result):
+    def processResult(self, serial: str, evaluation_id: str, result: Any):
         with self.result_cv:
             if serial not in self.awaiting_results:
                 return
@@ -86,8 +96,8 @@ class AbstractBatchFactory:
             self.results.append((serial, evaluation_id, result))
             self.result_cv.notify_all()
 
-    def getResults(self) -> Generator[tuple[str, Evaluation, dict]]:
-        """Produces results as they are processed."""
+    def getResults(self) -> Generator[tuple[str, Evaluation, Any]]:
+        """Produces results as they received by processResult."""
         while True:
             with self.result_cv:
                 if not self.results:
@@ -121,8 +131,8 @@ class AbstractBatchFactory:
                 self._addBatch(batch)
                 yield batch
 
-    def _readyForBatch(self):
-        pass
+    def _readyForBatch(self) -> bool:
+        """Whether the next batch should be made available for consumption."""
 
 class QuickBatchFactory(AbstractBatchFactory):
     """

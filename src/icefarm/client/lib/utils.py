@@ -23,7 +23,7 @@ class DefaultBaseEventHandler(AbstractEventHandler):
         """
 
 class LoggerEventHandler(AbstractEventHandler):
-    """Logs received events."""
+    """Logs all events received by the EventServer."""
     def __init__(self, event_server, logger: Logger):
         super().__init__(event_server)
         self.logger = logger
@@ -32,6 +32,7 @@ class LoggerEventHandler(AbstractEventHandler):
         self.logger.info(f"Received event: {event.event} serial: {event.serial} contents: {event.contents}")
 
 class ReservationExtender(AbstractEventHandler):
+    """Automatically extends device reservations when they are nearing completion."""
     def __init__(self, event_server, client, logger: Logger):
         super().__init__(event_server)
         self.client = client
@@ -45,6 +46,7 @@ class ReservationExtender(AbstractEventHandler):
             self.logger.error(f"failed to refresh reservation of device {serial}")
 
 class AvailabilityWaiter(AbstractEventHandler):
+    """Allows the client to sleep until a desired about of devices are available."""
     def __init__(self, event_server, client: BaseAPI):
         super().__init__(event_server)
         self.client = client
@@ -58,6 +60,11 @@ class AvailabilityWaiter(AbstractEventHandler):
             self.cv.notify_all()
 
     def waitForAmountAvailable(self, amount):
+        """
+        Returns once at least amount devices are available for reservation. Note that
+        this does not guarantee this client will be able to reserve them, as another client
+        might first.
+        """
         if self.client.available() >= amount:
             return
 

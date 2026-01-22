@@ -5,7 +5,7 @@ from logging import Logger
 import requests
 
 class ConnectionInfo:
-    """Database for information required to establish and maintain usbip connections."""
+    """Database for information required to establish and maintain worker connections."""
     def __init__(self, ip: str, server_port: str):
         self.ip = ip
         self.server_port = server_port
@@ -77,14 +77,6 @@ class BaseAPI:
         Returns False on error."""
         return self.request(self.url, endpoint, json)
 
-    def requestWorker(self, serial, endpoint, json, files={}) -> dict:
-        conn_info = self.getConnectionInfo(serial)
-
-        if not conn_info:
-            return False
-
-        return self.request(conn_info.url(), endpoint, json, files=files)
-
     def _addConnectionData(self, data):
         if data is False:
             return False
@@ -121,8 +113,6 @@ class BaseAPI:
         }
 
         return self._addConnectionData(self.requestControl("reserveserials", json))
-
-
 
     def available(self) -> int:
         data = self.requestControl("available", {})

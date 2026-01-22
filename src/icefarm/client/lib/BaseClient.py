@@ -8,8 +8,9 @@ from icefarm.client.lib import BaseAPI, EventServer, AbstractEventHandler, regis
 from icefarm.client.lib.utils import AvailabilityWaiter
 
 class BaseClientEventHandler(AbstractEventHandler):
-    """Updates the available serials of a client. Provides initialization
-    detection.
+    """
+    Updates the available serials on a client as reservations end and devices fail. Provides initialization
+    detection for devices.
     """
     def __init__(self, event_server, client: BaseAPI):
         super().__init__(event_server)
@@ -21,10 +22,12 @@ class BaseClientEventHandler(AbstractEventHandler):
     @register("reservation end", "serial")
     def handleReservationEnd(self, serial: str):
         self.client.removeSerial(serial)
+        self.client.logger.warning(f"reservation for {serial} ended")
 
     @register("failure", "serial")
     def handleFailure(self, serial: str):
         self.client.removeSerial(serial)
+        self.client.logger.warning(f"device {serial} failed")
 
     @register("initialized", "serial")
     def handleInitialization(self, serial):
@@ -34,6 +37,7 @@ class BaseClientEventHandler(AbstractEventHandler):
                 self.cond.notify_all()
 
     def waitUntilInitilized(self, serials):
+        """Returns once 'initalized' events have been received for all the serials."""
         self.awaiting_serials = set(serials)
 
         with self.cond:
@@ -43,9 +47,8 @@ class BaseClientEventHandler(AbstractEventHandler):
             if self.awaiting_serials:
                 self.cond.wait_for(lambda : not self.awaiting_serials)
 
-            return
-
 class BaseClient(BaseAPI):
+    """Stitches the iCEFARM control server API and EventServer together to enable full management of devices."""
     def __init__(self, url: str, client_name: str, logger: Logger):
         super().__init__(url, client_name, logger)
         self.server = EventServer(client_name, [], logger)
@@ -65,6 +68,11 @@ class BaseClient(BaseAPI):
         self.server.addEventHandler(eh)
 
     def reserve(self, amount: int, kind: str, args: str, wait_for_available=False, available_timeout=None):
+        """
+        Reserves amount devices of type kind providing args to the worker when it is initilized. If wait_for_available,
+        the client will wait until enough devices are available in the iCEFARM system. Otherwise, if there are not enough
+        devices available, an error will be raised.
+        """
         if self.available() < amount:
             if not wait_for_available:
                 raise Exception("Not enough devices available")
@@ -105,6 +113,7 @@ class BaseClient(BaseAPI):
             return connected
 
     def reserveSpecific(self, serials, kind, args):
+        """Reserves specific serials from the iCEFARM system. The serials must be available."""
         serials = super().reserveSpecific(serials, kind, args)
 
         if not serials:
