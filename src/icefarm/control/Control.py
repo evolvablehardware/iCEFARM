@@ -18,13 +18,19 @@ class Control:
         self.logger = logger
 
         def update_available(amount):
+            self.logger.debug(f"received notify for amount change: {amount}")
             self.event_sender.sendAll({
                 "event": "devices_available",
                 "amount": amount
             })
 
         self.database.listenAvailable(update_available)
-        self.database.listenReservations(self.event_sender.sendDeviceReservationEnd)
+
+        def reservation_end(serial, client):
+            self.logger.info(f"received notify for reservation end device {serial} client {client}")
+            self.event_sender.sendDeviceReservationEnd(serial, client)
+
+        self.database.listenReservations(reservation_end)
 
     # TODO this feels out of place
     def getApp(self):

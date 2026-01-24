@@ -115,7 +115,6 @@ class Heartbeat:
 
                 for serial in data:
                     self.event_sender.sendDeviceReservationEndingSoon(serial)
-                    self.logger.info(f"Sent ending soon notification for {serial}")
 
             threading.Thread(target=run, name="heartbeat-reservation-ending-soon", daemon=True).start()
 

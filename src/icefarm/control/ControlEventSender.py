@@ -19,6 +19,8 @@ class ControlEventSender(EventSender):
             "event": "reservation end",
         }):
             self.logger.warning(f"failed to send reservation end to {client_id} for device {serial}")
+        else:
+            self.logger.info(f"sent reservation end to {client_id} for device {serial}")
 
     def sendDeviceFailure(self, serial: str, client_id: str) -> bool:
         """Sends a failure event for serial."""
@@ -26,6 +28,8 @@ class ControlEventSender(EventSender):
             "event": "failure",
         }):
             self.logger.warning(f"failed to send device failure to {client_id} for device {serial}")
+        else:
+            self.logger.info(f"sent device failure to {client_id} for device {serial}")
 
     def sendDeviceReservationEndingSoon(self, serial: str) -> bool:
         """Sends a reservation ending soon event for serial."""
@@ -33,3 +37,5 @@ class ControlEventSender(EventSender):
             "event": "reservation ending soon",
         }):
             self.logger.warning(f"failed to send reservation ending soon to device {serial}")
+        else:
+            self.logger.info(f"sent reservation ending soon to device {serial}")
