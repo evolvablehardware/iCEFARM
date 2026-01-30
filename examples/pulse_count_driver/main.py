@@ -17,8 +17,7 @@ from icefarm.utils import generate_circuit, batch
 EVALUATE_EACH = True
 # Whether to log all data received from workers/control
 EVENT_LOGGING = True
-# Paths to bin circuits to evaluate.
-# NOTE: Pulses are evaluated for 5 seconds, so results will differ from kHz
+# Paths to bin circuits to evaluate, circuits are evaluated for 1s.
 BITSTREAM_PATHS = ["examples/pulse_count_driver/precompiled_circuits/circuit_generated_2Khz.bin",
                    "examples/pulse_count_driver/precompiled_circuits/circuit_generated_8Khz.bin",
                    "examples/pulse_count_driver/precompiled_circuits/circuit_generated_32Khz.bin"
@@ -26,16 +25,15 @@ BITSTREAM_PATHS = ["examples/pulse_count_driver/precompiled_circuits/circuit_gen
 
 # Target kHz of circuits. These circuits will be automatically generated, compiled, and evaluated.
 # Usage requires yosys, nextpnr-ice40, and icepack. If you don't have these tools installed,
-# set this to [] and it will be ignored.
+# set this to [] and it will be ignored. The precompiled circuits are generated using this
+# and provided so that these tools are not required for testing.
 # COMPILE_PULSES = [1, 2, 4, 16, 64]
 COMPILE_PULSES = []
 
 # Directory to build circuits in
 BUILD_DIR = "examples/pulse_count_driver/build"
 
-# If you have more than one device, feel free to increase this number. This
-# particular client evaluates each circuit once on each of the devices,
-# but the distribution method can be changed by modifying the client.
+# If you have more than one device, feel free to increase this number.
 NUM_DEVICES = 1
 
 # Whether to wait for devices to become available if
@@ -157,4 +155,4 @@ print(f"Total elapsed evaluation time: {elapsed:.2f}")
 print(f"Average circuit evaluation time: {elapsed / (BITSTREAMS_PER_DEVICE * NUM_DEVICES):.2f}")
 
 print(f"Total latency: {elapsed - 1 * BITSTREAMS_PER_DEVICE:.2f}")
-print(f"Average latency: {(elapsed / BITSTREAMS_PER_DEVICE) - 5:.2f}")
+print(f"Average latency: {(elapsed / BITSTREAMS_PER_DEVICE) - 1:.2f}")

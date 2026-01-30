@@ -1,7 +1,70 @@
 # iCE FPGA Array Resource Manager
 Device manager for reserving and interfacing with pico2-ice development boards.
 
-## Architecture Overview
+## Client Usage
+Install the package:
+```
+pip install icefarm
+```
+
+Create a client:
+```python
+from logging
+from icefarm.client.lib.drivers import PulseCountClient
+ICEFARM_SERVER = "http://localhost:8080"
+CLIENT_NAME = "example icefarm client"
+
+client = PulseCountClient(ICEFARM_SERVER, CLIENT_NAME, logging.getLogger(__name __))
+```
+If you are running the iCEFARM system through docker compose, the main server defaults to port ```8080```. The client name should be unique across all of the system users. Next, reserve a pico2ice from the system:
+```python
+client.reserve(1)
+```
+This sets aside a device for the client to interface with. The device is flashed to firmware specific to the client, in this case one that can upload circuits and count pulses. This method does not return until after the devices are ready to be used, so it may take a few seconds.
+
+During the reservation, this specific device will not be used by other systems. A reservation lasts for an hour; afterwards, the client will no longer be in control of the device. However, the client will automatically extend the duration of reservation to ensure that it does not end during an experiment. While reservations eventually expire on their own, it is good practice manually end reservations when devices are done being used.
+```python
+import atexit
+atexit.register(client.endAll)
+```
+Note that this will end all reservations under the previously specified client name, so it is important to use a unique name. The client can send instructions to specific devices by using their reported serial id:
+```python
+serial_id = client.getSerials()[0]
+```
+The simplest way to evaluate bitstreams is to use the evaluateBitstreams method, but this does not offer much flexibility.
+```python
+CIRCUITS = ["example1.asc", "example2.asc"]
+for serial, filepath, pulses in client.evaluateBitstreams(CIRCUITS, serials=[serial_id]):
+    print(f"Counted {pulses} pulses from circuit {filepath} on device {serial}!")
+```
+This sends out the circuits to each of the devices specified. This method produces an iterator that generates results as they are received from the iCEFARM system, so it is most efficient to act on the results as they are iterated on rather than consuming the entire iterator with something like ```list``` . Evaluations done with the client have a small delay as circuits are initially queued into the system, but after startup evaluations are done as fast as they would be locally. It is much faster to send 50 circuits in one evaluation than say 10 batches of 5. The client gradually sends circuits to the system as devices are ready to evaluate them, so sending large evaluations does not cause server stress. The evaluateBitstreams method is convenient, but does all evaluations on the same set of devices. Reserve another device:
+```python
+client.reserve(1)
+serials = client.getSerials()
+```
+The PulseCountEvaluation class can be used to create more detailed instructions.
+```python
+from icefarm.client.lib.pulsecount import PulseCountEvaluation
+commands = []
+
+# evaluate on both devices
+commands.append(PulseCountEvaluation(serials, "example1.asc"))
+# evaluate on first device
+commands.append(PulseCountEvaluation(serials[0], "example2.asc"))
+# evaluate on second device
+commands.append(PulseCountEvaluation(serials[1], "example3.asc"))
+```
+
+Commands can be evaluated in a similar way to using the evaluateBitstreams method. The main difference is rather than returning a filepath in the iterator, the PulseCountEvaluation that created the result is returned.
+```python
+for serial, evaluation, pulses in client.evaluateEvaluations(commands):
+    print(f"Counted {pulses} pulses from circuit {evaluation.filepath} on device {serial}!")
+```
+The same efficiency guidelines mentioned for evaluateBitstreams apply to evaluateEvaluations. In addition, if you have multiple sets of circuits that need to be evaluated on different devices, it is much faster to use a single evaluateEvaluations than to use multiple evaluateBitstream calls.
+Lastly, using multiple threads purely to call evaluate methods multiple times at once will not result in any speedup. This will likely result in slower evaluations as the client will not be able to dispatch commands optimally.
+See [examples](./examples/pulse_count_driver/main.py) for an additional example. Note that this is not included in the pip package.
+
+## System Overview
 - Control
     - Hosts a database. This keeps track of all of the pico devices, and on-going reservation sessions.
     - Provides an API for reserving devices.
@@ -270,9 +333,86 @@ Ensure that the control server is actually accessible. Check whether the device 
 ### Testing
 A [compose stack](./docker/test_compose.yml) is available for testing. This deploys the stack with some [patches](./src/usbipice/worker/test.py) to allow for virtual devices. The pulse count client can then be used normally.
 
-## Client
-The client for pulse count experiments is provided in [usbipice.client.drivers.pulse_count](./src/usbipice/client/drivers/pulse_count/PulseCountClient.py). An [example usage](./examples/pulse_count_driver/main.py) is provided. All other examples use usbip. The client library can be installed separately using pip without having to clone the repo:
+## Communication Protocol
+The control server contains the following http endpoints:
+| Path | Arguments (json) | Description |
+|------|------------------|-------------|
+| / | None | Web debug panel |
+| /available | None | Amount of devices available for reservation. |
+| /reserve | amount, name, kind, args | Reserves a device under the client name. The device is initialized using the registered kind and passed args. |
+| /devices | None | Serials of devices available for reservation. |
+| /reserveserials | serials, name, kind, args | Same as reserve, allows for specific devices to be reserved. |
+| /extend | name, serials | Extends the reservation of the specified serials. |
+| /extendall | name | Extends the reservation of all devices reserved under the client name.
+| /end | name, serials | Ends the reservation of the specified serials. |
+| /endall | name | Ends the reservation of all devices reserved under the client name. |
+| /reboot | serials | Routes a reboot command for the specified devices to workers. |
+| /delete| serials | Routes a delete command for the specified devices to workers. Should only be manually triggered using the web debug panel. |
+
+The control server allows websocket connections to listen for events. This includes updates on reservation statuses, and also when a device becomes available for reservation.
+
+While the workers contain http endpoints, these are not called directly by clients:
+| Path | Arguments (json) | Description |
+|------|------------------|-------------|
+| /heartbeat | None | Called periodically. |
+| /reserve | serial, kind, args | Initializes a device to be ready to client usage. |
+| /reboot | serial | Sends a reboot command to the device state. The device will attempt to recover from a malfunctioning state while preserving client data. |
+| /delete | serial | Removes device from internal datastructure. If the device is still connected, the worker will add it back to the system then attempt to flash it to the default firmware.
+
+The majority of worker communication is done through a websocket.
+### Exposing Device States
+During a devices reservation, its state determines its behavior and how it can communicate with the client. Device states inherit from ```icefarm.worker.device.state.core.AbstractState``` and can be made available to clients by decorating the class with ```icefarm.worker.device.state.reservable.reservable```. States can receive arguments from the client upon initialization.
+```python
+@reservable("example state", "message")
+class ExampleState(AbstractState):
+    def __init__(state, message)
+        super().__init__(state)
+        print(f"Message from client!: {message}")
+
 ```
-pip install git+https://github.com/heiljj/usbip-ice.git
+
+### Initial Reservation Handshake
+When a client is created, it starts a websocket connection to the control server. This allows the control server to send events to the client. Once a client wants to use devices, it uses the ```/reserve``` or ```/reserveserials``` endpoint on the control server. The control server determines which devices the client will be given and figures out what worker servers the devices are located on. In the background, it sends a request to the each relevant worker ```/reserve``` endpoint to initialize the device. When a worker receives a reservation request, it determines which ```AbstractState``` to create using the ```kind``` argument. The ```args``` argument are passed into the ```AbstractState``` during initialization.
+
+The control server then responds with a map of device serials to worker urls.
+
+After the client receives a response from the control server, it creates a websocket connection to each of the provided workers. When a worker is done initializing a device for the client, it sends a ```initialized``` event containing the devices serial through the websocket to the client.
+
+### Handling Client Events
+The client uses its ```EventServer``` to receive data from workers and the control server through websockets. This functions like a webserver and has a similar interface to most python web libraries. The client can register methods:
+```python
+class ExampleEventHandler(AbstractEventHandler):
+    @register("results", "data")
+    def printResults(self, data)
+        print(data)
 ```
-Note that this does not install examples.
+When the ```EventServer``` receives a properly formatted event through a websocket, the method will then be called:
+```json
+{
+    "event": "results",
+    "contents": {
+        "data": "hello!"
+    }
+}
+```
+The control server produces a few different types of events. This includes information about reservations that are expiring soon, and reservations that have ended. The control server also notifies clients when a new device becomes available for reservations. If a device becomes suddenly unexpectedly unavailable, a failure event will be sent.
+
+### Sending Worker Commands
+The workers ```AbstractState```s can expose methods to the client. This is done using the ```AbstractState.register``` decorator. Calls are handled through the worker's websocket and file transfers are supported.
+```python
+class ExampleState(AbstractState):
+    ...
+    @AbstractState.register("getdata", "data")
+    def receiveData(self, data)
+        print(f"Got data from client: {data}")
+```
+When the client wants to invoke the method, it sends the necessary command through the websocket:
+```json
+{
+    "serial": "example pico2ice serial id",
+    "event": "getdata",
+    "contents": {
+        "data": "Hello!"
+    }
+}
+```
