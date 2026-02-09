@@ -8,7 +8,7 @@ RUN git clone --depth 1 https://github.com/npat-efault/picocom.git
 WORKDIR /usr/local/build/picocom
 RUN make
 
-COPY ./src/icefarm/worker/firmware /usr/local/firmware
+COPY ./firmware /usr/local/firmware
 
 WORKDIR /usr/local/firmware
 RUN git clone --depth 1 https://github.com/raspberrypi/pico-sdk.git
@@ -53,6 +53,7 @@ COPY ./ /usr/local/app/
 COPY --from=picocom-builder /usr/local/build/picocom/picocom /usr/bin
 # TODO must be a better way
 # can't copy entire dir since build artifacts
+RUN mkdir /usr/local/app/src/icefarm/worker/firmware
 COPY --from=firmware-builder /usr/local/firmware/default/build/default_firmware.uf2 /usr/local/app/src/icefarm/worker/firmware/default/build/default_firmware.uf2
 COPY --from=firmware-builder /usr/local/firmware/pulse_count/build/bitstream_over_usb.uf2 /usr/local/app/src/icefarm/worker/firmware/pulse_count/build/bitstream_over_usb.uf2
 

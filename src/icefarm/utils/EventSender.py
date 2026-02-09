@@ -6,7 +6,7 @@ import json
 import psycopg
 from flask_socketio import SocketIO
 
-from icefarm.utils import Database
+from .Database import Database
 
 class EventSenderLogger(logging.LoggerAdapter):
     def __init__(self, logger, extra=None):

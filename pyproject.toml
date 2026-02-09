@@ -1,6 +1,6 @@
 [project]
 name = "icefarm"
-version = "0.1.1"
+version = "0.1.4"
 dependencies = [
     "Flask",
     "flask-socketio",
@@ -22,5 +22,9 @@ requires = ["setuptools >= 61"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["icefarm"]
-package-dir = {"" = "src"}
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["icefarm"]
+

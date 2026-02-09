@@ -6,7 +6,7 @@ from functools import wraps
 from flask import Response, jsonify, request
 from socketio import AsyncServer
 
-from icefarm.utils.utils import json_to_args, typecheck
+from .utils import json_to_args, typecheck
 
 def inject_and_return_json(func):
     """Injects request json values into arguments. Uses argument names as the json key. Typechecks arguments,

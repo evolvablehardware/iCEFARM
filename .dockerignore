@@ -12,10 +12,9 @@ examples
 !examples/pulse_count_driver/main.py
 !examples/pulse_count_driver/precompiled_circuits
 
-src/icefarm/worker/firmware/**/build
-!src/icefarm/worker/firmware/**/build/*.uf2
-src/icefarm/worker/firmware/pico-ice-sdk
-src/icefarm/worker/firmware/pico-sdk
+firmware/**/build
+firmware/pico-ice-sdk
+firmware/pico-sdk
 
 examples/pulse_count_usbip/build
 

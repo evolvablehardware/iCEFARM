@@ -1,14 +1,14 @@
 __pycache__
-.venv
+.venv*
 .vscode
 
 client_media
 worker_media
 worker_logs
 
-src/icefarm/worker/firmware/**/build
-src/icefarm/worker/firmware/pico-ice-sdk
-src/icefarm/worker/firmware/pico-sdk
+firmware/**/build
+firmware/pico-ice-sdk
+firmware/pico-sdk
 
 examples/pulse_count_usbip/build
 examples/pulse_count_driver/build
