@@ -28,7 +28,6 @@ WORKDIR /usr/local/firmware/default/build
 RUN cmake -DPICO_BOARD=pico2_ice ..
 RUN make
 
-
 FROM ubuntu:noble-20251013 AS picocom-builder
 RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -38,7 +37,6 @@ WORKDIR /usr/local/build
 RUN git clone --depth 1 https://github.com/npat-efault/picocom.git
 WORKDIR /usr/local/build/picocom
 RUN make
-
 
 FROM ubuntu:noble-20251013
 WORKDIR /usr/local/app
@@ -59,6 +57,11 @@ COPY --from=firmware-builder /usr/local/firmware/pulse_count/build/bitstream_ove
 
 WORKDIR /usr/local/app
 RUN python3 -m venv .venv
-RUN .venv/bin/pip install -e .
+# TODO this should really be another image
+RUN .venv/bin/pip install build
+RUN .venv/bin/python3 -m build
+# wheel name based on version :(
+# dash shell string concat
+RUN ls dist | grep whl | xargs -I {} .venv/bin/pip3 install "./dist/""{}"
 
 EXPOSE 8080
