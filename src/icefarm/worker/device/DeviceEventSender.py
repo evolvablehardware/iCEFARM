@@ -11,7 +11,10 @@ class DeviceEventSender:
         self.serial = serial
         self.logger = logger
 
-    def sendDeviceEvent(self, contents: dict) -> bool:
+    def sendDeviceEvent(self, event: str, contents: dict) -> bool:
+        """Sends a event with contents. Note that during serialization, the *event* key of
+        contents is replaced. Do not use this key."""
+        contents["event"] = event
         if not self.event_sender.sendSerialJson(self.serial, contents):
             self.logger.error("failed to send event")
             return False
@@ -19,12 +22,12 @@ class DeviceEventSender:
         return True
 
     def sendDeviceInitialized(self):
-        return self.sendDeviceEvent({"event": "initialized"})
+        return self.sendDeviceEvent("initialized", {})
 
     def sendDeviceReservationEnd(self) -> bool:
         """Sends a reservation end event for serial."""
-        return self.sendDeviceEvent({"event": "reservation end"})
+        return self.sendDeviceEvent("reservation end", {})
 
     def sendDeviceFailure(self) -> bool:
         """Sends a failure event for serial."""
-        return self.sendDeviceEvent({"event": "failure"})
+        return self.sendDeviceEvent("failure", {})

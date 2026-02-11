@@ -233,8 +233,7 @@ class PulseCountEventSender:
         self.event_sender = event_sender
 
     def finished(self, batch_id, pulses):
-        return self.event_sender.sendDeviceEvent({
-            "event": "results",
+        return self.event_sender.sendDeviceEvent("results", {
             "results": pulses,
             "batch_id": batch_id
         })
