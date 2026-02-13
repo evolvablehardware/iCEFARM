@@ -9,7 +9,7 @@ on:
       - 'development'
 
 env:
-    IMAGE: 'usbipiceproject/usbipice-worker:amd-dev'
+    IMAGE: 'evolvablehardware/icefarm:amd-dev'
 
 jobs:
   upload:
@@ -33,11 +33,11 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           load: true
-          tags: usbipiceproject/usbipice-worker:amd-dev
+          tags: evolvablehardware/icefarm:amd-dev
           file: docker/Dockerfile
           platforms: linux/amd64
           cache-from: type=registry,ref=usbipiceproject/usbipice-worker:buildcache
-          cache-to: type=registry,ref=usbipiceproject/usbipice-worker:buildcache,mode=max
+          cache-to: type=registry,ref=evolvablehardware/icefarm:buildcache,mode=max
 
       - name: Compose Up
         run: docker compose -f docker/test_compose.yml up -d
@@ -55,18 +55,18 @@ jobs:
         run: docker compose -f docker/test_compose.yml down
 
       - name: Push amd
-        run: docker push usbipiceproject/usbipice-worker:amd-dev
+        run: docker push evolvablehardware/icefarm:amd-dev
 
       - name: Build/Push arm
         uses: docker/build-push-action@v6
         with:
             push: true
             load: true
-            tags: usbipiceproject/usbipice-worker:arm-dev
+            tags: evolvablehardware/icefarm:arm-dev
             file: docker/Dockerfile
             platforms: linux/arm64
             cache-from: type=registry,ref=usbipiceproject/usbipice-worker:buildcache
-            cache-to: type=registry,ref=usbipiceproject/usbipice-worker:buildcache,mode=max
+            cache-to: type=registry,ref=evolvablehardware/icefarm:buildcache,mode=max
 
       - name: Create Multiarch
-        run: docker buildx imagetools create -t usbipiceproject/usbipice-worker:all-dev usbipiceproject/usbipice-worker:arm-dev usbipiceproject/usbipice-worker:amd-dev
+        run: docker buildx imagetools create -t evolvablehardware/icefarm:all-dev evolvablehardware/icefarm:arm-dev evolvablehardware/icefarm:amd-dev
