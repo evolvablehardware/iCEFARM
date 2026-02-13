@@ -33,7 +33,7 @@ jobs:
           tags: evolvablehardware/icefarm:amd
           file: docker/Dockerfile
           platforms: linux/amd64
-          cache-from: type=registry,ref=usbipiceproject/usbipice-worker:buildcache
+          cache-from: type=registry,ref=evolvablehardware/icefarm:buildcache
           cache-to: type=registry,ref=evolvablehardware/icefarm:buildcache,mode=max
 
       - name: Compose Up
@@ -62,7 +62,7 @@ jobs:
             tags: evolvablehardware/icefarm:arm
             file: docker/Dockerfile
             platforms: linux/arm64
-            cache-from: type=registry,ref=usbipiceproject/usbipice-worker:buildcache
+            cache-from: type=registry,ref=evolvablehardware/icefarm:buildcache
             cache-to: type=registry,ref=evolvablehardware/icefarm:buildcache,mode=max
 
       - name: Create Multiarch
