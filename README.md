@@ -78,12 +78,12 @@ See [examples](./examples/pulse_count_driver/main.py) for an additional example.
     - Interface with devices using the worker APIs
 
 ### Worker
-Each pico maintains a certain state object, which defines the behavior of the device. When clients request for a certain device behavior, such as a pulse-count evaluator, they are indicating which state the pico should switch to. The [reservable](./src/usbipice/worker/device/state/reservable/) module contains the states that the client can request. These states are event based and include hooks for add/remove device events. In addition, a state can make a method available to be called by clients through a web API. This is done in a similar way to how most Python web frameworks declare url paths with decorators and has support for files. States can also send events back to clients.
+Each pico maintains a certain state object, which defines the behavior of the device. When clients request for a certain device behavior, such as a pulse-count evaluator, they are indicating which state the pico should switch to. The [reservable](./src/icefarm/worker/device/state/reservable/) module contains the states that the client can request. These states are event based and include hooks for add/remove device events. In addition, a state can make a method available to be called by clients through a web API. This is done in a similar way to how most Python web frameworks declare url paths with decorators and has support for files. States can also send events back to clients.
 
 ### Client
 The core of the client is the event server. This event server is in change of listening for events sent by device states, and routing them to event handlers.
 
-A separate client interface is made for each device state, and a single device state may have multiple different clients for different situations. The client lib contains a base for each device state, which includes an event handler stub. An example of this is the [pulse count state](./src/usbipice/client/lib/pulsecount.py), which contains an event hook for once the bitstreams have been evaluated. In addition, an API for interacting with methods that the state has made available for web interfacing is included. Continuing with the pulse count example, the client can first use *reserve* to obtain a device, then call *evaluate* to queue a bitstream for evaluation. Once the device state has finished measuring the amount of pulses, it sends a request to the event server of the client. The event server then routes the request into the *results* method on the event handler.
+A separate client interface is made for each device state, and a single device state may have multiple different clients for different situations. The client lib contains a base for each device state, which includes an event handler stub. An example of this is the [pulse count state](./src/icefarm/client/lib/pulsecount.py), which contains an event hook for once the bitstreams have been evaluated. In addition, an API for interacting with methods that the state has made available for web interfacing is included. Continuing with the pulse count example, the client can first use *reserve* to obtain a device, then call *evaluate* to queue a bitstream for evaluation. Once the device state has finished measuring the amount of pulses, it sends a request to the event server of the client. The event server then routes the request into the *results* method on the event handler.
 
 ## Docker Setup
 *This is much quicker than using the Local Development Setup*
@@ -98,9 +98,9 @@ If it is not yet installed, install [Docker Engine](https://docs.docker.com/engi
  newgrp docker
  ```
 
-Build the image. You may skip this step and the image will automatically download from [DockerHub](https://hub.docker.com/r/usbipiceproject/usbipice-worker/tags).
+Build the image. You may skip this step and the image will automatically download from [DockerHub](https://hub.docker.com/r/evolvablehardware/icefarm/tags).
 ```
-docker build -f docker/Dockerfile -t usbipiceproject/usbipice-worker:all .
+docker build -f docker/Dockerfile -t evolvablehardware/icefarm:all .
 ```
 A compose file is included for running both the worker and control. This can also be done through the provided vscode tasks. If you are on an arm device, you will need to change the image tag in the compose file to arm. Start the stack:
 ```
@@ -212,7 +212,7 @@ password = ""
 ```
 The ```flyway.cleanDisabled``` setting is optional and enables the use of the ```flyway clean``` command. This essentially drops all of the objects in the database and is useful during development. In order to run the migrations:
 ```
-cd src/usbipice/control/flyway && flyway migrate
+cd src/icefarm/control/flyway && flyway migrate
 ```
 This can also be done with the ```database-rebuild``` vscode task. Note that in addition to running the migrations, it also runs clean beforehand.
 
@@ -240,7 +240,7 @@ ls -s [full_path]/pico-ice-sdk pico-ice-sdk
 
 Run build.sh in this directory, or use the ```build-firmware``` task:
 ```
-cd src/usbipice/worker/firmware
+cd src/icefarm/worker/firmware
 chmod +x build.sh
 ./build.sh
 ```
@@ -298,11 +298,11 @@ pip install -e .
 Uvicorn does not access environment variables. Variables can be passed with a [.env](https://github.com/theskumar/python-dotenv) file. The provided ```.uvicorn_env_bridge``` file passes iCEFARM related environment variables to uvicorn.
 Control:
 ```
-uvicorn usbipice.control.app:run_uvicorn --env-file .uvicorn_env_bridge --factory --host 0.0.0.0 --port 8080
+uvicorn icefarm.control.app:run_uvicorn --env-file .uvicorn_env_bridge --factory --host 0.0.0.0 --port 8080
 ```
 Worker:
 ```
-sudo USBIPICE_DATABASE="$USBIPICE_DATABASE" USBIPICE_WORKER_CONFIG=$USBIPICE_WORKER_CONFIG .venv/bin/uvicorn usbipice.worker.app:run_uvicorn --env-file .uvicorn_env_bridge --factory --host 0.0.0.0 --port 8081
+sudo USBIPICE_DATABASE="$USBIPICE_DATABASE" USBIPICE_WORKER_CONFIG=$USBIPICE_WORKER_CONFIG .venv/bin/uvicorn icefarm.worker.app:run_uvicorn --env-file .uvicorn_env_bridge --factory --host 0.0.0.0 --port 8081
 ```
 ### Workflow
 Vscode debug configurations are available for both the worker and control. There is also an assortment of vscode tasks. The task ```database-clear``` removes workers from the database and is useful to fix invalid worker/device states. This can also be done with ```psql -d "$USBIPICE_DATABASE" -c 'delete from worker;```.
@@ -331,7 +331,7 @@ Ensure that the control server is actually accessible. Check whether the device 
 
 
 ### Testing
-A [compose stack](./docker/test_compose.yml) is available for testing. This deploys the stack with some [patches](./src/usbipice/worker/test.py) to allow for virtual devices. The pulse count client can then be used normally.
+A [compose stack](./docker/test_compose.yml) is available for testing. This deploys the stack with some [patches](./src/icefarm/worker/test.py) to allow for virtual devices. The pulse count client can then be used normally.
 
 ## Communication Protocol
 The control server contains the following http endpoints:
