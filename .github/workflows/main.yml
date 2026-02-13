@@ -66,4 +66,4 @@ jobs:
             cache-to: type=registry,ref=evolvablehardware/icefarm:buildcache,mode=max
 
       - name: Create Multiarch
-        run: docker buildx imagetools create -t evolvablehardware/icefarm:all evolvablehardware/icefarm:arm evolvablehardware/icefarm-worker:amd
+        run: docker buildx imagetools create -t evolvablehardware/icefarm:all evolvablehardware/icefarm:arm evolvablehardware/icefarm:amd
