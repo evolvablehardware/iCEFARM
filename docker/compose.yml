@@ -39,7 +39,7 @@ services:
       - target: 8081
         published: 8081
 
-    image: usbipiceproject/usbipice-worker:all
+    image: evolvablehardware/icefarm:all
     build:
       context: .
       dockerfile: docker/dockerfile
@@ -81,7 +81,7 @@ services:
     privileged: true
     network_mode: host
 
-    image: usbipiceproject/usbipice-worker:all
+    image: evolvablehardware/icefarm:all
     build:
       context: .
       dockerfile: deploy/dockerfile
