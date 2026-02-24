@@ -8,6 +8,8 @@ on:
 
 env:
   IMAGE: 'evolvablehardware/icefarm:amd'
+  CLIENT_IMAGE: client
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -34,6 +36,16 @@ jobs:
           load: true
           tags: evolvablehardware/icefarm:amd
           file: docker/Dockerfile
+          platforms: linux/amd64
+          cache-from: type=registry,ref=evolvablehardware/icefarm:buildcache
+          cache-to: type=registry,ref=evolvablehardware/icefarm:buildcache,mode=max
+
+      - name: Build Client
+        uses: docker/build-push-action@v6
+        with:
+          load: true
+          tags: client
+          file: docker/client.Dockerfile
           platforms: linux/amd64
           cache-from: type=registry,ref=evolvablehardware/icefarm:buildcache
           cache-to: type=registry,ref=evolvablehardware/icefarm:buildcache,mode=max

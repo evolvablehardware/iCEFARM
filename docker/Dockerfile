@@ -57,12 +57,6 @@ COPY --from=firmware-builder /usr/local/firmware/pulse_count/build/bitstream_ove
 
 WORKDIR /usr/local/app
 RUN python3 -m venv .venv
-# TODO this should really be another image
-RUN .venv/bin/pip install build
-RUN .venv/bin/python3 -m build
-# wheel name based on version :(
-# dash shell string concat
-# RUN ls dist | grep whl | xargs -I {} .venv/bin/pip3 install "./dist/""{}"
 RUN .venv/bin/pip3 install -e .
 
 EXPOSE 8080

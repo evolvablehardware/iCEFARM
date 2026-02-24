@@ -75,7 +75,7 @@ services:
       flyway:
         condition: "service_completed_successfully"
 
-    image: ${IMAGE}
+    image: ${CLIENT_IMAGE}
     command: ["tail",  "-f",  "/dev/null"]
 
 
