@@ -74,8 +74,8 @@ class FakeEventSender(DeviceEventSender):
         super().__init__(event_sender, serial, logger)
         self.events = []
 
-    def sendDeviceEvent(self, contents):
-        self.event_sender.append(contents)
+    def sendDeviceEvent(self, event, contents):
+        self.event_sender.append(event, contents)
 
 def flash_state_start(self):
     """Replaces start during testing."""
