@@ -62,6 +62,7 @@ RUN .venv/bin/pip install build
 RUN .venv/bin/python3 -m build
 # wheel name based on version :(
 # dash shell string concat
-RUN ls dist | grep whl | xargs -I {} .venv/bin/pip3 install "./dist/""{}"
+# RUN ls dist | grep whl | xargs -I {} .venv/bin/pip3 install "./dist/""{}"
+RUN .venv/bin/pip3 install -e .
 
 EXPOSE 8080
