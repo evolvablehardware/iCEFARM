@@ -167,11 +167,10 @@ class PrintClient(PrintBaseClient):
 ```
 
 ### Batching experiment requests
-# TODO going to make this simpler to implement
+# TODO going to make this simpler to implement, incomplete for now
 This assumes that the device state has the ability to queue experiment requests as described in the design [guidelines](#design-guidelines). In addition, the evaluation method needs to take an identifier that is sent back with the experiment results.
 
 When sending experiment evaluations, it is ideal that the experiment queue is always populated, as this reduces downtime. However, we also don't want to send everything at once, as this may overwhelm the system. The solution to is to monitor the amount of evaluations left in the queue by counting the number of results received by the client, and only sending new evaluations when the queue is nearing empty. The ```icefarm.client.lib.BatchRequest``` module provides tools to implement this.
 
 Each evaluation to be sent to to the system is represented by an ```Evaluation``` class. By default, this only contains a list of serials, but it is intended to be subclasses to add additional information such as a circuit filepath or evaluation duration. Note that the ```Evaluation``` may contain multiple serials - it is more efficient to use an ```Evaluation``` with multiple serials than multiple evaluations if possible, as the ```BaseClient.sendBatchWorker``` method can be used.
 
-Once the ```Evaluation```s have been created, they can be put into an ```EvaluationBundle```. This can generate efficient batches of ```Evaluation```s to be sent off to workers. Lastly, the bundle can be placed into a ```BalancedBatchFactory```. The batch factory requires the client to call ```BalancedBatchFactory.processResult``` as results are sent back to the client. In return, the ```BalancedBatchFactory.getBatches``` generator will only return items when the workers are ready to receive a new batch.
