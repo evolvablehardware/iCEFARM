@@ -2,7 +2,9 @@
 Device manager for reserving and interfacing with pico2-ice development boards.
 
 ## iCEFARM Setup
-The picos need to be plugged into the worker and running firmware that has tinyusb loaded. The [rp2_hello_world](https://github.com/tinyvision-ai-inc/pico-ice-sdk/tree/main/examples/rp2_hello_world) example from the pico-ice-sdk works for this purpose.
+If you have access to an existing iCEFARM server, you do not need to do this. Setting up iCEFARM is only needed if you want to run locally. Linux is required to run the iCEFARM server (but not for interfacing with the system). It is tested on Ubuntu 24, but most distributions should work fine. Some older Ubuntu versions (<20) will not interact with the picos properly.
+
+The picos need to be prepared by flashing firmware that is tinyusb enabled and being plugged in. The [rp2_hello_world](https://github.com/tinyvision-ai-inc/pico-ice-sdk/tree/main/examples/rp2_hello_world) example from the pico-ice-sdk works for this purpose. Picos can also be plugged into an iCEFARM system once it is already running.
 
 If it is not yet installed, install [Docker Engine](https://docs.docker.com/engine/install/). Follow the [post installation steps](https://docs.docker.com/engine/install/linux-postinstall/) so that you do not need to use sudo. Included below:
 ```

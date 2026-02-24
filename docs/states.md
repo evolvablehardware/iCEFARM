@@ -11,8 +11,10 @@ Each physical pico2ice has a separate device state. The state defines how the de
 ### Useful AbstractState attributes
 **device_event_sender**
 A ```icefarm.worker.device.DeviceEventSender```. Allows information to be sent to the client.
+
 **serial**
 Serial id of the device.
+
 **switch()**
 Switches to a different device state.
 **
