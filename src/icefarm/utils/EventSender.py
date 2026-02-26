@@ -90,8 +90,10 @@ class Session:
             try:
                 self.socketio.emit("event", message, to=sock_id)
                 self.socketio.sleep(0)
+                self.logger.debug(f"flushed message {message} to client {self.client_id}")
             except Exception:
                 self.logger.warning("socket disconnected during flush")
+                self.logger.debug(f"failed to flush message {message} to client {self.client_id}")
                 with self.lock:
                     self.message_queue.append(message)
                     return

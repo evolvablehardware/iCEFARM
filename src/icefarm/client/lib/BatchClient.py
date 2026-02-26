@@ -1,14 +1,17 @@
+from __future__ import annotations
 import uuid
 import threading
 import math
 from collections import Counter
 from collections.abc import Generator
-from abc import ABC
-from typing import Any
+from abc import ABC, abstractmethod
+from typing import Any, List, Dict
 
 from icefarm.utils import MappedQueues
+from icefarm.client.lib import BaseClient
+from icefarm.client.lib.AbstractEventHandler import AbstractEventHandler, register
 
-class Evaluation:
+class Evaluation(ABC):
     """
     Circuit evaluation to be sent to the worker. Note that providing
     multiple serials to one Evaluation will result in faster evaluations than
@@ -26,6 +29,15 @@ class Evaluation:
 
     def __hash__(self):
         return hash(self.id)
+
+    def toJson(self, batch_id: str) -> dict:
+        json = self._toJson()
+        json["batch_id"] = batch_id
+        return json
+
+    @abstractmethod
+    def _toJson(self) -> Any:
+        """Converts evaluation into json request for worker"""
 
 class EvaluationBundle:
     """
@@ -76,9 +88,10 @@ class AbstractBatchFactory(ABC):
     """
     Produces batches for client consumption.
     """
-    def __init__(self, bundle: EvaluationBundle):
+    # this could be easily replaced with a bundle, not needed and complicated for now
+    def __init__(self, evaluations: list[Evaluation], batch_size: int):
         super().__init__()
-        self.bundle = bundle
+        self.bundle = EvaluationBundle(evaluations, batch_size=batch_size)
         self.results: list[tuple[Evaluation, dict]] = []
         self.result_cv = threading.Condition()
 
@@ -155,8 +168,8 @@ class BalancedBatchFactory(AbstractBatchFactory):
     waits until a threshold of results have been received
     before sending more batches.
     """
-    def __init__(self, bundle, target_batches=4):
-        super().__init__(bundle)
+    def __init__(self, evaluations, target_batches=4, batch_size=5):
+        super().__init__(evaluations, batch_size=batch_size)
         self.target_batches = target_batches
 
     def _readyForBatch(self):
@@ -166,3 +179,54 @@ class BalancedBatchFactory(AbstractBatchFactory):
         highest_queued = max(map(len, self.awaiting_results.values()))
         batches = math.ceil(highest_queued / self.bundle.batch_size)
         return bool(self.target_batches - batches)
+
+
+class ResultHandler(AbstractEventHandler):
+    """Receives and processes results of circuit evaluations."""
+    def __init__(self, event_server, client: BatchClient):
+        super().__init__(event_server)
+        self.client = client
+
+    @register("results", "batch_id", "serial", "results")
+    def results(self, batch_id: str, serial: str, results: Dict[str, int]):
+        factory = self.client.batch_factories.get(batch_id)
+        if not factory:
+            return
+
+        for uid, pulses in results:
+            factory.processResult(serial, uid, pulses)
+
+class BatchClient(BaseClient):
+    def __init__(self, url, client_name, logger):
+        super().__init__(url, client_name, logger)
+
+        self.batch_factories: dict[str, AbstractBatchFactory] = {}
+        self.addEventHandler(ResultHandler(self.server, self))
+
+    def _evaluateBatch(self, evaluations: list[Evaluation], batch_id: str):
+        out = []
+        for evaluation in evaluations:
+            out.append(self.requestBatchWorker(list(evaluation.serials), "evaluate", evaluation.toJson(batch_id)))
+
+        return out
+
+    def _evaluateFactory(self, factory: AbstractBatchFactory) -> Generator[tuple[str, Evaluation, Any]]:
+        """Returns serial, source evaluation, result"""
+        self.batch_factories[factory.bundle.id] = factory
+
+        def evaluate_batches():
+            for evaluations in factory.getBatches():
+                for serial_group in evaluations.values():
+                    self._evaluateBatch(serial_group, factory.bundle.id)
+
+        threading.Thread(target=evaluate_batches, name="batch-sender").start()
+
+        for result in factory.getResults():
+            yield result
+
+        del self.batch_factories[factory.bundle.id]
+
+    #TODO switch this to just evaluate, requires bitstreamevo changes
+    def evaluateEvaluations(self, evaluations: List[Evaluation], batch_size=5) -> Generator[tuple[str, Evaluation, Any]]:
+        return self._evaluateFactory(BalancedBatchFactory(evaluations, batch_size=batch_size))
+

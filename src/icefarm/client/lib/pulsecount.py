@@ -1,22 +1,19 @@
 from __future__ import annotations
-
-from icefarm.client.lib import AbstractEventHandler, register, BaseClient
-from icefarm.client.lib.BatchRequest import Evaluation
+from typing import Generator
+from icefarm.client.lib.BatchClient import Evaluation, BatchClient
 
 class PulseCountEvaluation(Evaluation):
     def __init__(self, serials, filepath):
         super().__init__(serials)
         self.filepath = filepath
 
-class PulseCountEventHandler(AbstractEventHandler):
-    @register("results", "batch_id", "serial", "results")
-    # batch_id -> evaluation_id -> pulses
-    def results(self, serial: str, results: dict[str, dict[str, list]]):
-        """Called when ALL bitstreams have been evaluated. Results maps
-        from the file parameter used in the request body to the
-        pulse amount."""
+    def _toJson(self):
+        with open(self.filepath, "rb") as f:
+            data = f.read().decode("cp437")
 
-class PulseCountBaseClient(BaseClient):
+        return {"files": {self.id: data}}
+
+class PulseCountBaseClient(BatchClient):
     """Provides access to pulse count specific control API methods."""
     def reserve(self, amount, wait_for_available=False, available_timeout=60):
         return super().reserve(amount, "pulsecount", {}, wait_for_available=wait_for_available, available_timeout=available_timeout)
@@ -24,19 +21,14 @@ class PulseCountBaseClient(BaseClient):
     def reserveSpecific(self, serials: list[str]):
         return super().reserveSpecific(serials, "pulsecount", {})
 
-    def evaluateBatch(self, batch_id: str, evaluations: list[PulseCountEvaluation]):
-        """Sends a batch of PulseCountEvaluations to iCEFARM workers. The Evaluations must share
-        the same set of serials."""
-        if len(set([evaluation.serials for evaluation in evaluations])) != 1:
-            raise Exception("Pulsecount evaluation commands contain different serials")
+    def evaluateBitstreams(self, bitstreams: list[str], serials=None) -> Generator[tuple[str, str, int]]:
+        """Sends bitstream filepaths to be evaluated by iCEFARM. If serials are not specified, bitstreams
+        are evaluated on each reserved device. Results are received as (serial, filepath, pulses)."""
+        if not serials:
+            serials = self.getSerials()
 
-        files = {}
-        for evaluation in evaluations:
-            with open(evaluation.filepath, "rb") as f:
-                files[evaluation.id] = f.read().decode("cp437")
+        serials = set(serials)
 
-        # files -> [data, id]
-        return self.requestBatchWorker(list(evaluations[0].serials), "evaluate", {
-            "files": files,
-            "batch_id": batch_id
-        })
+        evaluations = [PulseCountEvaluation(serials, bitstream) for bitstream in bitstreams]
+        for serial, evaluation, pulses in self.evaluateEvaluations(evaluations):
+            yield serial, evaluation.filepath, pulses
