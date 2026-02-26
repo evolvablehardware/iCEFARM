@@ -11,3 +11,10 @@ cd build
 cmake -DPICO_BOARD=pico2_ice ..
 make -j8
 cd ../..
+
+cd variance
+mkdir build -p
+cd build
+cmake -DPICO_BOARD=pico2_ice ..
+make -j8
+cd ../..

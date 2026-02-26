@@ -83,6 +83,10 @@ class Control:
 
         return out
 
+    def clearWorkers(self):
+        self.logger.info("Clearing all worker and device records")
+        self.database.clearWorkers()
+
     def end(self, client_id: str, serials: list[str]) -> list[str]:
         data = self.database.end(client_id, serials)
         return list(map(lambda row : row["serial"], data))

@@ -41,8 +41,8 @@ services:
 
     image: evolvablehardware/icefarm:all
     build:
-      context: .
-      dockerfile: docker/dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
 
     volumes:
       - /dev:/dev
@@ -65,6 +65,7 @@ services:
       USBIPICE_WORKER_LOGS: /usr/local/app/worker_logs
       USBIPICE_DEFAULT: src/icefarm/worker/firmware/default/build/default_firmware.uf2
       USBIPICE_PULSE_COUNT: src/icefarm/worker/firmware/pulse_count/build/bitstream_over_usb.uf2
+      USBIPICE_VARIANCE: src/icefarm/worker/firmware/variance/build/variance_firmware.uf2
 
     command: [".venv/bin/uvicorn", "icefarm.worker.app:run_uvicorn", "--env-file", ".uvicorn_env_bridge", "--port", "8081", "--factory", "--host", "0.0.0.0"]
 
@@ -83,8 +84,8 @@ services:
 
     image: evolvablehardware/icefarm:all
     build:
-      context: .
-      dockerfile: deploy/dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     environment:
       USBIPICE_DATABASE: 'postgresql://postgres:postgres@localhost:5433/postgres'
 

@@ -42,3 +42,4 @@ class Config:
 
         self.default_firmware_path = config_else_env("USBIPICE_DEFAULT", "Firmware", parser)
         self.pulse_firmware_path = config_else_env("USBIPICE_PULSE_COUNT", "Firmware", parser)
+        self.variance_firmware_path = config_else_env("USBIPICE_VARIANCE", "Firmware", parser, error=False)

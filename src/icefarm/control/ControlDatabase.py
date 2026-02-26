@@ -96,6 +96,11 @@ class ControlDatabase(Database):
             ["serial", "client_id", "workerip", "workerport"], stringify=["workerip", "workerport"]
         )
 
+    def clearWorkers(self):
+        """Deletes all device and worker records. Device first due to FK constraint."""
+        self.proc("DELETE FROM device", tuple())
+        self.proc("DELETE FROM worker", tuple())
+
     def getAmountAvailable(self) -> int:
         if not (data := self.execute("SELECT * FROM get_amount_available()", tuple())):
             return False
