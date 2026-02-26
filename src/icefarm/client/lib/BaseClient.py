@@ -183,6 +183,10 @@ class BaseClient(BaseAPI):
 
         return failed_serials
 
+    def clearWorkers(self):
+        """Clears all worker and device records from the control server database."""
+        return self.requestControl("clear-workers", {})
+
     def stop(self):
         self.server.exit()
         self.endAll()
