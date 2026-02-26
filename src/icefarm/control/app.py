@@ -3,7 +3,7 @@ import logging
 import sys
 import threading
 
-from flask import Flask, request, send_file
+from flask import Flask, Response, request, send_file
 from flask_socketio import SocketIO
 from socketio import ASGIApp
 from asgiref.wsgi import WsgiToAsgi
@@ -91,6 +91,11 @@ def create_app(app: Flask, socketio: SocketIO | SyncAsyncServer, base_logger: lo
     @inject_and_return_json
     def endall(name: str):
         return control.endAll(name)
+
+    @app.get("/clear-workers")
+    def clear_workers():
+        control.clearWorkers()
+        return {"status": "ok"}
 
     @app.get("/log")
     @inject_and_return_json

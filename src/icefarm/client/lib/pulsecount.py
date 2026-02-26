@@ -18,11 +18,15 @@ class PulseCountEventHandler(AbstractEventHandler):
 
 class PulseCountBaseClient(BaseClient):
     """Provides access to pulse count specific control API methods."""
-    def reserve(self, amount, wait_for_available=False, available_timeout=60):
-        return super().reserve(amount, "pulsecount", {}, wait_for_available=wait_for_available, available_timeout=available_timeout)
+    def reserve(self, amount, wait_for_available=False, available_timeout=60, kind="pulsecount"):
+        return super().reserve(amount, kind, {}, wait_for_available=wait_for_available, available_timeout=available_timeout)
 
-    def reserveSpecific(self, serials: list[str]):
-        return super().reserveSpecific(serials, "pulsecount", {})
+    def reserveSpecific(self, serials: list[str], kind="pulsecount"):
+        return super().reserveSpecific(serials, kind, {})
+
+    def clearWorkers(self):
+        """Clears all worker and device records from the control server database."""
+        return self.requestControl("clear-workers", {})
 
     def evaluateBatch(self, batch_id: str, evaluations: list[PulseCountEvaluation]):
         """Sends a batch of PulseCountEvaluations to iCEFARM workers. The Evaluations must share

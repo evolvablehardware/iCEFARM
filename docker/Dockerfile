@@ -28,6 +28,10 @@ WORKDIR /usr/local/firmware/default/build
 RUN cmake -DPICO_BOARD=pico2_ice ..
 RUN make
 
+WORKDIR /usr/local/firmware/variance/build
+RUN cmake -DPICO_BOARD=pico2_ice ..
+RUN make
+
 FROM ubuntu:noble-20251013 AS picocom-builder
 RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -54,6 +58,7 @@ COPY --from=picocom-builder /usr/local/build/picocom/picocom /usr/bin
 RUN mkdir /usr/local/app/src/icefarm/worker/firmware
 COPY --from=firmware-builder /usr/local/firmware/default/build/default_firmware.uf2 /usr/local/app/src/icefarm/worker/firmware/default/build/default_firmware.uf2
 COPY --from=firmware-builder /usr/local/firmware/pulse_count/build/bitstream_over_usb.uf2 /usr/local/app/src/icefarm/worker/firmware/pulse_count/build/bitstream_over_usb.uf2
+COPY --from=firmware-builder /usr/local/firmware/variance/build/variance_firmware.uf2 /usr/local/app/src/icefarm/worker/firmware/variance/build/variance_firmware.uf2
 
 WORKDIR /usr/local/app
 RUN python3 -m venv .venv

@@ -132,3 +132,11 @@ for serial, evaluation, pulses in client.evaluateEvaluations(commands):
 The same efficiency guidelines mentioned for evaluateBitstreams apply to evaluateEvaluations. In addition, if you have multiple sets of circuits that need to be evaluated on different devices, it is much faster to use a single evaluateEvaluations than to use multiple evaluateBitstream calls.
 Lastly, using multiple threads purely to call evaluate methods multiple times at once will not result in any speedup. This will likely result in slower evaluations as the client will not be able to dispatch commands optimally.
 See [examples](./examples/pulse_count_driver/main.py) for an additional example. Note that this is not included in the pip package.
+
+
+# Fixing a 'Stuck' Worker
+Under certain circumstances, there might be an error where a worker on the icefarm needs to be reset. In this case, run the following command if you are running docker container"
+
+```
+docker exec docker-db-1 psql -U postgres -p 5433 -c "DELETE FROM worker;"
+```

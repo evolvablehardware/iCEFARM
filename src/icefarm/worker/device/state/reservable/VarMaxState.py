@@ -16,12 +16,23 @@ import typing
 if typing.TYPE_CHECKING:
     from icefarm.worker.device import Device
 
-#from  https://github.com/evolvablehardware/BitstreamEvolutionPico/blob/main/exampleProjectsC/bitstream_over_usb/bitstream_transfer_test.py
-# TODO config file
 BAUD = 115200            # ignored by TinyUSB but needed by pyserial
 CHUNK_SIZE = 512         # bytes per write
 INTER_CHUNK_DELAY = 0.00001  # seconds
-BITSTREAM_SIZE = 0 #TODO
+
+
+def calculate_variance(samples: list[int]) -> float:
+    """Calculate variance fitness from ADC samples.
+    Replicates VarMaxFitnessFunction.__measure_variance_fitness():
+    sum of absolute differences between consecutive samples, divided by sample count.
+    """
+    if len(samples) < 2:
+        return 0.0
+    variance_sum = 0
+    for i in range(len(samples) - 1):
+        variance_sum += abs(samples[i + 1] - samples[i])
+    return variance_sum / len(samples)
+
 
 @dataclass
 class Bitstream:
@@ -29,23 +40,23 @@ class Bitstream:
     name: str
     batch_id: str
 
-# TODO add flush amount
-@reservable("pulsecount")
-class PulseCountStateFlasher(AbstractState):
-    def start(self):
-        pulse_fac = lambda : PulseCountState(self.device)
-        self.switch(lambda : FlashState(self.device, self.config.pulse_firmware_path, pulse_fac))
 
-class PulseCountState(AbstractState):
+@reservable("variance")
+class VarMaxStateFlasher(AbstractState):
+    def start(self):
+        varmax_fac = lambda: VarMaxState(self.device)
+        self.switch(lambda: FlashState(self.device, self.config.variance_firmware_path, varmax_fac))
+
+
+class VarMaxState(AbstractState):
     def __init__(self, state):
         super().__init__(state)
 
         self.cv = threading.Condition()
         self.bitstream_queue: list[Bitstream] = []
-        # name -> pulses
+        # batch_id -> [(name, variance_fitness), ...]
         self.results = {}
         self.result_amount = 0
-        # TODO configurable by client
         self.flush_threshold = 4
 
         # ensure new ports show correctly
@@ -54,8 +65,8 @@ class PulseCountState(AbstractState):
         self.ser = self.connectSerial()
         if self.ser is None:
             return
-        self.reader = Reader(self.ser)
-        self.sender = PulseCountEventSender(self.device_event_sender)
+        self.reader = VarMaxReader(self.ser)
+        self.sender = VarMaxEventSender(self.device_event_sender)
 
         self.exiting = False
         self.thread = threading.Thread(target=self.run)
@@ -67,13 +78,13 @@ class PulseCountState(AbstractState):
         paths = get_devs().get(self.serial)
 
         if not paths:
-            self.switch(lambda : BrokenState(self.device))
+            self.switch(lambda: BrokenState(self.device))
             return None
 
-        port = list(filter(lambda x : x.get("ID_USB_INTERFACE_NUM") == "00", paths))
+        port = list(filter(lambda x: x.get("ID_USB_INTERFACE_NUM") == "00", paths))
 
         if not port:
-            self.switch(lambda : BrokenState(self.device))
+            self.switch(lambda: BrokenState(self.device))
             return None
 
         port = port[0].get("DEVNAME")
@@ -105,7 +116,7 @@ class PulseCountState(AbstractState):
         while not self.exiting:
             with self.cv:
                 if not self.bitstream_queue:
-                    self.cv.wait_for(lambda : self.bitstream_queue or self.exiting)
+                    self.cv.wait_for(lambda: self.bitstream_queue or self.exiting)
 
                 if self.exiting:
                     return
@@ -129,28 +140,30 @@ class PulseCountState(AbstractState):
                 self.ser.flush()
                 time.sleep(INTER_CHUNK_DELAY)
 
-            self.logger.debug("waiting for pulse")
+            self.logger.debug("waiting for ADC samples")
 
-            result = self.reader.waitUntilPulse()
+            samples = self.reader.waitUntilSamples()
 
-            self.logger.debug(f"got pulse: {result}")
-
-            if result is False:
+            if samples is False:
+                self.logger.debug("got timeout, re-queuing bitstream")
                 with self.cv:
                     self.bitstream_queue.append(bitstream)
                     continue
 
+            variance_fitness = calculate_variance(samples)
+            self.logger.debug(f"got variance fitness: {variance_fitness} from {len(samples)} samples")
+
             if bitstream.batch_id not in self.results:
                 self.results[bitstream.batch_id] = []
 
-            self.results[bitstream.batch_id].append((bitstream.name, result))
+            self.results[bitstream.batch_id].append((bitstream.name, variance_fitness))
             self.result_amount += 1
             os.remove(bitstream.location)
 
             with self.cv:
                 if not self.bitstream_queue or self.result_amount >= self.flush_threshold:
-                    for batch_id, pulses in self.results.items():
-                        if not self.sender.finished(batch_id, pulses):
+                    for batch_id, results in self.results.items():
+                        if not self.sender.finished(batch_id, results):
                             self.logger.error("failed to send results")
 
                     self.results = {}
@@ -165,14 +178,16 @@ class PulseCountState(AbstractState):
         self.ser.close()
 
     def reboot(self):
-        self.switch(lambda : PulseCountStateFlasher(self.device))
+        self.switch(lambda: VarMaxStateFlasher(self.device))
 
-class Reader:
+
+class VarMaxReader:
+    """Reads serial output from variance firmware and parses ADC sample data."""
     def __init__(self, port: serial.Serial):
         self.port = port
         self.cv = threading.Condition()
         self.ready = True
-        self.last_pulse = None
+        self.last_samples = None
         self.exiting = False
 
         self.thread = threading.Thread(target=self.read, daemon=True)
@@ -191,16 +206,22 @@ class Reader:
             line = last_read[:last_read.index("\\r\\n")]
             last_read = last_read[last_read.index("\\r\\n") + 4:]
 
-            pulses = re.search("pulses: ([0-9]+)", line)
-            if pulses:
-                with self.cv:
-                    self.last_pulse = pulses.group(1)
-                    self.cv.notify_all()
+            # Parse "samples: v1,v2,v3,...,vN"
+            samples_match = re.search(r"samples:\s*([\d,\s]+)", line)
+            if samples_match:
+                try:
+                    sample_str = samples_match.group(1).strip()
+                    samples = [int(s.strip()) for s in sample_str.split(",") if s.strip()]
+                    with self.cv:
+                        self.last_samples = samples
+                        self.cv.notify_all()
+                except ValueError:
+                    pass
 
             timeout = re.search("Watchdog timeout", line)
             if timeout:
                 with self.cv:
-                    self.last_pulse = False
+                    self.last_samples = False
                     self.cv.notify_all()
 
             wait = re.search("Waiting for bitstream transfer", line)
@@ -215,16 +236,17 @@ class Reader:
     def waitUntilReady(self):
         with self.cv:
             if not self.ready:
-                self.cv.wait_for(lambda : self.ready)
+                self.cv.wait_for(lambda: self.ready)
 
             self.ready = False
 
-    def waitUntilPulse(self):
+    def waitUntilSamples(self):
+        """Wait for ADC samples from firmware. Returns list[int] on success, False on timeout."""
         with self.cv:
-            self.cv.wait_for(lambda : self.last_pulse is not None or self.exiting)
-            last_pulse = self.last_pulse
-            self.last_pulse = None
-            return last_pulse
+            self.cv.wait_for(lambda: self.last_samples is not None or self.exiting)
+            last_samples = self.last_samples
+            self.last_samples = None
+            return last_samples
 
     def exit(self):
         self.exiting = True
@@ -232,12 +254,13 @@ class Reader:
             self.cv.notify_all()
         self.thread.join()
 
-class PulseCountEventSender:
+
+class VarMaxEventSender:
     def __init__(self, event_sender):
         self.event_sender = event_sender
 
-    def finished(self, batch_id, pulses):
+    def finished(self, batch_id, results):
         return self.event_sender.sendDeviceEvent("results", {
-            "results": pulses,
+            "results": results,
             "batch_id": batch_id
         })
