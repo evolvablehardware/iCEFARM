@@ -74,21 +74,22 @@ class VarMaxState(AbstractState):
 
         self.device_event_sender.sendDeviceInitialized()
 
-    def connectSerial(self):
-        paths = get_devs().get(self.serial)
+    def connectSerial(self, max_retries=5, retry_delay=2):
+        for attempt in range(max_retries):
+            paths = get_devs().get(self.serial)
 
-        if not paths:
-            self.switch(lambda: BrokenState(self.device))
-            return None
+            if paths:
+                port = list(filter(lambda x: x.get("ID_USB_INTERFACE_NUM") == "00", paths))
+                if port:
+                    port = port[0].get("DEVNAME")
+                    return serial.Serial(port, BAUD, timeout=0.1)
 
-        port = list(filter(lambda x: x.get("ID_USB_INTERFACE_NUM") == "00", paths))
+            self.logger.debug(f"serial port not found, retrying ({attempt + 1}/{max_retries})")
+            time.sleep(retry_delay)
 
-        if not port:
-            self.switch(lambda: BrokenState(self.device))
-            return None
-
-        port = port[0].get("DEVNAME")
-        return serial.Serial(port, BAUD, timeout=0.1)
+        self.logger.error("serial port not found after retries")
+        self.switch(lambda: BrokenState(self.device))
+        return None
 
     @AbstractState.register("evaluate", "files", "batch_id")
     def queue(self, files, batch_id):
