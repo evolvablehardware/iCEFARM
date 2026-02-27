@@ -6,8 +6,6 @@ from icefarm.worker.device.state.reservable import reservable
 
 @reservable("pulsecount")
 class PulseCountStateFlasher(AbstractState):
-    serial_patch = None
-
     def start(self):
         def parser(result: str):
             try:
@@ -15,6 +13,6 @@ class PulseCountStateFlasher(AbstractState):
             except:
                 return None
 
-        pulse_fac = lambda : UploadState(self.device, parser, self.config.pulse_firmware_path, logger_postfix="(PulseCount)", patch_connect_serial=self.serial_patch)
+        pulse_fac = lambda : UploadState(self.device, parser, self.config.pulse_firmware_path, logger_postfix="(PulseCount)")
         self.switch(lambda : FlashState(self.device, self.config.pulse_firmware_path, pulse_fac))
 

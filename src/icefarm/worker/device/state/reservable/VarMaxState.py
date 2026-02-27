@@ -22,8 +22,6 @@ def calculate_variance(samples: list[int]) -> float:
 
 @reservable("variance")
 class VarMaxStateFlasher(AbstractState):
-    serial_patch = None
-
     def start(self):
         def parser(result: str):
             try:
@@ -34,5 +32,5 @@ class VarMaxStateFlasher(AbstractState):
             except:
                 return None
 
-        var_fac = lambda : UploadState(self.device, parser, self.config.variance_firmware_path, logger_postfix="(VarMax)", patch_connect_serial=self.serial_patch)
+        var_fac = lambda : UploadState(self.device, parser, self.config.variance_firmware_path, logger_postfix="(VarMax)")
         self.switch(lambda : FlashState(self.device, self.config.variance_firmware_path, var_fac))

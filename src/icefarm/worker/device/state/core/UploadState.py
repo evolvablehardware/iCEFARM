@@ -41,7 +41,7 @@ class UploadState(AbstractState):
     - Upload bitstream, perform some calculations, print json formatted result
     - Send results to client
     """
-    def __init__(self, state, parser: Callable[[str], Any], reboot_firmware_path, logger_postfix=None, patch_connect_serial=None):
+    def __init__(self, state, parser: Callable[[str], Any], reboot_firmware_path, logger_postfix=None):
         """
         Parser is a function that takes the incoming string output from the firmware and returns
         a parsed result, or None. Reboot_firmware_path is the firmware switched to when reboot called.
@@ -49,10 +49,6 @@ class UploadState(AbstractState):
         super().__init__(state)
         if logger_postfix:
             self.logger = UploadLogger(self.logger, logger_postfix)
-
-        # this is an abomination but it needs to be patched differently for pulsecount and varmax...
-        if patch_connect_serial:
-            self.connectSerial = patch_connect_serial
 
         self.reboot_firmware_path = reboot_firmware_path
         self.cv = threading.Condition()
