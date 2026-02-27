@@ -1,21 +1,20 @@
 from __future__ import annotations
+from typing import Generator
 
-from icefarm.client.lib import AbstractEventHandler, register, BaseClient
-from icefarm.client.lib.BatchRequest import Evaluation
+from icefarm.client.lib.BatchClient import Evaluation, BatchClient
 
 class VarMaxEvaluation(Evaluation):
     def __init__(self, serials, filepath):
         super().__init__(serials)
         self.filepath = filepath
 
-class VarMaxEventHandler(AbstractEventHandler):
-    @register("results", "batch_id", "serial", "results")
-    # batch_id -> evaluation_id -> variance_fitness
-    def results(self, serial: str, results: dict[str, dict[str, list]]):
-        """Called when ALL bitstreams have been evaluated. Results maps
-        from the evaluation id to the variance fitness value."""
+    def _toJson(self):
+        with open(self.filepath, "rb") as f:
+            data = f.read().decode("cp437")
 
-class VarMaxBaseClient(BaseClient):
+        return {"files": {self.id: data}}
+
+class VarMaxBaseClient(BatchClient):
     """Provides access to variance maximization specific control API methods."""
     def reserve(self, amount, wait_for_available=False, available_timeout=60, kind="variance"):
         return super().reserve(amount, kind, {}, wait_for_available=wait_for_available, available_timeout=available_timeout)
@@ -23,18 +22,14 @@ class VarMaxBaseClient(BaseClient):
     def reserveSpecific(self, serials: list[str], kind="variance"):
         return super().reserveSpecific(serials, kind, {})
 
-    def evaluateBatch(self, batch_id: str, evaluations: list[VarMaxEvaluation]):
-        """Sends a batch of VarMaxEvaluations to iCEFARM workers. The Evaluations must share
-        the same set of serials."""
-        if len(set([evaluation.serials for evaluation in evaluations])) != 1:
-            raise Exception("VarMax evaluation commands contain different serials")
+    def evaluateBitstreams(self, bitstreams: list[str], serials=None) -> Generator[tuple[str, str, float]]:
+        """Sends bitstream filepaths to be evaluated by iCEFARM. If serials are not specified, bitstreams
+        are evaluated on each reserved device. Results are received as (serial, filepath, fitness)."""
+        if not serials:
+            serials = self.getSerials()
 
-        files = {}
-        for evaluation in evaluations:
-            with open(evaluation.filepath, "rb") as f:
-                files[evaluation.id] = f.read().decode("cp437")
+        serials = set(serials)
 
-        return self.requestBatchWorker(list(evaluations[0].serials), "evaluate", {
-            "files": files,
-            "batch_id": batch_id
-        })
+        evaluations = [VarMaxEvaluation(serials, bitstream) for bitstream in bitstreams]
+        for serial, evaluation, fitness in self.evaluateEvaluations(evaluations):
+            yield serial, evaluation.filepath, fitness
