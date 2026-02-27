@@ -16,11 +16,11 @@ class VarMaxEvaluation(Evaluation):
 
 class VarMaxBaseClient(BatchClient):
     """Provides access to variance maximization specific control API methods."""
-    def reserve(self, amount, wait_for_available=False, available_timeout=60, kind="variance"):
-        return super().reserve(amount, kind, {}, wait_for_available=wait_for_available, available_timeout=available_timeout)
+    def reserve(self, amount, wait_for_available=False, available_timeout=60, kind="variance", args=None):
+        return super().reserve(amount, kind, args or {}, wait_for_available=wait_for_available, available_timeout=available_timeout)
 
-    def reserveSpecific(self, serials: list[str], kind="variance"):
-        return super().reserveSpecific(serials, kind, {})
+    def reserveSpecific(self, serials: list[str], kind="variance", args=None):
+        return super().reserveSpecific(serials, kind, args or {})
 
     def evaluateBitstreams(self, bitstreams: list[str], serials=None) -> Generator[tuple[str, str, float]]:
         """Sends bitstream filepaths to be evaluated by iCEFARM. If serials are not specified, bitstreams
