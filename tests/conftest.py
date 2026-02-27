@@ -8,10 +8,19 @@ def pytest_addoption(parser):
     parser.addoption("--url", action="store", default="default name")
 
 @pytest.fixture
-def client_fac(request):
+def get_pulse(request):
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))
 
     url = request.config.getoption("--url")
-    return get_client_partial(url, "pytest", logger)
+    return get_client_partial(url, "pytest", logger, "pulsecount")
+
+@pytest.fixture
+def get_varmax(request):
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+
+    url = request.config.getoption("--url")
+    return get_client_partial(url, "pytest", logger, "varmax")
