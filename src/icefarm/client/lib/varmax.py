@@ -17,11 +17,11 @@ class VarMaxEventHandler(AbstractEventHandler):
 
 class VarMaxBaseClient(BaseClient):
     """Provides access to variance maximization specific control API methods."""
-    def reserve(self, amount, wait_for_available=False, available_timeout=60, kind="variance"):
-        return super().reserve(amount, kind, {}, wait_for_available=wait_for_available, available_timeout=available_timeout)
+    def reserve(self, amount, wait_for_available=False, available_timeout=60, kind="variance", args=None):
+        return super().reserve(amount, kind, args or {}, wait_for_available=wait_for_available, available_timeout=available_timeout)
 
-    def reserveSpecific(self, serials: list[str], kind="variance"):
-        return super().reserveSpecific(serials, kind, {})
+    def reserveSpecific(self, serials: list[str], kind="variance", args=None):
+        return super().reserveSpecific(serials, kind, args or {})
 
     def evaluateBatch(self, batch_id: str, evaluations: list[VarMaxEvaluation]):
         """Sends a batch of VarMaxEvaluations to iCEFARM workers. The Evaluations must share

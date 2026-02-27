@@ -35,8 +35,10 @@ class VarMaxClient(VarMaxBaseClient):
                 if not factory:
                     return
 
-                for uid, value in results:
-                    factory.processResult(serial, uid, value)
+                for result in results:
+                    uid, value = result[0], result[1]
+                    samples = result[2] if len(result) > 2 else None
+                    factory.processResult(serial, uid, (value, samples) if samples else value)
 
         self.addEventHandler(ResultHandler(self.server, self))
 

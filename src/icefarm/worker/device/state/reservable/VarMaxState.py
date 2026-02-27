@@ -41,16 +41,22 @@ class Bitstream:
     batch_id: str
 
 
-@reservable("variance")
+@reservable("variance", "send_waveform")
 class VarMaxStateFlasher(AbstractState):
+    def __init__(self, state, send_waveform=None):
+        super().__init__(state)
+        self.send_waveform = bool(send_waveform)
+
     def start(self):
-        varmax_fac = lambda: VarMaxState(self.device)
+        send_wf = self.send_waveform
+        varmax_fac = lambda: VarMaxState(self.device, send_waveform=send_wf)
         self.switch(lambda: FlashState(self.device, self.config.variance_firmware_path, varmax_fac))
 
 
 class VarMaxState(AbstractState):
-    def __init__(self, state):
+    def __init__(self, state, send_waveform=False):
         super().__init__(state)
+        self.send_waveform = send_waveform
 
         self.cv = threading.Condition()
         self.bitstream_queue: list[Bitstream] = []
@@ -157,7 +163,10 @@ class VarMaxState(AbstractState):
             if bitstream.batch_id not in self.results:
                 self.results[bitstream.batch_id] = []
 
-            self.results[bitstream.batch_id].append((bitstream.name, variance_fitness))
+            if self.send_waveform:
+                self.results[bitstream.batch_id].append((bitstream.name, variance_fitness, samples))
+            else:
+                self.results[bitstream.batch_id].append((bitstream.name, variance_fitness))
             self.result_amount += 1
             os.remove(bitstream.location)
 
