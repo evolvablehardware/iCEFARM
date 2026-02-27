@@ -96,6 +96,15 @@ class ControlDatabase(Database):
             ["serial", "client_id", "workerip", "workerport"], stringify=["workerip", "workerport"]
         )
 
+    def endAllReservations(self):
+        """Deletes all reservations. Triggers reservation_end notification for each,
+        causing workers to unreserve and reset devices."""
+        self.proc("DELETE FROM reservations", tuple())
+
+    def clearDevices(self):
+        """Deletes all device records. Worker records are kept."""
+        self.proc("DELETE FROM device", tuple())
+
     def clearWorkers(self):
         """Deletes all device and worker records. Device first due to FK constraint."""
         self.proc("DELETE FROM device", tuple())

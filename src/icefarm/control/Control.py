@@ -84,8 +84,10 @@ class Control:
         return out
 
     def clearWorkers(self):
-        self.logger.info("Clearing all worker and device records")
-        self.database.clearWorkers()
+        """Ends all reservations, triggering workers to reset devices to available state
+        via the existing DB notification system."""
+        self.logger.info("Ending all reservations to reset devices")
+        self.database.endAllReservations()
 
     def end(self, client_id: str, serials: list[str]) -> list[str]:
         data = self.database.end(client_id, serials)
