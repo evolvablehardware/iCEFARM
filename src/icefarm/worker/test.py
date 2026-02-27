@@ -12,8 +12,7 @@ from icefarm.worker import Config, device
 from icefarm.utils import RemoteLogger
 from icefarm.worker.app import create_app, MAX_REQUEST_SIZE
 from icefarm.worker.device import DeviceManager, DeviceEventSender
-from icefarm.worker.device.state.core import FlashState, TestState, ReadyState
-from icefarm.worker.device.state.reservable import PulseCountState, VarMaxState
+from icefarm.worker.device.state.core import FlashState, TestState, ReadyState, UploadState, AbstractState
 
 BITSTREAM_LENGTH = 104000
 
@@ -70,6 +69,17 @@ class FakeVarMaxSerial(FakeSerial):
             self.queue += "'Bsamples: 1, 2, 3, 4, 5, 4, 3, 2, 1\\r\\n'"
             self.queue += "'BWaiting for bitstream transfer\\r\\n'"
 
+def UploadState__new__(cls, device, parser, firmware_path, **kwargs):
+    upload = object.__new__(cls)
+    if "VarMax" in kwargs["logger_postfix"]:
+        upload.connectSerial = lambda : FakeVarMaxSerial()
+    elif "PulseCount" in kwargs["logger_postfix"]:
+        upload.connectSerial = lambda : FakePulseSerial()
+    else:
+        raise Exception("Unknown UploadState type for test patches")
+
+    return upload
+
 class FakeDevice:
     def __init__(self, properties):
         self.properties = properties
@@ -116,8 +126,7 @@ def patch(patch_event_sender=False):
     FlashState.handleAdd = lambda self, dev : None
     TestState.start = test_state_start
     FlashState.handleAdd = lambda self, dev : None
-    PulseCountState.connectSerial = lambda self : FakePulseSerial()
-    VarMaxState.connectSerial = lambda self : FakeVarMaxSerial()
+    UploadState.__new__ = UploadState__new__
 
     if patch_event_sender:
         device.DeviceEventSender = FakeEventSender
