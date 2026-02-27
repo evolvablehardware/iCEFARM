@@ -15,6 +15,6 @@ class PulseCountStateFlasher(AbstractState):
             except:
                 return None
 
-        pulse_fac = lambda : UploadState(self.device, parser, self.config.pulse_firmware_path, patch_connect_serial=self.serial_patch)
+        pulse_fac = lambda : UploadState(self.device, parser, self.config.pulse_firmware_path, logger_postfix="(PulseCount)", patch_connect_serial=self.serial_patch)
         self.switch(lambda : FlashState(self.device, self.config.pulse_firmware_path, pulse_fac))
 

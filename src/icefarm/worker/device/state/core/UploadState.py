@@ -1,3 +1,4 @@
+from logging import Logger, LoggerAdapter
 import threading
 import uuid
 import re
@@ -25,6 +26,14 @@ class Bitstream:
     name: str
     batch_id: str
 
+class UploadLogger(LoggerAdapter):
+    def __init__(self, logger: Logger, postfix: str, extra = None):
+        super().__init__(logger, extra={})
+        self.postfix = postfix
+
+    def process(self, msg, kwargs):
+        return f"{self.postfix} {msg}", kwargs
+
 class UploadState(AbstractState):
     """
     State for evaluations that follow a common pattern:
@@ -32,12 +41,14 @@ class UploadState(AbstractState):
     - Upload bitstream, perform some calculations, print json formatted result
     - Send results to client
     """
-    def __init__(self, state, parser: Callable[[str], Any], reboot_firmware_path, patch_connect_serial=None):
+    def __init__(self, state, parser: Callable[[str], Any], reboot_firmware_path, logger_postfix=None, patch_connect_serial=None):
         """
         Parser is a function that takes the incoming string output from the firmware and returns
         a parsed result, or None. Reboot_firmware_path is the firmware switched to when reboot called.
         """
         super().__init__(state)
+        if logger_postfix:
+            self.logger = UploadLogger(self.logger, logger_postfix)
 
         # this is an abomination but it needs to be patched differently for pulsecount and varmax...
         if patch_connect_serial:
@@ -134,11 +145,11 @@ class UploadState(AbstractState):
                 self.ser.flush()
                 time.sleep(INTER_CHUNK_DELAY)
 
-            self.logger.debug("waiting for pulse")
+            self.logger.debug("waiting for result")
 
             result = self.reader.waitUntilPulse()
 
-            self.logger.debug(f"got pulse: {result}")
+            self.logger.debug(f"got result: {result}")
 
             if result is False:
                 with self.cv:

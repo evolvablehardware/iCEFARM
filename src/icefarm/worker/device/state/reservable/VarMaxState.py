@@ -34,5 +34,5 @@ class VarMaxStateFlasher(AbstractState):
             except:
                 return None
 
-        var_fac = lambda : UploadState(self.device, parser, self.config.variance_firmware_path, patch_connect_serial=self.serial_patch)
+        var_fac = lambda : UploadState(self.device, parser, self.config.variance_firmware_path, logger_postfix="(VarMax)", patch_connect_serial=self.serial_patch)
         self.switch(lambda : FlashState(self.device, self.config.variance_firmware_path, var_fac))
