@@ -10,6 +10,9 @@ class FlashState(AbstractState):
         self.firmware_path = firmware_path
         self.next_state_factory = next_state_factory
         self.timer = None
+        self._flash_lock = threading.Lock()
+        self._uploading = False
+        self._bootloader_sent = False
 
         if timeout:
             def do_timeout():
@@ -40,11 +43,25 @@ class FlashState(AbstractState):
             return
 
         if dev.get("SUBSYSTEM") == "tty":
+            with self._flash_lock:
+                if self._uploading:
+                    self.logger.debug(f"ignoring tty event for {devname}, upload in progress")
+                    return
+                if self._bootloader_sent:
+                    self.logger.debug(f"ignoring tty event for {devname}, bootloader already sent")
+                    return
+                self._bootloader_sent = True
             self.logger.debug(f"sending bootloader signal to {devname}")
             send_bootloader(devname)
             return
 
         if dev.get("DEVTYPE") == "partition":
+            with self._flash_lock:
+                if self._uploading:
+                    self.logger.debug(f"ignoring duplicate partition event for {devname}")
+                    return
+                self._uploading = True
+
             self.logger.debug(f"found bootloader candidate {devname}")
 
             uploaded = upload_firmware_path(devname, self.device.mount_path, self.firmware_path)
