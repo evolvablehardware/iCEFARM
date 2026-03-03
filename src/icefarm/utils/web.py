@@ -75,9 +75,20 @@ def flask_socketio_adapter_on(func):
 
 class SyncAsyncServer(AsyncServer):
     """Adapter to allow flask_socketio.SocketIO to have the same interface as socketio.AsyncServer while
-    running as an ASGI app"""
+    running as an ASGI app. Handles both calls from background threads (no event loop) and calls
+    from within the event loop thread (e.g. socket connect/disconnect handlers)."""
+    def _run_coro(self, coro):
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            # No running event loop (background thread) — safe to use asyncio.run()
+            return asyncio.run(coro)
+        else:
+            # Already in the event loop — schedule without blocking
+            return asyncio.ensure_future(coro)
+
     def emit(self, event, data=None, to=None, room=None, skip_sid=None, namespace=None, callback=None, ignore_queue=False):
-        return asyncio.run(super().emit(event, data, to, room, skip_sid, namespace, callback, ignore_queue))
+        return self._run_coro(super().emit(event, data, to, room, skip_sid, namespace, callback, ignore_queue))
 
     def sleep(self, seconds=0):
-        return asyncio.run(super().sleep(seconds))
+        return self._run_coro(super().sleep(seconds))
