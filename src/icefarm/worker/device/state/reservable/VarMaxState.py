@@ -7,7 +7,6 @@ BAUD = 115200            # ignored by TinyUSB but needed by pyserial
 CHUNK_SIZE = 512         # bytes per write
 INTER_CHUNK_DELAY = 0.00001  # seconds
 
-#TODO this in bitstreamevo
 def calculate_variance(samples: list[int]) -> float:
     """Calculate variance fitness from ADC samples.
     Replicates VarMaxFitnessFunction.__measure_variance_fitness():
@@ -20,15 +19,24 @@ def calculate_variance(samples: list[int]) -> float:
         variance_sum += abs(samples[i + 1] - samples[i])
     return variance_sum / len(samples)
 
-@reservable("variance")
+@reservable("variance", "send_waveform")
 class VarMaxStateFlasher(AbstractState):
+    def __init__(self, device, send_waveform=None):
+        super().__init__(device)
+        self.send_waveform = send_waveform
+
+
     def start(self):
         def parser(result: str):
             try:
                 samples_match = re.search(r"samples:\s*([\d,\s]+)", result)
                 sample_str = samples_match.group(1).strip()
                 samples = [int(s.strip()) for s in sample_str.split(",") if s.strip()]
-                return calculate_variance(samples)
+
+                if self.send_waveform:
+                    return calculate_variance(samples), samples
+                else:
+                    return calculate_variance(samples)
             except:
                 return None
 
