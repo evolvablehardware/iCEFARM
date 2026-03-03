@@ -86,7 +86,7 @@ class Session:
             messages, self.message_queue = self.message_queue, []
             sock_id = self.sock_id
 
-        for i, message in enumerate(messages):
+        for message in enumerate(messages):
             try:
                 self.socketio.emit("event", message, to=sock_id)
                 self.socketio.sleep(0)
@@ -96,8 +96,7 @@ class Session:
                 self.logger.debug(f"failed to flush message {message} to client {self.client_id}")
                 with self.lock:
                     self.logger.debug(f"flushed {i} events but failed to flush remaining {len(messages) - i}")
-                    self.message_queue.extend(messages[i:])
-                    return
+                    self.message_queue.append(message)
 
         self.logger.debug(f"flushed {len(messages)} events")
 

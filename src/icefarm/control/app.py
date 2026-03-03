@@ -148,7 +148,12 @@ def run_debug():
 
     app = Flask(__name__)
 
-    socketio = SocketIO(app)
+    # ping_timeout raised from default 20s to 60s. Under high load (many
+    # devices evaluating concurrently, high-latency WiFi clients) the event
+    # loop can be too busy with serial I/O, DB writes, and socket emits to
+    # service the ping/pong heartbeat in time. The default 20s timeout caused
+    # spurious "packet queue is empty, aborting" disconnects on the client.
+    socketio = SocketIO(app, ping_timeout=60, ping_interval=25)
     create_app(app, socketio, logger)
     socketio.run(app, port=SERVER_PORT, allow_unsafe_werkzeug=True, host="0.0.0.0")
 
@@ -158,7 +163,12 @@ def run_uvicorn():
     logger.addHandler(logging.StreamHandler(sys.stdout))
 
     app = Flask(__name__)
-    socketio = SyncAsyncServer(async_mode="asgi")
+    # ping_timeout raised from default 20s to 60s. Under high load (many
+    # devices evaluating concurrently, high-latency WiFi clients) the event
+    # loop can be too busy with serial I/O, DB writes, and socket emits to
+    # service the ping/pong heartbeat in time. The default 20s timeout caused
+    # spurious "packet queue is empty, aborting" disconnects on the client.
+    socketio = SyncAsyncServer(async_mode="asgi", ping_timeout=60, ping_interval=25)
     create_app(app, socketio, logger)
     app = WsgiToAsgi(app)
 

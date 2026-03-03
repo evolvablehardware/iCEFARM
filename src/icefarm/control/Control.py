@@ -84,10 +84,20 @@ class Control:
         return out
 
     def clearWorkers(self):
-        """Ends all reservations, triggering workers to reset devices to available state
-        via the existing DB notification system."""
+        """Ends all reservations and broadcasts current device availability.
+        Workers receive reservation_end notifications and reset their devices."""
         self.logger.info("Ending all reservations to reset devices")
         self.database.endAllReservations()
+
+        # Broadcast current availability so clients waiting for devices
+        # get unblocked even if no device status transitions occur
+        # (e.g. devices already available, or no reservations existed).
+        amount = self.database.getAmountAvailable()
+        if amount is not False:
+            self.event_sender.sendAll({
+                "event": "devices_available",
+                "amount": amount
+            })
 
     def end(self, client_id: str, serials: list[str]) -> list[str]:
         data = self.database.end(client_id, serials)

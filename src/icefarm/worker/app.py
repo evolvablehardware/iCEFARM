@@ -146,7 +146,12 @@ def run_debug():
         logger = RemoteLogger(logger, config.control_server_url, config.worker_name)
 
     app = Flask(__name__)
-    socketio = SocketIO(app, max_http_buffer_size=MAX_REQUEST_SIZE)
+    # ping_timeout raised from default 20s to 60s. Under high load (many
+    # devices evaluating concurrently, high-latency WiFi clients) the event
+    # loop can be too busy with serial I/O, DB writes, and socket emits to
+    # service the ping/pong heartbeat in time. The default 20s timeout caused
+    # spurious "packet queue is empty, aborting" disconnects on the client.
+    socketio = SocketIO(app, max_http_buffer_size=MAX_REQUEST_SIZE, ping_timeout=60, ping_interval=25)
     create_app(app, socketio, config, logger)
     socketio.run(app, port=config.server_port, allow_unsafe_werkzeug=True, host="0.0.0.0")
 
@@ -171,7 +176,12 @@ def run_uvicorn():
         logger = RemoteLogger(logger, config.control_server_url, config.worker_name)
 
     app = Flask(__name__)
-    socketio = SyncAsyncServer(async_mode="asgi", max_http_buffer_size=MAX_REQUEST_SIZE)
+    # ping_timeout raised from default 20s to 60s. Under high load (many
+    # devices evaluating concurrently, high-latency WiFi clients) the event
+    # loop can be too busy with serial I/O, DB writes, and socket emits to
+    # service the ping/pong heartbeat in time. The default 20s timeout caused
+    # spurious "packet queue is empty, aborting" disconnects on the client.
+    socketio = SyncAsyncServer(async_mode="asgi", max_http_buffer_size=MAX_REQUEST_SIZE, ping_timeout=60, ping_interval=25)
     create_app(app, socketio, config, logger)
     app = WsgiToAsgi(app)
 
