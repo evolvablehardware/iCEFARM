@@ -82,19 +82,26 @@ class EventServer:
 
             serial = msg.get("serial")
             contents = msg.get("contents")
-
-            if contents:
-                event = contents.get("event")
-            else:
-                event = None
-
-            if not serial or not event or not contents:
-                logger.error("bad event contents")
+            if not isinstance(contents, list):
+                logger.error(f"bad message contents: {contents}")
                 return
 
-            logger.debug(f"received {event} event")
-            event = Event(serial, event, contents)
-            self.handleEvent(event)
+            for content in contents:
+                if content:
+                    event = content.get("event")
+                else:
+                    event = None
+
+                if not serial or not event:
+                    logger.error("bad event content")
+                    return
+
+                # TODO this is hacky, need to update eventhandlers to use event.serial instead of contents.serial
+                # TODO need to update design docs with protocol changes
+                content["serial"] = serial
+                logger.debug(f"received {event} event")
+                event = Event(serial, event, content)
+                self.handleEvent(event)
 
         # TODO
         try:

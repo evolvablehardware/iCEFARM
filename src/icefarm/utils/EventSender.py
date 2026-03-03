@@ -86,7 +86,7 @@ class Session:
             messages, self.message_queue = self.message_queue, []
             sock_id = self.sock_id
 
-        for message in messages:
+        for i, message in enumerate(messages):
             try:
                 self.socketio.emit("event", message, to=sock_id)
                 self.socketio.sleep(0)
@@ -95,7 +95,8 @@ class Session:
                 self.logger.warning("socket disconnected during flush")
                 self.logger.debug(f"failed to flush message {message} to client {self.client_id}")
                 with self.lock:
-                    self.message_queue.append(message)
+                    self.logger.debug(f"flushed {i} events but failed to flush remaining {len(messages) - i}")
+                    self.message_queue.extend(messages[i:])
                     return
 
         self.logger.debug(f"flushed {len(messages)} events")
@@ -174,7 +175,6 @@ class EventSender(Database):
             session.send(contents)
 
     def __packageContents(self, serial: str, contents: dict):
-        contents["serial"] = serial
         contents = {
             "serial": serial,
             "contents": contents

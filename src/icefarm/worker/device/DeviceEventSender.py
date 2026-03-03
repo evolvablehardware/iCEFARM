@@ -15,6 +15,19 @@ class DeviceEventSender:
         """Sends a event with contents. Note that during serialization, the *event* key of
         contents is replaced. Do not use this key."""
         contents["event"] = event
+        if not self.event_sender.sendSerialJson(self.serial, [contents]):
+            self.logger.error("failed to send event")
+            return False
+
+        return True
+
+    def sendDeviceEvents(self, events: list[tuple[str, dict]]) -> bool:
+        """Sends multiple events at once. More efficient than iterating over sendDeviceEvent."""
+        formatted_events = []
+        for name, contents in events:
+            contents["event"] = name
+            formatted_events.append(contents)
+
         if not self.event_sender.sendSerialJson(self.serial, contents):
             self.logger.error("failed to send event")
             return False
