@@ -1,16 +1,15 @@
 from __future__ import annotations
-
-import threading
-from logging import Logger, LoggerAdapter
 from pathlib import Path
-from typing import TYPE_CHECKING
+from logging import Logger, LoggerAdapter
+import threading
 
 from icefarm.worker.device import DeviceEventSender
 from icefarm.worker.device.state.core import FlashState, TestState
 from icefarm.worker.device.state.reservable import get_reservation_state_fac
 
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from icefarm.worker import Config, EventSender, WorkerDatabase
+    from icefarm.worker import WorkerDatabase, Config, EventSender
     from icefarm.worker.device import DeviceManager
     from icefarm.worker.device.state.core import AbstractState
 
@@ -33,7 +32,6 @@ class Device:
         self.device_event_sender: DeviceEventSender = DeviceEventSender(event_sender, self.serial, self.logger)
 
         self._device: AbstractState = None
-        # TODO verify rlock works nicely with pyudev, flashstate should already be covered
         self._device_lock = threading.RLock()
 
         self.path = Path(WORKER_MEDIA).joinpath(self.serial)

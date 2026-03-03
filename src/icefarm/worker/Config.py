@@ -17,29 +17,29 @@ class Config:
         else:
             parser = None
 
-        self.worker_name: str= config_else_env("USBIPICE_WORKER_NAME", "Connection", parser, error=False)
+        self.worker_name: str= config_else_env("ICEFARM_WORKER_NAME", "Connection", parser, error=False)
         if not self.worker_name:
             self.worker_name = os.environ.get("HOSTNAME")
             print(f"WARNING: using {self.worker_name}")
 
         if not self.worker_name:
-            raise Exception("USBIPICE_WORKER_NAME not set, no HOSTNAME")
+            raise Exception("ICEFARM_WORKER_NAME not set, no HOSTNAME")
 
-        self.server_port: str = config_else_env("USBIPICE_SERVER_PORT", "Connection", parser, default="8081")
-        self.virtual_server_port: str = config_else_env("USBIPICE_VIRTUAL_PORT", "Connection", parser, default="8081")
-        self.control_server_url: str = config_else_env("USBIPICE_CONTROL_SERVER", "Connection", parser, error=False)
+        self.server_port: str = config_else_env("ICEFARM_SERVER_PORT", "Connection", parser, default="8081")
+        self.virtual_server_port: str = config_else_env("ICEFARM_VIRTUAL_PORT", "Connection", parser, default="8081")
+        self.control_server_url: str = config_else_env("ICEFARM_CONTROL_SERVER", "Connection", parser, error=False)
         if not self.control_server_url:
             print("WARNING: not logging to control")
-        self.virtual_ip: str = config_else_env("USBIPICE_VIRTUAL_IP", "Connection", parser, error=False)
+        self.virtual_ip: str = config_else_env("ICEFARM_VIRTUAL_IP", "Connection", parser, error=False)
         if not self.virtual_ip:
             self.virtual_ip = get_ip()
             print(f"WARNING: using {self.virtual_ip}")
 
-        self.libpg_string= os.environ.get("USBIPICE_DATABASE")
+        self.libpg_string= os.environ.get("ICEFARM_DATABASE")
         if not self.libpg_string:
-            raise Exception("Environment variable USBIPICE_DATABASE not configured. Set this to a libpg \
+            raise Exception("Environment variable ICEFARM_DATABASE not configured. Set this to a libpg \
             connection string to the database. If using sudo .venv/bin/worker, you may have to use the ENV= sudo arguments.")
 
-        self.default_firmware_path = config_else_env("USBIPICE_DEFAULT", "Firmware", parser)
-        self.pulse_firmware_path = config_else_env("USBIPICE_PULSE_COUNT", "Firmware", parser)
-        self.variance_firmware_path = config_else_env("USBIPICE_VARIANCE", "Firmware", parser, error=False)
+        self.default_firmware_path = config_else_env("ICEFARM_DEFAULT", "Firmware", parser)
+        self.pulse_firmware_path = config_else_env("ICEFARM_PULSE_COUNT", "Firmware", parser)
+        self.variance_firmware_path = config_else_env("ICEFARM_VARIANCE", "Firmware", parser, error=False)

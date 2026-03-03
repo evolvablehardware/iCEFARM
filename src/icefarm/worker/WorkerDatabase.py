@@ -24,10 +24,10 @@ class WorkerDatabase(Database):
         self.logger = WorkerDataBaseLogger(logger)
         self.cv = threading.Condition()
 
-        usbipice_version = version("icefarm")
+        farm_version = version("icefarm")
         reservables = get_registered_reservables()
 
-        args = (self.worker_name, config.virtual_ip, config.virtual_server_port, usbipice_version, reservables)
+        args = (self.worker_name, config.virtual_ip, config.virtual_server_port, farm_version, reservables)
         if not self.execute("CALL add_worker(%s::varchar(255), %s::varchar(255), %s::int, %s::varchar(255), %s::varchar(255)[])", args):
             raise Exception(f"Failed to add worker {self.worker_name}")
 

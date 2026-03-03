@@ -57,15 +57,15 @@ services:
     user: root
 
     environment:
-      USBIPICE_DATABASE: 'postgresql://postgres:postgres@localhost:5433/postgres'
-      USBIPICE_VIRTUAL_IP: localhost
-      USBIPICE_VIRTUAL_PORT: 8081
-      USBIPICE_CONTROL_SERVER: http://localhost:8080
-      USBIPICE_WORKER_NAME: host_worker
-      USBIPICE_WORKER_LOGS: /usr/local/app/worker_logs
-      USBIPICE_DEFAULT: src/icefarm/worker/firmware/default/build/default_firmware.uf2
-      USBIPICE_PULSE_COUNT: src/icefarm/worker/firmware/pulse_count/build/bitstream_over_usb.uf2
-      USBIPICE_VARIANCE: src/icefarm/worker/firmware/variance/build/variance_firmware.uf2
+      ICEFARM_DATABASE: 'postgresql://postgres:postgres@localhost:5433/postgres'
+      ICEFARM_VIRTUAL_IP: localhost
+      ICEFARM_VIRTUAL_PORT: 8081
+      ICEFARM_CONTROL_SERVER: http://localhost:8080
+      ICEFARM_WORKER_NAME: host_worker
+      ICEFARM_WORKER_LOGS: /usr/local/app/worker_logs
+      ICEFARM_DEFAULT: src/icefarm/worker/firmware/default/build/default_firmware.uf2
+      ICEFARM_PULSE_COUNT: src/icefarm/worker/firmware/pulse_count/build/bitstream_over_usb.uf2
+      ICEFARM_VARIANCE: src/icefarm/worker/firmware/variance/build/variance_firmware.uf2
 
     command: [".venv/bin/uvicorn", "icefarm.worker.app:run_uvicorn", "--env-file", ".uvicorn_env_bridge", "--port", "8081", "--factory", "--host", "0.0.0.0"]
 
@@ -87,6 +87,6 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     environment:
-      USBIPICE_DATABASE: 'postgresql://postgres:postgres@localhost:5433/postgres'
+      ICEFARM_DATABASE: 'postgresql://postgres:postgres@localhost:5433/postgres'
 
     command: [".venv/bin/uvicorn", "icefarm.control.app:run_uvicorn", "--env-file", ".uvicorn_env_bridge", "--port", "8080", "--factory", "--host", "0.0.0.0"]

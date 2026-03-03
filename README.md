@@ -13,7 +13,7 @@ sudo usermod -aG docker $USERNAME
 newgrp docker
 ```
 
-Build the image. You may skip this step and the image will automatically download from [DockerHub](https://hub.docker.com/r/usbipiceproject/usbipice-worker/tags).
+Build the image. You may skip this step and the image will automatically download from [DockerHub](https://hub.docker.com/r/evolvablehardware/icefarm).
 ```
 docker build -f docker/Dockerfile -t evolvablehardware/icefarm:all .
 ```

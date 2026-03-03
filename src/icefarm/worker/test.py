@@ -180,7 +180,7 @@ def main():
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))
 
-    config_path = os.environ.get("USBIPICE_WORKER_CONFIG")
+    config_path = os.environ.get("ICEFARM_WORKER_CONFIG")
     if not config_path:
         config_path = None
     config = Config(path=config_path)

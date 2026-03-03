@@ -22,9 +22,9 @@ class ControlLogger(logging.LoggerAdapter):
 def create_app(app: Flask, socketio: SocketIO | SyncAsyncServer, base_logger: logging.Logger):
     logger = ControlLogger(base_logger)
 
-    DATABASE_URL = os.environ.get("USBIPICE_DATABASE")
+    DATABASE_URL = os.environ.get("ICEFARM_DATABASE")
     if not DATABASE_URL:
-        raise Exception("USBIPICE_DATABASE not configured")
+        raise Exception("ICEFARM_DATABASE not configured")
 
     sock_id_to_client_id = {}
     id_lock = threading.Lock()
@@ -139,7 +139,7 @@ def create_app(app: Flask, socketio: SocketIO | SyncAsyncServer, base_logger: lo
         event_sender.removeSocket(client_id)
 
 def run_debug():
-    SERVER_PORT = int(os.environ.get("USBIPICE_CONTROL_PORT", "8080"))
+    SERVER_PORT = int(os.environ.get("ICEFARM_CONTROL_PORT", "8080"))
 
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)

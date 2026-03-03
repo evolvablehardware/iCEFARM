@@ -137,7 +137,7 @@ def run_debug():
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))
 
-    config_path = os.environ.get("USBIPICE_WORKER_CONFIG")
+    config_path = os.environ.get("ICEFARM_WORKER_CONFIG")
     if not config_path:
         config_path = None
     config = Config(path=config_path)
@@ -154,15 +154,15 @@ def run_uvicorn():
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
 
-    log_loc = os.environ.get("USBIPICE_WORKER_LOGS")
+    log_loc = os.environ.get("ICEFARM_WORKER_LOGS")
     if log_loc:
         logger.addHandler(logging.FileHandler(log_loc))
     else:
-        raise Exception("USBIPICE_WORKER_LOGS not configured")
+        raise Exception("ICEFARM_WORKER_LOGS not configured")
 
     logger.addHandler(logging.StreamHandler(sys.stdout))
 
-    config_path = os.environ.get("USBIPICE_WORKER_CONFIG")
+    config_path = os.environ.get("ICEFARM_WORKER_CONFIG")
     if not config_path:
         config_path = None
     config = Config(path=config_path)

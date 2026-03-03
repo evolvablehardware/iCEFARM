@@ -49,7 +49,7 @@ CLIENT_NAME = "read default example"
 CONTROL_SERVER = "http://localhost:8080"
 
 if not (CONTROL_SERVER):
-    CONTROL_SERVER = os.environ.get("USBIPICE_CONTROL_SERVER")
+    CONTROL_SERVER = os.environ.get("ICEFARM_CONTROL_SERVER")
 #################################################
 
 if not CONTROL_SERVER:
