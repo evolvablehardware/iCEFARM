@@ -110,10 +110,15 @@ class Session:
                     return
 
             # Check if socket was removed while we were emitting.
+            # Re-queue from index i (including the message we just sent) because
+            # the emit likely went to a dead socket and was never delivered.
+            # This may cause a duplicate if the message did arrive, but a
+            # duplicate is recoverable — a lost message causes the client's
+            # result iterator to block indefinitely.
             with self.lock:
                 if self.sock_id is None:
                     self.logger.warning("socket disconnected during flush, re-queuing messages")
-                    self.message_queue = messages[i + 1:] + self.message_queue
+                    self.message_queue = messages[i:] + self.message_queue
                     return
 
         self.logger.debug(f"flushed {len(messages)} events")
