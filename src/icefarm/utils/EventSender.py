@@ -86,14 +86,34 @@ class Session:
             messages, self.message_queue = self.message_queue, []
             sock_id = self.sock_id
 
-        for message in messages:
+        # Race condition guard: Between releasing the lock above and calling
+        # emit() below, removeSocket() can run on another thread, setting
+        # self.sock_id = None. The emit() then sends to a dead socket. Because
+        # the socket library may buffer the send without raising an exception,
+        # the message appears "flushed" but is never delivered to the client.
+        #
+        # This caused lost evaluation results: the worker logged "flushed 1
+        # events" but the client never received the result, causing the
+        # BatchFactory result iterator to block indefinitely.
+        #
+        # Fix: after each emit, re-check self.sock_id under the lock. If the
+        # socket disconnected during our send, re-queue all unsent messages
+        # (and the one we just tried to send, since it likely didn't arrive).
+        for i, message in enumerate(messages):
             try:
                 self.socketio.emit("event", message, to=sock_id)
                 self.socketio.sleep(0)
             except Exception:
                 self.logger.warning("socket disconnected during flush")
                 with self.lock:
-                    self.message_queue.append(message)
+                    self.message_queue = messages[i:] + self.message_queue
+                    return
+
+            # Check if socket was removed while we were emitting.
+            with self.lock:
+                if self.sock_id is None:
+                    self.logger.warning("socket disconnected during flush, re-queuing messages")
+                    self.message_queue = messages[i + 1:] + self.message_queue
                     return
 
         self.logger.debug(f"flushed {len(messages)} events")
