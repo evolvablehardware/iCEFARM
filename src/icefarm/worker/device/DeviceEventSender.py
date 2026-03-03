@@ -28,7 +28,7 @@ class DeviceEventSender:
             contents["event"] = name
             formatted_events.append(contents)
 
-        if not self.event_sender.sendSerialJson(self.serial, contents):
+        if not self.event_sender.sendSerialJson(self.serial, formatted_events):
             self.logger.error("failed to send event")
             return False
 

@@ -1,3 +1,4 @@
+import time
 from logging import Logger, LoggerAdapter
 import threading
 import uuid
@@ -41,7 +42,7 @@ class UploadState(AbstractState):
     - Upload bitstream, perform some calculations, print json formatted result
     - Send results to client
     """
-    def __init__(self, state, parser: Callable[[str], Any], reboot_firmware_path, logger_postfix=None):
+    def __init__(self, state, parser: Callable[[str], Any], reboot_firmware_path, logger_postfix=None, flush_interval_min_seconds=5):
         """
         Parser is a function that takes the incoming string output from the firmware and returns
         a parsed result, or None. Reboot_firmware_path is the firmware switched to when reboot called.
@@ -55,11 +56,12 @@ class UploadState(AbstractState):
         self.bitstream_queue: list[Bitstream] = []
         # name -> pulses
         self.results = {}
-        self.result_amount = 0
         # TODO configurable by client
-        self.flush_threshold = 4
+        self.flush_interval_min_seconds = flush_interval_min_seconds
+        self.last_flush_time = time.time()
 
         # ensure new ports show correctly
+        # TODO this better
         time.sleep(2)
 
         self.ser = self.connectSerial()
@@ -156,17 +158,15 @@ class UploadState(AbstractState):
                 self.results[bitstream.batch_id] = []
 
             self.results[bitstream.batch_id].append((bitstream.name, result))
-            self.result_amount += 1
             os.remove(bitstream.location)
 
             with self.cv:
-                if not self.bitstream_queue or self.result_amount >= self.flush_threshold:
-                    for batch_id, pulses in self.results.items():
-                        if not self.sender.finished(batch_id, pulses):
-                            self.logger.error("failed to send results")
+                if not self.bitstream_queue or self.last_flush_time + self.flush_interval_min_seconds <= time.time():
+                    if not self.sender.finished(self.results):
+                        self.logger.error("failed to send results")
 
                     self.results = {}
-                    self.result_amount = 0
+                    self.last_flush_time = time.time()
 
     def handleExit(self):
         self.exiting = True
@@ -251,8 +251,6 @@ class UploadEventSender:
     def __init__(self, event_sender):
         self.event_sender = event_sender
 
-    def finished(self, batch_id, results):
-        return self.event_sender.sendDeviceEvent("results", {
-            "results": results,
-            "batch_id": batch_id
-        })
+    def finished(self, results: dict[str, int]):
+        events = [("results", {"results": pulses, "batch_id": batch_id}) for batch_id, pulses in results.items()]
+        return self.event_sender.sendDeviceEvents(events)
