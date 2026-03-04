@@ -8,7 +8,7 @@ import pytest
 import psycopg
 
 # defaults to db rather than localhost since thats the postgres test container hostname
-DB_URL = os.environ.get("USBIPICE_DATABASE", "postgresql://postgres:postgres@db:5433/postgres")
+DB_URL = os.environ.get("USBIPICE_DATABASE", "postgresql://postgres:postgres@db:5432")
 
 
 @pytest.fixture
