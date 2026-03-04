@@ -86,7 +86,7 @@ class Session:
             messages, self.message_queue = self.message_queue, []
             sock_id = self.sock_id
 
-        for message in enumerate(messages):
+        for message in messages:
             try:
                 self.socketio.emit("event", message, to=sock_id)
                 self.socketio.sleep(0)
