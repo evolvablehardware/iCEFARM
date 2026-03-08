@@ -16,12 +16,20 @@ class VarMaxEvaluation(Evaluation):
 
 class VarMaxBaseClient(BatchClient):
     """Provides access to variance maximization specific control API methods."""
-    def reserve(self, amount, wait_for_available=False, available_timeout=60, kind="variance", send_waveform=False):
-        args = {"send_waveform": send_waveform}
+    def reserve(self, amount, wait_for_available=False, available_timeout=60, kind="variance", send_waveform=False, flush_interval_seconds=10, flush_at_bitstreams_remaining=25):
+        args = {
+            "send_waveform": send_waveform,
+            "flush_interval_seconds": flush_interval_seconds,
+            "flush_at_bitstreams_remaining": flush_at_bitstreams_remaining
+        }
         return super().reserve(amount, kind, args, wait_for_available=wait_for_available, available_timeout=available_timeout)
 
-    def reserveSpecific(self, serials: list[str], kind="variance", send_waveform=False):
-        args = {"send_waveform": send_waveform}
+    def reserveSpecific(self, serials: list[str], kind="variance", send_waveform=False, flush_interval_seconds=10, flush_at_bitstreams_remaining=25):
+        args = {
+            "send_waveform": send_waveform,
+            "flush_interval_seconds": flush_interval_seconds,
+            "flush_at_bitstreams_remaining": flush_at_bitstreams_remaining
+        }
         return super().reserveSpecific(serials, kind, args or {})
 
     def evaluateBitstreams(self, bitstreams: list[str], serials=None) -> Generator[tuple[str, str, float]]:
