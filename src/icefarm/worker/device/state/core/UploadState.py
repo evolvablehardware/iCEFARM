@@ -82,8 +82,6 @@ class UploadState(AbstractState):
         self.device_event_sender.sendDeviceInitialized()
 
     def flushReady(self) -> bool:
-        if not self.bitstream_queue:
-            self.logger.error("\n\nOUT OF BITSTEAMS\n\n")
         if self.flush_interval_seconds and self.last_flush_time + self.flush_interval_seconds <= time.time():
             return True
 
