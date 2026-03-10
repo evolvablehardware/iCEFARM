@@ -71,6 +71,24 @@ Note that just using ```ctrl+c``` will not fully shutdown the stack and the data
 
 ### Troubleshooting
 *Generally, most things by destroying the stack and starting it again*
+#### Pico Light Status
+Green: initialized
+Blinking green: waiting for bitstream
+Blue: receiving bitstream
+Blue + red: flashing and evaluating
+Blue + red + green: idle
+Blinking red: usb disconnected
+
+#### Accessing Logs
+First, find the name of the worker and control container:
+```docker container ls```
+These are typically named `docker-worker-1` and `docker-control-1`.
+Getting logs:
+```
+docker logs <worker name>
+docker logs <control name>
+```
+
 #### Device goes to BrokenState
 This can happen occasionally even if everything is set up correctly. Restart the stack and replug the device in. If it happens again, it's probably a configuration error. Verify that you are able to manually flash firmware on to the device with a baud 1200 compatible firmware:
 ```
