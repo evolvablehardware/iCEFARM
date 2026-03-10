@@ -177,7 +177,7 @@ class BalancedBatchFactory(AbstractBatchFactory):
             return True
 
         highest_queued = max(map(len, self.awaiting_results.values()))
-        batches = math.ceil(highest_queued / self.bundle.batch_size)
+        batches = math.floor(highest_queued / self.bundle.batch_size)
         return bool(self.target_batches - batches)
 
 
@@ -227,6 +227,6 @@ class BatchClient(BaseClient):
         del self.batch_factories[factory.bundle.id]
 
     #TODO switch this to just evaluate, requires bitstreamevo changes
-    def evaluateEvaluations(self, evaluations: List[Evaluation], batch_size=5) -> Generator[tuple[str, Evaluation, Any]]:
-        return self._evaluateFactory(BalancedBatchFactory(evaluations, batch_size=batch_size))
+    def evaluateEvaluations(self, evaluations: List[Evaluation], batch_size=5, target_batches=2) -> Generator[tuple[str, Evaluation, Any]]:
+        return self._evaluateFactory(BalancedBatchFactory(evaluations, batch_size=batch_size, target_batches=target_batches))
 

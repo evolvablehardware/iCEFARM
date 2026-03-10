@@ -19,12 +19,13 @@ def calculate_variance(samples: list[int]) -> float:
         variance_sum += abs(samples[i + 1] - samples[i])
     return variance_sum / len(samples)
 
-@reservable("variance", "send_waveform")
+@reservable("variance", "send_waveform", "flush_interval_seconds", "flush_at_bitstreams_remaining")
 class VarMaxStateFlasher(AbstractState):
-    def __init__(self, device, send_waveform=None):
+    def __init__(self, device, send_waveform, flush_interval_seconds, flush_at_bitstreams_remaining):
         super().__init__(device)
         self.send_waveform = send_waveform
-
+        self.flush_interval_seconds = flush_interval_seconds
+        self.flush_at_bitstreams_remaining = flush_at_bitstreams_remaining
 
     def start(self):
         def parser(result: str):
@@ -40,5 +41,5 @@ class VarMaxStateFlasher(AbstractState):
             except:
                 return None
 
-        var_fac = lambda : UploadState(self.device, parser, self.config.variance_firmware_path, logger_postfix="(VarMax)")
+        var_fac = lambda : UploadState(self.device, parser, self.config.variance_firmware_path, logger_postfix="(VarMax)", flush_interval_seconds=self.flush_interval_seconds, flush_at_bitstreams_remaining=self.flush_at_bitstreams_remaining)
         self.switch(lambda : FlashState(self.device, self.config.variance_firmware_path, var_fac))

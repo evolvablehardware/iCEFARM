@@ -42,10 +42,14 @@ class UploadState(AbstractState):
     - Upload bitstream, perform some calculations, print json formatted result
     - Send results to client
     """
-    def __init__(self, state, parser: Callable[[str], Any], reboot_firmware_path, logger_postfix=None, flush_interval_min_seconds=5):
+    def __init__(self, state, parser: Callable[[str], Any], reboot_firmware_path, logger_postfix=None, flush_interval_seconds=None, flush_at_bitstreams_remaining=25):
         """
-        Parser is a function that takes the incoming string output from the firmware and returns
-        a parsed result, or None. Reboot_firmware_path is the firmware switched to when reboot called.
+        Parameters:
+        - parser: Function that parses output from device and returns parsed value, or None if no value was found
+        - reboot_firmware_path: Firmware to flash when reboot function is called
+        - logger_postfix: Optional string added before logger output. Intended to contain reservable name, as it would otherwise only show UploadState
+        - flush_interval_seconds: Time between automatic result flushes, use 0 or None to disable
+        - flush_at_bitstreams_remaining: Optionally flush once a low amount of bitstreams is received so that the client knows to send more. Note that flushes happen at 0 remaining regardless of this parameter.
         """
         super().__init__(state)
         if logger_postfix:
@@ -57,8 +61,9 @@ class UploadState(AbstractState):
         # name -> pulses
         self.results = {}
         # TODO configurable by client
-        self.flush_interval_min_seconds = flush_interval_min_seconds
+        self.flush_interval_seconds = flush_interval_seconds
         self.last_flush_time = time.time()
+        self.flush_at_bitstreams_remaining = flush_at_bitstreams_remaining if flush_at_bitstreams_remaining else 0
 
         # ensure new ports show correctly
         # TODO this better
@@ -75,6 +80,12 @@ class UploadState(AbstractState):
         self.thread.start()
 
         self.device_event_sender.sendDeviceInitialized()
+
+    def flushReady(self) -> bool:
+        if self.flush_interval_seconds and self.last_flush_time + self.flush_interval_seconds <= time.time():
+            return True
+
+        return not self.bitstream_queue or len(self.bitstream_queue) == self.flush_at_bitstreams_remaining
 
     def connectSerial(self, max_retries=5, retry_delay=2):
         for attempt in range(max_retries):
@@ -161,7 +172,7 @@ class UploadState(AbstractState):
             os.remove(bitstream.location)
 
             with self.cv:
-                if not self.bitstream_queue or self.last_flush_time + self.flush_interval_min_seconds <= time.time():
+                if self.flushReady():
                     if not self.sender.finished(self.results):
                         self.logger.error("failed to send results")
 
