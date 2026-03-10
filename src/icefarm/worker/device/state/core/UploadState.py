@@ -55,16 +55,20 @@ class UploadState(AbstractState):
         if logger_postfix:
             self.logger = UploadLogger(self.logger, logger_postfix)
 
+        self.parser = parser
         self.reboot_firmware_path = reboot_firmware_path
         self.cv = threading.Condition()
         self.bitstream_queue: list[Bitstream] = []
+        self.current_bitstream = None
         # name -> pulses
         self.results = {}
         # TODO configurable by client
         self.flush_interval_seconds = flush_interval_seconds
         self.last_flush_time = time.time()
         self.flush_at_bitstreams_remaining = flush_at_bitstreams_remaining if flush_at_bitstreams_remaining else 0
+        self.logger_postfix = logger_postfix
 
+    def start(self):
         # ensure new ports show correctly
         # TODO this better
         time.sleep(2)
@@ -72,7 +76,7 @@ class UploadState(AbstractState):
         self.ser = self.connectSerial()
         if self.ser is None:
             return
-        self.reader = Reader(self.ser, parser)
+        self.reader = Reader(self.ser, self.parser)
         self.sender = UploadEventSender(self.device_event_sender)
 
         self.exiting = False
@@ -135,18 +139,19 @@ class UploadState(AbstractState):
                 if self.exiting:
                     return
 
-                bitstream = self.bitstream_queue.pop()
+                # kept as property so reboot can add back to queue
+                self.bitstream = self.bitstream_queue.pop()
 
-            self.logger.debug(f"evaluating bitstream {bitstream.name}")
+            self.logger.debug(f"evaluating bitstream {self.bitstream.name}")
 
-            with open(bitstream.location, "rb") as f:
+            with open(self.bitstream.location, "rb") as f:
                 data = f.read()
 
             data_len = len(data)
 
             self.reader.waitUntilReady()
 
-            self.logger.debug(f"uploading bitstream {bitstream.name}")
+            self.logger.debug(f"uploading bitstream {self.bitstream.name}")
 
             for i in range(0, data_len, CHUNK_SIZE):
                 chunk = data[i:i+CHUNK_SIZE]
@@ -162,14 +167,15 @@ class UploadState(AbstractState):
 
             if result is False:
                 with self.cv:
-                    self.bitstream_queue.append(bitstream)
+                    self.bitstream_queue.append(self.bitstream)
                     continue
 
-            if bitstream.batch_id not in self.results:
-                self.results[bitstream.batch_id] = []
+            if self.bitstream.batch_id not in self.results:
+                self.results[self.bitstream.batch_id] = []
 
-            self.results[bitstream.batch_id].append((bitstream.name, result))
-            os.remove(bitstream.location)
+            self.results[self.bitstream.batch_id].append((self.bitstream.name, result))
+            os.remove(self.bitstream.location)
+            self.bitstream = None
 
             with self.cv:
                 if self.flushReady():
@@ -188,10 +194,20 @@ class UploadState(AbstractState):
         self.ser.close()
 
     def reboot(self):
-        clone = lambda : UploadState(self.device, self.parser)
-        flasher = lambda : FlashState(clone, self.reboot_firmware_path, clone)
-        self.switch(flasher)
+        self.handleExit()
+        # TODO kinda hacky
+        # i don't like having to chain state switches but its better than
+        # needing separate flash stuff
+        def transfer_bitstreams():
+            state = UploadState(self.device, self.parser, self.reboot_firmware_path, logger_postfix=self.logger_postfix, flush_at_bitstreams_remaining=self.flush_at_bitstreams_remaining, flush_interval_seconds=self.flush_interval_seconds)
+            state.results = self.results
+            state.bitstream_queue = self.bitstream_queue
+            if self.bitstream:
+                state.bitstream_queue.append(self.bitstream)
+            return state
 
+        flasher = lambda : FlashState(self.device, self.reboot_firmware_path, transfer_bitstreams)
+        self.switch(flasher)
 class Reader:
     def __init__(self, port: serial.Serial, parser: Callable[[str], Any]):
         self.port = port
