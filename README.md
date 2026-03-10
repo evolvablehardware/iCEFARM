@@ -6,6 +6,17 @@ If you have access to an existing iCEFARM server, you do not need to do this. Se
 
 The picos need to be prepared by flashing firmware that is tinyusb enabled and being plugged in. The [rp2_hello_world](https://github.com/tinyvision-ai-inc/pico-ice-sdk/tree/main/examples/rp2_hello_world) example from the pico-ice-sdk works for this purpose. Picos can also be plugged into an iCEFARM system once it is already running.
 
+Sometimes other packages can take control of the devices after they are plugged in. Verify that the dev files are present:
+```ls /dev | grep ACM```
+There should be one `ACM` device per pico when running the `rp2_hello_world` firmware.
+
+Here are known problematic packages may need to be removed:
+- brltty
+- modemmanager
+
+If the devices still do not show up, examine dmesg output:
+```sudo dmesg```
+
 If it is not yet installed, install [Docker Engine](https://docs.docker.com/engine/install/). Follow the [post installation steps](https://docs.docker.com/engine/install/linux-postinstall/) so that you do not need to use sudo. Included below:
 ```
 sudo usermod -aG docker $USERNAME
