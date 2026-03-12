@@ -8,9 +8,11 @@ import shutil
 import threading
 import math
 
-from icefarm.client.drivers import PulseCountClient
-from icefarm.client.lib.pulsecount import PulseCountEvaluation
+from icefarm.client.drivers import MultiPulseCountClient
+from icefarm.client.lib.multipulsecount import PulseCountEvaluation
 from icefarm.utils import generate_circuit, batch
+
+# results are returned as pin 21, pin 25
 
 #################################################
 # Whether to evaluate circuits on each pico, or distribute them evenly
@@ -19,8 +21,8 @@ EVALUATE_EACH = True
 EVENT_LOGGING = True
 # Paths to bin circuits to evaluate, circuits are evaluated for 1s.
 BITSTREAM_PATHS = ["examples/pulse_count_driver/precompiled_circuits/pin21.bin",
-                   "examples/pulse_count_driver/precompiled_circuits/circuit_generated_8Khz.bin",
-                   "examples/pulse_count_driver/precompiled_circuits/circuit_generated_32Khz.bin"
+                   "examples/pulse_count_driver/precompiled_circuits/pin27.bin",
+                   "examples/pulse_count_driver/precompiled_circuits/pin21and27.bin",
                    ]
 
 # Target kHz of circuits. These circuits will be automatically generated, compiled, and evaluated.
@@ -60,7 +62,7 @@ logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
 # Creates a client to interface with system
-client = PulseCountClient(CONTROL_SERVER, CLIENT_NAME, logger, log_events=EVENT_LOGGING)
+client = MultiPulseCountClient(CONTROL_SERVER, CLIENT_NAME, logger, log_events=EVENT_LOGGING)
 
 # This gracefully stops the client. It ends all devices that are reserved under
 # its name. If the client does not gracefully exit, devices will still be reserved

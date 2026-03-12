@@ -1,2 +1,3 @@
 from icefarm.client.drivers.PulseCountClient import PulseCountClient
 from icefarm.client.drivers.VarMaxClient import VarMaxClient
+from icefarm.client.drivers.MultiPulseCountClient import MultiPulseCountClient

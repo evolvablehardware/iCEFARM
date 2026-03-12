@@ -42,4 +42,5 @@ class Config:
 
         self.default_firmware_path = config_else_env("ICEFARM_DEFAULT", "Firmware", parser)
         self.pulse_firmware_path = config_else_env("ICEFARM_PULSE_COUNT", "Firmware", parser)
+        self.multi_pulse_firmware_path = config_else_env("ICEFARM_MULTI_PULSE_COUNT", "Firmware", parser)
         self.variance_firmware_path = config_else_env("ICEFARM_VARIANCE", "Firmware", parser, error=False)

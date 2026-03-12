@@ -65,6 +65,7 @@ services:
       ICEFARM_WORKER_LOGS: /usr/local/app/worker_logs
       ICEFARM_DEFAULT: src/icefarm/worker/firmware/default/build/default_firmware.uf2
       ICEFARM_PULSE_COUNT: src/icefarm/worker/firmware/pulse_count/build/bitstream_over_usb.uf2
+      ICEFARM_MULTI_PULSE_COUNT: src/icefarm/worker/firmware/multi_pulse_count/build/bitstream_over_usb.uf2
       ICEFARM_VARIANCE: src/icefarm/worker/firmware/variance/build/variance_firmware.uf2
 
     command: [".venv/bin/uvicorn", "icefarm.worker.app:run_uvicorn", "--env-file", ".uvicorn_env_bridge", "--port", "8081", "--factory", "--host", "0.0.0.0"]

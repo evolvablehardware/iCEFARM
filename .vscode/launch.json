@@ -36,6 +36,7 @@
                 "ICEFARM_CONTROL_SERVER": "http://localhost:8080",
                 "ICEFARM_DEFAULT": "firmware/default/build/default_firmware.uf2",
                 "ICEFARM_PULSE_COUNT": "firmware/pulse_count/build/bitstream_over_usb.uf2",
+                "ICEFARM_MULTI_PULSE_COUNT": "firmware/multi_pulse_count/build/bitstream_over_usb.uf2",
                 "ICEFARM_VARIANCE": "firmware/variance/build/variance_firmware.uf2"
             },
             // TODO
@@ -57,6 +58,7 @@
                 "ICEFARM_CONTROL_SERVER": "http://localhost:8080",
                 "ICEFARM_DEFAULT": "firmware/default/build/default_firmware.uf2",
                 "ICEFARM_PULSE_COUNT": "firmware/pulse_count/build/bitstream_over_usb.uf2",
+                "ICEFARM_MULTI_PULSE_COUNT": "firmware/multi_pulse_count/build/bitstream_over_usb.uf2",
                 "ICEFARM_VARIANCE": "firmware/variance/build/variance_firmware.uf2"
             },
             // TODO

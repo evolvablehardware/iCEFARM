@@ -1,0 +1,17 @@
+.program count_pulses_21
+
+start21:
+
+wait 0 gpio 26;
+wait 1 gpio 26;
+jmp X-- start21;
+jmp start21;
+
+.program count_pulses_25
+
+start25:
+
+wait 0 gpio 20;
+wait 1 gpio 20;
+jmp X-- start25;
+jmp start25;

@@ -24,6 +24,10 @@ WORKDIR /usr/local/firmware/pulse_count/build
 RUN cmake -DPICO_BOARD=pico2_ice ..
 RUN make
 
+WORKDIR /usr/local/firmware/multi_pulse_count/build
+RUN cmake -DPICO_BOARD=pico2_ice ..
+RUN make
+
 WORKDIR /usr/local/firmware/default/build
 RUN cmake -DPICO_BOARD=pico2_ice ..
 RUN make
@@ -58,6 +62,7 @@ COPY --from=picocom-builder /usr/local/build/picocom/picocom /usr/bin
 RUN mkdir /usr/local/app/src/icefarm/worker/firmware
 COPY --from=firmware-builder /usr/local/firmware/default/build/default_firmware.uf2 /usr/local/app/src/icefarm/worker/firmware/default/build/default_firmware.uf2
 COPY --from=firmware-builder /usr/local/firmware/pulse_count/build/bitstream_over_usb.uf2 /usr/local/app/src/icefarm/worker/firmware/pulse_count/build/bitstream_over_usb.uf2
+COPY --from=firmware-builder /usr/local/firmware/multi_pulse_count/build/bitstream_over_usb.uf2 /usr/local/app/src/icefarm/worker/firmware/multi_pulse_count/build/bitstream_over_usb.uf2
 COPY --from=firmware-builder /usr/local/firmware/variance/build/variance_firmware.uf2 /usr/local/app/src/icefarm/worker/firmware/variance/build/variance_firmware.uf2
 
 WORKDIR /usr/local/app
