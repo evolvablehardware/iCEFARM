@@ -2,8 +2,8 @@
 
 start21:
 
-wait 0 gpio 26;
-wait 1 gpio 26;
+wait 0 gpio 28;
+wait 1 gpio 28;
 jmp X-- start21;
 jmp start21;
 
@@ -11,7 +11,7 @@ jmp start21;
 
 start25:
 
-wait 0 gpio 20;
-wait 1 gpio 20;
+wait 0 gpio 26;
+wait 1 gpio 26;
 jmp X-- start25;
 jmp start25;

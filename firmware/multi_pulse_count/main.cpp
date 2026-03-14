@@ -46,8 +46,8 @@ uint32_t numReceivedBitstreamBytes = 0;
 #define FPGA_DATA pico2_fpga
 #endif
 
-#define ICE_21 26
-#define ICE_25 20
+#define ICE_21 28
+#define ICE_25 26
 
 enum STATES
 {

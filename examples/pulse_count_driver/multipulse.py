@@ -20,9 +20,8 @@ EVALUATE_EACH = True
 # Whether to log all data received from workers/control
 EVENT_LOGGING = True
 # Paths to bin circuits to evaluate, circuits are evaluated for 1s.
-BITSTREAM_PATHS = ["examples/pulse_count_driver/precompiled_circuits/pin21.bin",
-                   "examples/pulse_count_driver/precompiled_circuits/pin27.bin",
-                   "examples/pulse_count_driver/precompiled_circuits/pin21and27.bin",
+BITSTREAM_PATHS = [
+                   "examples/pulse_count_driver/precompiled_circuits/pin9and21.bin"
                    ]
 
 # Target kHz of circuits. These circuits will be automatically generated, compiled, and evaluated.
