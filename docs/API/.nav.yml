@@ -17,11 +17,10 @@ sort:
 
 nav: 
   - Overview: index.md
-  - communication.md
-  - development_setup.md
-  - distribution.md
-  - index.md
   - overview.md
+  - development_setup.md
+  - communication.md
+  - distribution.md
   - states.md
 
 # If false, the above tree is all that is shown at this level of the directory structure.

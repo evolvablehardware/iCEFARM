@@ -91,6 +91,7 @@ chmod +x build.sh
 
 ## Configuration
 For the control server:
+
 | Environment Variable | Description | Default |
 |----------------------|-------------|---------|
 |ICEFARM_DATABASE|[psycopg connection string](https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING)| required |
@@ -101,6 +102,7 @@ Configuration for the worker can be done using environment variables or a toml f
 sudo ICEFARM_DATABASE="$ICEFARM_DATABASE ICEFARM_WORKER_CONFIG=$ICEFARM_WORKER_CONFIG [command]
 ```
 This may also be done with the -E flag, but this is not supported on all systems.
+
 | Environment Variable | Description | Default |
 |----------------------|-------------|---------|
 | ICEFARM_WORKER_CONFIG | Path to config file | None|

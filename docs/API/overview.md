@@ -19,4 +19,5 @@ The core of the client is the event server. This event server is in change of li
 
 A separate client interface is made for each device state, and a single device state may have multiple different clients for different situations. The client lib contains a base for each device state, which includes an event handler stub. An example of this is the [pulse count state](./src/icefarm/client/lib/pulsecount.py), which contains an event hook for once the bitstreams have been evaluated. In addition, an API for interacting with methods that the state has made available for web interfacing is included. Continuing with the pulse count example, the client can first use *reserve* to obtain a device, then call *evaluate* to queue a bitstream for evaluation. Once the device state has finished measuring the amount of pulses, it sends a request to the event server of the client. The event server then routes the request into the *results* method on the event handler.
 
-# TODO provide file annotations
+!!! todo
+    Provide file annotations

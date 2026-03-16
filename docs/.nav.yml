@@ -18,6 +18,7 @@ sort:
 nav: 
   - Overview: index.md
   - API: API
+  - Contribute: Contributing
 
 # If false, the above tree is all that is shown at this level of the directory structure.
 append_unmatched: false 

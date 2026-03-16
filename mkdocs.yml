@@ -1,15 +1,15 @@
-site_name: Evolvable Hardware
-site_description: Research and development in evolvable hardware systems
+site_name: iCEFARM
+site_description: A tool to run evolution experiments on multiple icesticks.
 site_author: Evolvable Hardware Community
 #site_url: https://evolvablehardware.org
 
 # Repository - This creates the image in the top right corner that directs you to the code directory
-#repo_name: evolvablehardware #/evolvablehardware.github.io
-#repo_url: https://github.com/evolvablehardware #/evolvablehardware.github.io
+repo_name: iCEFARM #/evolvablehardware.github.io
+repo_url: https://github.com/evolvablehardware/iCEFARM #/evolvablehardware.github.io
 
 
 # Copyright
-#copyright: Copyright &copy; 2025 Evolvable Hardware Community
+copyright: Copyright &copy; 2026 Evolvable Hardware Community
 
 # Configuration
 theme:
@@ -156,11 +156,8 @@ markdown_extensions:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/evolvablehardware
+      link: https://github.com/evolvablehardware/iCEFARM
       name: Evolvable Hardware GitHub
-    - icon: fontawesome/solid/paper-plane
-      link: mailto:derek.whitley1@gmail.com
-      name: Message the Evolvable Hardware Email
     - icon: fontawesome/brands/discord
       link: https://discord.gg/q7xKAfKm6m
       name: Join the EHW Discord!
@@ -170,8 +167,8 @@ extra:
   #   property: !ENV GOOGLE_ANALYTICS_KEY
   generator: false #Get rid of "Made by MkDocs on the bottom of the page"
 
-# extra_css:
-#   - stylesheets/extra.css
+extra_css:
+  - stylesheets/extra.css
 
 # extra_javascript:
 #   - javascripts/mathjax.js

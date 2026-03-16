@@ -169,7 +169,10 @@ class PrintClient(PrintBaseClient):
 ```
 
 ### Batching experiment requests
-# TODO going to make this simpler to implement, incomplete for now
+
+!!! todo
+    going to make this simpler to implement, incomplete for now
+
 This assumes that the device state has the ability to queue experiment requests as described in the design [guidelines](#design-guidelines). In addition, the evaluation method needs to take an identifier that is sent back with the experiment results.
 
 When sending experiment evaluations, it is ideal that the experiment queue is always populated, as this reduces downtime. However, we also don't want to send everything at once, as this may overwhelm the system. The solution to is to monitor the amount of evaluations left in the queue by counting the number of results received by the client, and only sending new evaluations when the queue is nearing empty. The ```icefarm.client.lib.BatchRequest``` module provides tools to implement this.

@@ -1,5 +1,7 @@
 # Communication Protocol
+
 The control server contains the following http endpoints:
+
 | Path | Arguments (json) | Description |
 |------|------------------|-------------|
 | / | None | Web debug panel |
@@ -17,12 +19,13 @@ The control server contains the following http endpoints:
 The control server also accepts websocket connections and informs connected clients of certain events when they take place. This includes updates on reservation statuses and notifications when devices become available for reservation.
 
 While the workers contain http endpoints, these are not called directly by clients:
+
 | Path | Arguments (json) | Description |
 |------|------------------|-------------|
 | /heartbeat | None | Called periodically. |
 | /reserve | serial, kind, args | Initializes a device to be ready to client usage. |
 | /reboot | serial | Sends a reboot command to the device state. The device will attempt to recover from a malfunctioning state while preserving client data. |
-| /delete | serial | Removes device from internal datastructure. If the device is still connected, the worker will add it back to the system then attempt to flash it to the default firmware.
+| /delete | serial | Removes device from internal datastructure. If the device is still connected, the worker will add it back to the system then attempt to flash it to the default firmware. |
 
 The majority of worker communication is done through a websocket.
 ### Exposing Device States
