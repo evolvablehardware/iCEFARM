@@ -24,7 +24,7 @@ sudo usermod -aG docker $USERNAME
 newgrp docker
 ```
 
-Build the iCEFARM image. You may skip this step and the image will automatically download from [DockerHub](https://hub.docker.com/r/evolvablehardware/icefarm).
+Build the iCEFARM image. ~~You may skip this step and the image will automatically download from [DockerHub](https://hub.docker.com/r/evolvablehardware/icefarm)~~ (for now just build the image, investigating issue with dockerhub images).
 ```
 docker build -f docker/Dockerfile -t evolvablehardware/icefarm:all .
 ```
