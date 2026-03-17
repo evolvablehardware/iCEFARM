@@ -1,0 +1,176 @@
+site_name: iCEFARM
+site_description: A tool to run evolution experiments on multiple icesticks.
+site_author: Evolvable Hardware Community
+#site_url: https://evolvablehardware.org
+
+# Repository - This creates the image in the top right corner that directs you to the code directory
+repo_name: iCEFARM #/evolvablehardware.github.io
+repo_url: https://github.com/evolvablehardware/iCEFARM #/evolvablehardware.github.io
+
+
+# Copyright
+copyright: Copyright &copy; 2026 Evolvable Hardware Community
+
+# Configuration
+theme:
+  name: material
+
+  logo: assets/favicon.png
+  favicon: assets/favicon.png
+
+  language: en
+    # If we implement this documentation in multiple languages, look into doing this: https://mrkeo.github.io/setup/changing-the-language/#site-language-selector
+
+  
+  # Static files
+  static_templates:
+    - 404.html
+  
+  # Customization
+  palette:
+    - scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  
+  font:
+    text: Roboto
+    code: Roboto Mono
+  
+  features:
+    # Useful Link: https://mrkeo.github.io/setup/setting-up-navigation/#table-of-contents
+    # Defining how tabs behave
+    #- navigation.sections
+    - navigation.tabs
+    #- navigation.tabs.sticky   #                                       | Hide navigation tabs as you scroll down.
+
+
+    # Defining Navigation & Table Of Contents
+    - toc.follow
+    #- toc.integrate            # Not compatable with navigation.indexes  | I think this makes the left bar too crowded and discourages thuroughly describing text. It also obfuscates where files start and end.
+    #- navigation.expand        #                                         | If included this auto-opens all tabs
+    - navigation.indexes        # Not Compatable with toc.integrate       | This allows you to create index.md pages that you enter when you click on a group of pages
+    #- navigation.tracking
+    - navigation.instant        #                                         | This adjusts how the page loads to better handle large documentation blocks
+    #- navigation.top            #                                         | If you have a long file, this allows you to 
+    - navigation.path           #                                         | Displays the path to a page before a pae
+    #- navigation.prune         #                                         | Performance improvement for large pages with many links.
+    #- navigation.footer
+
+    #- header.autohide
+
+    # Search
+    - search.highlight
+    - search.share        # Lets you share your current search.
+    - search.suggest
+    
+    # Content Settings
+    - content.code.annotate
+    - content.code.copy
+    - content.tabs.link
+
+# Plugins
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+      #prebuild_index: true #look into if this site gets really big.
+  - awesome-nav
+  - redirects: # https://github.com/mkdocs/mkdocs-redirects
+      redirect_maps: {}
+  - minify: 
+      minify_html: true
+  - git-revision-date-localized: #This creates the little markers on the bottom of the page for when it was last uploaded.
+      enabled: true
+      type: timeago
+      enable_creation_date: true
+      fallback_to_build_date: true
+
+# Extensions
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - meta
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: evolvablehardware
+      repo: evolvablehardware.github.io
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      # The following three lines make the titles for tabbed sections easy to link to.
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.blocks.caption # Enables slash caption syntax
+  - pymdownx.blocks.html #enable nicer injection of html elements into markdown 
+
+
+
+
+# Page tree
+# Because we are using mkdocs-awesome-nav this is ignored and replaced with .nav.
+# For more info, see: https://lukasgeiter.github.io/mkdocs-awesome-nav/reference/
+#     This is applied to each directory, so the file depicted specifies the nav tree at that location and below.
+#nav:
+
+
+# Extra
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/evolvablehardware/iCEFARM
+      name: Evolvable Hardware GitHub
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/q7xKAfKm6m
+      name: Join the EHW Discord!
+  # TODO: Look into adding 
+  # analytics:
+  #   provider: google
+  #   property: !ENV GOOGLE_ANALYTICS_KEY
+  generator: false #Get rid of "Made by MkDocs on the bottom of the page"
+
+extra_css:
+  - stylesheets/extra.css
+
+# extra_javascript:
+#   - javascripts/mathjax.js
+#   - https://polyfill.io/v3/polyfill.min.js?features=es6
+#   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

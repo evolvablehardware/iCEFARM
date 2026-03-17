@@ -16,3 +16,5 @@ examples/pulse_count_driver/build
 icefarm.egg-info
 dist
 pico2-ice-docs/
+
+site
