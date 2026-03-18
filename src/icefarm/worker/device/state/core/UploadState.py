@@ -202,8 +202,8 @@ class UploadState(AbstractState):
             state = UploadState(self.device, self.parser, self.reboot_firmware_path, logger_postfix=self.logger_postfix, flush_at_bitstreams_remaining=self.flush_at_bitstreams_remaining, flush_interval_seconds=self.flush_interval_seconds)
             state.results = self.results
             state.bitstream_queue = self.bitstream_queue
-            if self.bitstream:
-                state.bitstream_queue.append(self.bitstream)
+            if self.current_bitstream:
+                state.bitstream_queue.append(self.current_bitstream)
             return state
 
         flasher = lambda : FlashState(self.device, self.reboot_firmware_path, transfer_bitstreams)

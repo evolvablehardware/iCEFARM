@@ -171,5 +171,7 @@ class BaseAPI:
 
         return json
 
-    def reboot(self, serial, timeout=30) -> bool:
-        raise NotImplementedError
+    def reboot(self, serials: list[str]) -> bool:
+        return self.requestControl("reboot", {
+            "serials": serials
+        })
