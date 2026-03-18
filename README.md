@@ -107,6 +107,8 @@ Average latency: 0.87
 ```
 There will be a small difference in the amount of pulses received between runs. This is because there is a small variance between when the fpga is finished flashing and when the pulse counter starts. The latency represents any time not counting pulses, including flashing (circuits are evaluated for 1 second each). With a small number of circuits the latency is quite high, but with 50 circuits the average latency should be reduced to about 0.24s. This [example](./examples/pulse_count_driver/pulse.py) contains parameters in the script that can be modified.
 
+When a script using iCEFARM exists or is interrupted, devices that have been reserved for usage are automatically made available again. This relies on being able to perform actions after the script has been shutdown. As long as an interrupt is done with SIGINT (`<Ctrl-c>`), this will work normally. However, some things such as the Vscode python debugger's stop button use SIGTERM instead. This immediately terminates the script causing devices to remain reserved. If this happens, you can use the iCEFARM debug panel to manually end device reservations. In addition, reservations are ended automatically after an hour of inactivity.
+
 Stop the stack, this will shutdown the iCEFARM system:
 ```bash
 docker compose -f docker/compose.yml down
