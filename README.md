@@ -78,16 +78,40 @@ Install iCEFARM as a package locally. This allows changes to the package to auto
 ```bash
 pip install -e .
 ```
-The package can also be alternatively installed from [pypi](https://pypi.org/project/icefarm/). Run the example:
+The package can also be alternatively installed from [pypi](https://pypi.org/project/icefarm/). Run an example that uploads pulse generating circuits to a pulse counting firmware:
 ```bash
 python examples/pulse_count_driver/pulse.py
 ```
+Approximate output:
+```
+[EventServer] [socket@http://localhost:8080] connected
+2 available devices for reservation.
+Reserving devices. This may take up to 30 seconds.
+[EventServer] [socket@http://localhost:8081] connected
+[EventServer] [socket@http://localhost:8081] received initialized event
+Received event: initialized serial: 1B66CE91AB184A50 contents: {'event': 'initialized', 'serial': '1B66CE91AB184A50'}
+Reserved devices: ['1B66CE91AB184A50']
+Expected wait time: 4.20 seconds
+Sending bitstreams...
+[EventServer] [socket@http://localhost:8081] received results event
+Received event: results serial: 1B66CE91AB184A50 contents: {'results': [['9c7c301f-4e20-47d6-a458-f616743663a6', '1998'], ['66b02a50-f731-4413-be1a-9b4c9bad04d6', '7996'], ['d8da0321-5f5e-4dac-afee-ee5905271c8b', '31995']], 'batch_id': 'f37895eb-4426-4175-a11e-827a96200f77', 'event': 'results', 'serial': '1B66CE91AB184A50'}
+Serial 1B66CE91AB184A50, bitstream examples/pulse_count_driver/precompiled_circuits/circuit_generated_2Khz.bin, result 1998
+Serial 1B66CE91AB184A50, bitstream examples/pulse_count_driver/precompiled_circuits/circuit_generated_8Khz.bin, result 7996
+Serial 1B66CE91AB184A50, bitstream examples/pulse_count_driver/precompiled_circuits/circuit_generated_32Khz.bin, result 31995
+Total elapsed evaluation time: 5.62
+Average circuit evaluation time: 1.87
+Total latency: 2.62
+Average latency: 0.87
+[EventServer] [socket@http://localhost:8081] disconnected: client disconnect
+[EventServer] [socket@http://localhost:8080] received reservation end event
+```
+There will be a small difference in the amount of pulses received between runs. This is because there is a small variance between when the fpga is finished flashing and when the pulse counter starts. The latency represents any time not counting pulses, including flashing (circuits are evaluated for 1 second each). With a small number of circuits the latency is quite high, but with 50 circuits the average latency should be reduced to about 0.24s. This [example](./examples/pulse_count_driver/pulse.py) contains parameters in the script that can be modified.
 
-Stop the stack:
+Stop the stack, this will shutdown the iCEFARM system:
 ```bash
 docker compose -f docker/compose.yml down
 ```
-Note that just using ```ctrl+c``` will not fully shutdown the stack and the database state will persist between runs, which will create issues.
+Note that just using ```ctrl+c``` will not fully shutdown the stack and the database state will persist between runs, which will cause issues.
 
 ### Troubleshooting
 *Generally, most things by can be fixed by destroying the stack and starting it again*

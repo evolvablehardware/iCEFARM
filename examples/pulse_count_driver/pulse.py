@@ -27,6 +27,10 @@ BITSTREAM_PATHS = ["examples/pulse_count_driver/precompiled_circuits/circuit_gen
 # Usage requires yosys, nextpnr-ice40, and icepack. If you don't have these tools installed,
 # set this to [] and it will be ignored. The precompiled circuits are generated using this
 # and provided so that these tools are not required for testing.
+
+# NOTE: This method only uses 1 register to determine when to output a pulse,
+# this will have reduced accuracy as the amount of pulses increases. Units
+# are in Khz.
 # COMPILE_PULSES = [1, 2, 4, 16, 64]
 COMPILE_PULSES = []
 
