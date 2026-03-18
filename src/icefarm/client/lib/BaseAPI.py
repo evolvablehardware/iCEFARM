@@ -170,3 +170,6 @@ class BaseAPI:
             self.removeSerial(serial)
 
         return json
+
+    def reboot(self, serial, timeout=30) -> bool:
+        raise NotImplementedError

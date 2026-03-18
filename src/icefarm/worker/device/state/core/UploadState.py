@@ -76,7 +76,7 @@ class UploadState(AbstractState):
         self.ser = self.connectSerial()
         if self.ser is None:
             return
-        self.reader = Reader(self.ser, self.parser)
+        self.reader = Reader(self.ser, self.parser, self.logger)
         self.sender = UploadEventSender(self.device_event_sender)
 
         self.exiting = False
@@ -209,13 +209,14 @@ class UploadState(AbstractState):
         flasher = lambda : FlashState(self.device, self.reboot_firmware_path, transfer_bitstreams)
         self.switch(flasher)
 class Reader:
-    def __init__(self, port: serial.Serial, parser: Callable[[str], Any]):
+    def __init__(self, port: serial.Serial, parser: Callable[[str], Any], logger):
         self.port = port
         self.parser = parser
         self.cv = threading.Condition()
         self.ready = True
         self.last_result = None
         self.exiting = False
+        self.logger = logger
 
         self.thread = threading.Thread(target=self.read, daemon=True)
         self.thread.start()
@@ -223,36 +224,41 @@ class Reader:
     def read(self):
         last_read = ""
         while True:
-            while self.port.is_open and not self.exiting and "\\r\\n" not in last_read:
-                if (data := self.port.read(self.port.in_waiting or 1)):
-                    last_read += str(data)[2:-1]
+            try:
+                while self.port.is_open and not self.exiting and "\\r\\n" not in last_read:
+                    if (data := self.port.read(self.port.in_waiting or 1)):
+                        last_read += str(data)[2:-1]
 
-            if "\\r\\n" not in last_read:
-                break
+                if "\\r\\n" not in last_read:
+                    break
 
-            line = last_read[:last_read.index("\\r\\n")]
-            last_read = last_read[last_read.index("\\r\\n") + 4:]
+                line = last_read[:last_read.index("\\r\\n")]
+                last_read = last_read[last_read.index("\\r\\n") + 4:]
 
-            results = self.parser(line)
-            if results:
-                with self.cv:
-                    self.last_result = results
-                    self.cv.notify_all()
+                results = self.parser(line)
+                if results:
+                    with self.cv:
+                        self.last_result = results
+                        self.cv.notify_all()
 
-            timeout = re.search("Watchdog timeout", line)
-            if timeout:
-                with self.cv:
-                    self.last_result = False
-                    self.cv.notify_all()
+                timeout = re.search("Watchdog timeout", line)
+                if timeout:
+                    with self.cv:
+                        self.last_result = False
+                        self.cv.notify_all()
 
-            wait = re.search("Waiting for bitstream transfer", line)
-            if wait:
-                with self.cv:
-                    self.ready = True
-                    self.cv.notify_all()
+                wait = re.search("Waiting for bitstream transfer", line)
+                if wait:
+                    with self.cv:
+                        self.ready = True
+                        self.cv.notify_all()
 
-            if self.exiting:
-                return
+                if self.exiting:
+                    return
+
+            except Exception as e:
+                # TODO handle this better
+                self.logger.error(f"Exception during read: {e}")
 
     def waitUntilReady(self):
         with self.cv:
