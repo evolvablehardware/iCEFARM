@@ -7,38 +7,53 @@ If you have access to an existing iCEFARM server, you do not need to do this. Se
 The picos need to be prepared by flashing firmware that is tinyusb enabled and being plugged in. The [rp2_hello_world](https://github.com/tinyvision-ai-inc/pico-ice-sdk/tree/main/examples/rp2_hello_world) example from the pico-ice-sdk works for this purpose. Picos can also be plugged into an iCEFARM system once it is already running.
 
 Sometimes other packages can take control of the devices after they are plugged in. Verify that the dev files are present:
-```ls /dev | grep ACM```
+```bash
+ls /dev | grep ACM
+```
+Example output:
+```
+ttyACM0
+```
+
 There should be one `ACM` device per pico when running the `rp2_hello_world` firmware.
 
-Here are known problematic packages may need to be removed:
+Here are known problematic packages that may need to be removed:
 - brltty
 - modemmanager
 
-If the devices still do not show up, examine dmesg output:
-```sudo dmesg```
+Ensure that the usb cable is not power only. The `lsusb` command is useful to detect connected devices while `dmesg` provides a detailed log that can be used to determine problematic packages.
 
-If it is not yet installed, install [Docker Engine](https://docs.docker.com/engine/install/). Follow the [post installation steps](https://docs.docker.com/engine/install/linux-postinstall/) so that you do not need to use sudo. Included below:
-```
+If it is not yet installed, install [Docker Engine](https://docs.docker.com/engine/install/). You may follow the [post installation steps](https://docs.docker.com/engine/install/linux-postinstall/) so that you do not need to use sudo, but note that this does enable privilege escalation. Included below:
+```bash
 sudo usermod -aG docker $USERNAME
 #new shell or log out and then login
 newgrp docker
 ```
 
-Build the image. You may skip this step and the image will automatically download from [DockerHub](https://hub.docker.com/r/evolvablehardware/icefarm).
-```
+Build the iCEFARM image. You may skip this step and the image will automatically download from [DockerHub](https://hub.docker.com/r/evolvablehardware/icefarm).
+```bash
 docker build -f docker/Dockerfile -t evolvablehardware/icefarm:all .
 ```
-A compose file provided, start the stack:
+
+If you do choose to skip this step, note that provided image does not automatically update after it is downloaded. In order to update the image in the future, it can be manually pulled:
+```bash
+docker pull evolvablehardware/icefarm:all
 ```
+
+A docker compose file is provided, which allows the iCEFARM system to be quickly deployed. Start the iCEFARM system:
+```bash
 docker compose -f docker/compose.yml up
 ```
-This runs:
-- iCEFARM control server on port 8080
-- iCEFARM worker on port 8081
-- Postgres database on port 5433 and applies database migrations
+When you first start the stack, you should see a container named similarly to `db-1` start up. Afterwards, a container named similarly to `flyway-1` will start and then exit. Finally, the main iCEFARM `worker-1` and `control-1` containers will start.
 
-If there is unexpected behavior, check the [troubleshooting](#troubleshooting) section.
-Approximate output from worker, assuming one device is plugged in:
+You should see periodic pings between the control and worker:
+```
+worker-1   | INFO:     127.0.0.1:41132 - "GET /heartbeat HTTP/1.1" 200 OK
+control-1  | [Control] [Heartbeat] heartbeat success for host_worker
+```
+
+You should also see a series of logs related to flashing any connected pico2ices. The actual output might not look like this exactly, but the device should eventually reach the `ReadyState`. There may be additional lines in between, and the `/dev` path may be different. There may also be multiple bootloader signals sent. If you have more than once device connected, you should see a variation of this output for each device, with the exception of the first and last lines.
+
 ```
 [DeviceManager] Scanning for devices
 [DeviceManager] [{SERIAL}] [FlashState] state is now FlashState
@@ -47,30 +62,61 @@ Approximate output from worker, assuming one device is plugged in:
 [DeviceManager] [{SERIAL}] [ReadyState] state is now ReadyState
 [DeviceManager] Finished scan
 ```
-Note that the order and dev files will vary. In some situations there may be multiple bootloader signals sent. Confirm that the device has been added to the database:
-Navigate to the debug dashboard to verify everything is working properly:
-```
-http://localhost:8080
-```
-One worker should be shown. Each pico that is plugged in should also appear, with its status displayed as ```available```.
-The dashboard includes an overview of the system state, along with some actions. The end reservation action removes a devices reservation. The reboot action sends a reboot signal to the devices state object. In the case of the pulse count state, this means attempting to flash the device with the pulse count firmware and opening a new serial port. The delete action effectively flashes the device to the default firmware. Note that this should only be done if the device is not reserved.
 
-The [pulse count example client](./examples/pulse_count_driver/main.py) can now be run. Verify that iCEFARM is setup properly by installing the client and running the example:
-```
+There is a debug panel by located at ```http://localhost:8080``` by default. You should see a single worker listed, as well as an amount of available devices equal to the amount plugged in. The panel contains a variety of useful actions, but mostly the end reservation option. Sometimes devices may get stuck in a reserved state, which will result an error mentioning not enough devices available when running the client. This will mark the device as available again. In addition, the reboot option can be used to attempt to fix a malfunctioning device without interrupting an ongoing reservation.
+
+If there is unexpected behavior, check the [troubleshooting](#troubleshooting) section.
+
+The [pulse count example client](./examples/pulse_count_driver/pulse.py) can now be run. This uses the client to upload a 2Khz, 8Khz, and 32Khz circuit which iCEFARM measures the pulses of. Note that the exact amount of pulses reported may differ a few between runs. See the script itself for additional configuration options, such as compiling and evaluating arbitrary pulse circuits. At least python 3.12 should be used.
+
+Start by creating a python venv:
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
+```
+Install iCEFARM as a package locally. This allows changes to the package to automatically be applied without having to repackage and install after each modification.
+```bash
 pip install -e .
-python examples/pulse_count_driver/main.py
 ```
+The package can also be alternatively installed from [pypi](https://pypi.org/project/icefarm/). Run an example that uploads pulse generating circuits to a pulse counting firmware:
+```bash
+python examples/pulse_count_driver/pulse.py
+```
+Approximate output:
+```
+[EventServer] [socket@http://localhost:8080] connected
+2 available devices for reservation.
+Reserving devices. This may take up to 30 seconds.
+[EventServer] [socket@http://localhost:8081] connected
+[EventServer] [socket@http://localhost:8081] received initialized event
+Received event: initialized serial: 1B66CE91AB184A50 contents: {'event': 'initialized', 'serial': '1B66CE91AB184A50'}
+Reserved devices: ['1B66CE91AB184A50']
+Expected wait time: 4.20 seconds
+Sending bitstreams...
+[EventServer] [socket@http://localhost:8081] received results event
+Received event: results serial: 1B66CE91AB184A50 contents: {'results': [['9c7c301f-4e20-47d6-a458-f616743663a6', '1998'], ['66b02a50-f731-4413-be1a-9b4c9bad04d6', '7996'], ['d8da0321-5f5e-4dac-afee-ee5905271c8b', '31995']], 'batch_id': 'f37895eb-4426-4175-a11e-827a96200f77', 'event': 'results', 'serial': '1B66CE91AB184A50'}
+Serial 1B66CE91AB184A50, bitstream examples/pulse_count_driver/precompiled_circuits/circuit_generated_2Khz.bin, result 1998
+Serial 1B66CE91AB184A50, bitstream examples/pulse_count_driver/precompiled_circuits/circuit_generated_8Khz.bin, result 7996
+Serial 1B66CE91AB184A50, bitstream examples/pulse_count_driver/precompiled_circuits/circuit_generated_32Khz.bin, result 31995
+Total elapsed evaluation time: 5.62
+Average circuit evaluation time: 1.87
+Total latency: 2.62
+Average latency: 0.87
+[EventServer] [socket@http://localhost:8081] disconnected: client disconnect
+[EventServer] [socket@http://localhost:8080] received reservation end event
+```
+There will be a small difference in the amount of pulses received between runs. This is because there is a small variance between when the fpga is finished flashing and when the pulse counter starts. The latency represents any time not counting pulses, including flashing (circuits are evaluated for 1 second each). With a small number of circuits the latency is quite high, but with 50 circuits the average latency should be reduced to about 0.24s. This [example](./examples/pulse_count_driver/pulse.py) contains parameters in the script that can be modified.
 
-Stop the stack:
-```
+When a script using iCEFARM exists or is interrupted, devices that have been reserved for usage are automatically made available again. This relies on being able to perform actions after the script has been shutdown. As long as an interrupt is done with SIGINT (`<Ctrl-c>`), this will work normally. However, some things such as the Vscode python debugger's stop button use SIGTERM instead. This immediately terminates the script causing devices to remain reserved. If this happens, you can use the iCEFARM debug panel to manually end device reservations. In addition, reservations are ended automatically after an hour of inactivity.
+
+Stop the stack, this will shutdown the iCEFARM system:
+```bash
 docker compose -f docker/compose.yml down
 ```
-Note that just using ```ctrl+c``` will not fully shutdown the stack and the database state will persist between runs, which will create issues.
+Note that just using ```ctrl+c``` will not fully shutdown the stack and the database state will persist between runs, which will cause issues.
 
 ### Troubleshooting
-*Generally, most things by destroying the stack and starting it again*
+*Generally, most things by can be fixed by destroying the stack and starting it again*
 #### Pico Light Status
 Green: initialized
 Blinking green: waiting for bitstream
@@ -81,23 +127,47 @@ Blinking red: usb disconnected
 
 #### Accessing Logs
 First, find the name of the worker and control container:
-```docker container ls```
+```bash
+docker container ls -a
+```
 These are typically named `docker-worker-1` and `docker-control-1`.
 Getting logs:
-```
+```bash
 docker logs <worker name>
 docker logs <control name>
 ```
 
 #### Device goes to BrokenState
-This can happen occasionally even if everything is set up correctly. Restart the stack and replug the device in. If it happens again, it's probably a configuration error. Verify that you are able to manually flash firmware on to the device with a baud 1200 compatible firmware:
+This can happen occasionally even if everything is set up correctly. Restart the stack and plug the device in again. If it happens again, verify that you are able to manually flash firmware on to the device. First, install [picocom](https://github.com/npat-efault/picocom)
+Find the device file of the broken device:
+```
+ls /dev | grep ACM
+```
+The device should show up with a name similar to `ttyACM0`. If you are using multiple devices, you can use `udevadm info` on each dev file to view their serial id and find the one that matches the problematic one.
+Once you find the device, it will enter bootloader mode by connecting with a 1200 baud rate.
 ```
 sudo picocom --baud 1200 /dev/ttyACM0
-sudo mount /dev/sda1 [mount_location]
-sudo cp [firmware_location] [mount_location]
-sudo umount [mount_location]
 ```
-Note that you will have to wait between commands for the device to respond, and that the exact device path may be different.
+The device will now be mountable as a disk. It should show up with the format `/dev/sd[a-z][1-9]`. Locate the dev file:
+```bash
+ls /dev | grep sd
+```
+Create a new folder and mount the disk to it:
+```bash
+mkdir mount_dir
+sudo mount /dev/sda1 mount_dir
+```
+Copy the `rp2_hello_world` firmware used earlier onto the device. Once the device is unmounted, it will reboot.
+```bash
+sudo cp [firmware_location] mount_dir
+sudo umount mount_dir
+```
+Confirm that the firmware was uploaded successfully by connecting to the device. Find the dev file and connect to it with picocom:
+```bash
+ls /dev | grep ACM
+sudo picocom /dev/ttyACM0
+```
+If done correctly, you should see a ```hello world``` message printed repeatedly. You can use `<Ctrl-a>` then `<Ctrl-q>` to exit picocom.
 
 ## Client Usage
 Install the package:
@@ -107,12 +177,12 @@ pip install icefarm
 
 Create a client:
 ```python
-from logging
-from icefarm.client.lib.drivers import PulseCountClient
+import logging
+from icefarm.client.drivers import PulseCountClient
 ICEFARM_SERVER = "http://localhost:8080"
 CLIENT_NAME = "example icefarm client"
 
-client = PulseCountClient(ICEFARM_SERVER, CLIENT_NAME, logging.getLogger(__name __))
+client = PulseCountClient(ICEFARM_SERVER, CLIENT_NAME, logging.getLogger(__name__))
 ```
 If you are running the iCEFARM system through docker compose, the main server defaults to port ```8080```. The client name should be unique across all of the system users. Next, reserve a pico2ice from the system:
 ```python
@@ -131,7 +201,10 @@ serial_id = client.getSerials()[0]
 ```
 The simplest way to evaluate bitstreams is to use the evaluateBitstreams method, but this does not offer much flexibility.
 ```python
-CIRCUITS = ["example1.asc", "example2.asc"]
+CIRCUITS = ["examples/pulse_count_driver/precompiled_circuits/circuit_generated_2Khz.bin",
+            "examples/pulse_count_driver/precompiled_circuits/circuit_generated_8Khz.bin",
+            "examples/pulse_count_driver/precompiled_circuits/circuit_generated_32Khz.bin"]
+
 for serial, filepath, pulses in client.evaluateBitstreams(CIRCUITS, serials=[serial_id]):
     print(f"Counted {pulses} pulses from circuit {filepath} on device {serial}!")
 ```
@@ -143,14 +216,15 @@ serials = client.getSerials()
 The PulseCountEvaluation class can be used to create more detailed instructions.
 ```python
 from icefarm.client.lib.pulsecount import PulseCountEvaluation
+
 commands = []
 
 # evaluate on both devices
-commands.append(PulseCountEvaluation(serials, "example1.asc"))
+commands.append(PulseCountEvaluation(serials, CIRCUITS[0]))
 # evaluate on first device
-commands.append(PulseCountEvaluation(serials[0], "example2.asc"))
+commands.append(PulseCountEvaluation([serials[0]], CIRCUITS[1]))
 # evaluate on second device
-commands.append(PulseCountEvaluation(serials[1], "example3.asc"))
+commands.append(PulseCountEvaluation([serials[1]], CIRCUITS[2]))
 ```
 
 Commands can be evaluated in a similar way to using the evaluateBitstreams method. The main difference is rather than returning a filepath in the iterator, the PulseCountEvaluation that created the result is returned.
@@ -159,13 +233,4 @@ for serial, evaluation, pulses in client.evaluateEvaluations(commands):
     print(f"Counted {pulses} pulses from circuit {evaluation.filepath} on device {serial}!")
 ```
 The same efficiency guidelines mentioned for evaluateBitstreams apply to evaluateEvaluations. In addition, if you have multiple sets of circuits that need to be evaluated on different devices, it is much faster to use a single evaluateEvaluations than to use multiple evaluateBitstream calls.
-Lastly, using multiple threads purely to call evaluate methods multiple times at once will not result in any speedup. This will likely result in slower evaluations as the client will not be able to dispatch commands optimally.
-See [examples](./examples/pulse_count_driver/main.py) for an additional example. Note that this is not included in the pip package.
-
-
-# Fixing a 'Stuck' Worker
-Under certain circumstances, there might be an error where a worker on the icefarm needs to be reset. In this case, run the following command if you are running docker container"
-
-```
-docker exec docker-db-1 psql -U postgres -p 5433 -c "DELETE FROM worker;"
-```
+Lastly, using multiple threads purely to call evaluate methods multiple times at once will not result in any speedup. This will likely result in slower evaluations as the client will not be able to dispatch commands optimally. See the [website](https://evolvablehardware.github.io/iCEFARM/) or docs folder for additional information about using and developing the client.

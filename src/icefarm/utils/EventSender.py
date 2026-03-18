@@ -165,7 +165,7 @@ class EventSender(Database):
 
         return self.sendClient(client_id, contents)
 
-    def sendAll(self, contents: dict):
+    def sendAllJson(self, contents: dict):
         if not (contents := self.__packageContents("meta", contents)):
             return False
 
