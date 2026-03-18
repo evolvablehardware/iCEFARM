@@ -133,6 +133,10 @@ class BaseClient(BaseAPI):
         self.eh.waitUntilInitilized(connected)
         return connected
 
+    def reboot(self, serials: list[str],):
+        super().reboot(serials)
+        self.eh.waitUntilInitilized(serials)
+
     def removeSerial(self, serial):
         conn_info = self.getConnectionInfo(serial)
         super().removeSerial(serial)
