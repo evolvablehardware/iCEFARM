@@ -17,14 +17,7 @@ class Control:
         self.database = ControlDatabase(database_url)
         self.logger = logger
 
-        def update_available(amount):
-            self.logger.debug(f"received notify for amount change: {amount}")
-            self.event_sender.sendAll({
-                "event": "devices_available",
-                "amount": amount
-            })
-
-        self.database.listenAvailable(update_available)
+        self.database.listenAvailable(self.event_sender.sendDevicesAvailableChange)
 
         def reservation_end(serial, client):
             self.logger.info(f"received notify for reservation end device {serial} client {client}")
@@ -94,10 +87,7 @@ class Control:
         # (e.g. devices already available, or no reservations existed).
         amount = self.database.getAmountAvailable()
         if amount is not False:
-            self.event_sender.sendAll({
-                "event": "devices_available",
-                "amount": amount
-            })
+            self.event_sender.sendDevicesAvailableChange(amount)
 
     def end(self, client_id: str, serials: list[str]) -> list[str]:
         data = self.database.end(client_id, serials)
