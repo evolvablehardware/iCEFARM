@@ -94,7 +94,7 @@ class AbstractBatchFactory(ABC):
     Produces batches for client consumption.
     """
     # this could be easily replaced with a bundle, not needed and complicated for now
-    def __init__(self, evaluations: list[Evaluation], batch_size: int, client: BaseClient, result_timeout=20, unreserve_on_timeout=True):
+    def __init__(self, evaluations: list[Evaluation], batch_size: int, client: BaseClient, result_timeout=None, unreserve_on_timeout=True):
         super().__init__()
         self.bundle = EvaluationBundle(evaluations, batch_size=batch_size)
         self.results: list[tuple[Evaluation, dict]] = []
@@ -138,8 +138,9 @@ class AbstractBatchFactory(ABC):
                 for evaluation in failed_evaluations:
                     self.processResult(*evaluation)
 
-        self.thread = threading.Thread(target=watch, name="batchfactory-watchdog", daemon=True)
-        self.thread.start()
+        if self.result_timeout:
+            self.thread = threading.Thread(target=watch, name="batchfactory-watchdog", daemon=True)
+            self.thread.start()
 
     def processResult(self, serial: str, evaluation_id: str, result: Any):
         with self.result_cv:
@@ -230,8 +231,8 @@ class BalancedBatchFactory(AbstractBatchFactory):
     waits until a threshold of results have been received
     before sending more batches.
     """
-    def __init__(self, evaluations, client, target_batches=4, batch_size=5):
-        super().__init__(evaluations, batch_size, client)
+    def __init__(self, evaluations, client, target_batches=4, batch_size=5, result_timeout=None):
+        super().__init__(evaluations, batch_size, client, result_timeout=result_timeout)
         self.target_batches = target_batches
 
     def _readyForBatch(self):
@@ -297,6 +298,6 @@ class BatchClient(BaseClient):
         del self.batch_factories[factory.bundle.id]
 
     #TODO switch this to just evaluate, requires bitstreamevo changes
-    def evaluateEvaluations(self, evaluations: List[Evaluation], batch_size=5, target_batches=2) -> Generator[tuple[str, Evaluation, Any]]:
-        return self._evaluateFactory(BalancedBatchFactory(evaluations, self, batch_size=batch_size, target_batches=target_batches))
+    def evaluateEvaluations(self, evaluations: List[Evaluation], result_timeout=30, batch_size=5, target_batches=2) -> Generator[tuple[str, Evaluation, Any]]:
+        return self._evaluateFactory(BalancedBatchFactory(evaluations, self, batch_size=batch_size, target_batches=target_batches, result_timeout=result_timeout))
 
