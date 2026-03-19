@@ -67,6 +67,11 @@ class UploadState(AbstractState):
         self.last_flush_time = time.time()
         self.flush_at_bitstreams_remaining = flush_at_bitstreams_remaining if flush_at_bitstreams_remaining else 0
         self.logger_postfix = logger_postfix
+        self.exiting = False
+        self.ser = None
+        self.reader = None
+        self.sender = None
+        self.thread = None
 
     def start(self):
         # ensure new ports show correctly
@@ -79,7 +84,6 @@ class UploadState(AbstractState):
         self.reader = Reader(self.ser, self.parser, self.logger)
         self.sender = UploadEventSender(self.device_event_sender)
 
-        self.exiting = False
         self.thread = threading.Thread(target=self.run)
         self.thread.start()
 
@@ -208,9 +212,12 @@ class UploadState(AbstractState):
         self.exiting = True
         with self.cv:
             self.cv.notify_all()
-        self.thread.join()
-        self.reader.exit()
-        self.ser.close()
+        if self.thread and self.thread.is_alive() and self.thread is not threading.current_thread():
+            self.thread.join()
+        if self.reader:
+            self.reader.exit()
+        if self.ser and self.ser.is_open:
+            self.ser.close()
 
     def reboot(self):
         self.handleExit()
@@ -221,8 +228,8 @@ class UploadState(AbstractState):
             state = UploadState(self.device, self.parser, self.reboot_firmware_path, logger_postfix=self.logger_postfix, flush_at_bitstreams_remaining=self.flush_at_bitstreams_remaining, flush_interval_seconds=self.flush_interval_seconds)
             state.results = self.results
             state.bitstream_queue = self.bitstream_queue
-            if self.current_bitstream:
-                state.bitstream_queue.append(self.current_bitstream)
+            if self.bitstream:
+                state.bitstream_queue.append(self.bitstream)
             return state
 
         flasher = lambda : FlashState(self.device, self.reboot_firmware_path, transfer_bitstreams)
