@@ -179,7 +179,7 @@ class AbstractBatchFactory(ABC):
         for serials, evaluations in batch.items():
             for serial in serials:
                 with self.result_cv:
-                    if serial not in self.serial_last_result:
+                    if serial not in self.awaiting_results:
                         self.serial_last_result[serial] = time.time()
 
                 if serial not in self.awaiting_results:
