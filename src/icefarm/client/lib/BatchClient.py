@@ -126,15 +126,14 @@ class AbstractBatchFactory(ABC):
 
                     for serial in newly_expired_serials:
                         self.client.logger.warning(f"timeout detected on device {serial} during evaluation, rebooting")
-                        if not self.client.reboot(serial):
+
+                    for serial in self.client.reboot(newly_expired_serials, timeout=30):
                             self.client.logger.error(f"device {serial} reboot failed, ending reservation")
                             self.client.end([serial])
                             self.broken_serials.add(serial)
 
                             for evaluation_id in self.awaiting_results[serial]:
                                 failed_evaluations.append((serial, evaluation_id, EvaluationFailed))
-                        else:
-                            self.client.logger.info(f"device {serial} reboot succeed")
 
                 for evaluation in failed_evaluations:
                     self.processResult(*evaluation)

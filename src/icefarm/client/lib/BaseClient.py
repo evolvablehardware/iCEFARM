@@ -3,6 +3,7 @@ from logging import Logger
 from typing import List
 from itertools import groupby
 import threading
+import time
 
 from icefarm.client.lib import BaseAPI, EventServer, AbstractEventHandler, register
 from icefarm.client.lib.utils import AvailabilityWaiter
@@ -36,8 +37,29 @@ class BaseClientEventHandler(AbstractEventHandler):
             if not self.awaiting_serials:
                 self.cond.notify_all()
 
-    def waitUntilInitilized(self, serials):
-        """Returns once 'initalized' events have been received for all the serials."""
+    def waitUntilInitilized(self, serials, timeout=None) -> list[str]:
+        """
+        Returns once 'initialized' events have been received for all the serials
+        or timeout has passed. Returns list of serials that have initialized.
+        """
+        starting_time = time.time()
+        def time_passed():
+            if not timeout:
+                return False
+
+            return starting_time + timeout < time.time()
+
+        timer = None
+        if timeout:
+            def cond_notify():
+                with self.cond:
+                    self.cond.notify_all()
+
+            timer = threading.Timer(timeout, cond_notify)
+            timer.daemon = True
+            timer.name = "client-waitUntilInitialized-timeout-detection"
+            timer.start()
+
         self.awaiting_serials = set(serials)
 
         with self.cond:
@@ -45,7 +67,11 @@ class BaseClientEventHandler(AbstractEventHandler):
                 self.awaiting_serials.pop(serial, None)
 
             if self.awaiting_serials:
-                self.cond.wait_for(lambda : not self.awaiting_serials)
+                self.cond.wait_for(lambda : not self.awaiting_serials or time_passed())
+
+        if timer:
+            timer.cancel()
+        return self.awaiting_serials
 
 class BaseClient(BaseAPI):
     """Stitches the iCEFARM control server API and EventServer together to enable full management of devices."""
@@ -133,9 +159,17 @@ class BaseClient(BaseAPI):
         self.eh.waitUntilInitilized(connected)
         return connected
 
-    def reboot(self, serials: list[str],):
+    def reboot(self, serials: list[str], timeout: int=None):
+        """
+        Reboots specified devices and waits until either all the devices
+        have been initilized or timeout. Returns any devices that have not
+        yet been initilized.
+        """
+        # TODO automatically remove serials from this after some time,
+        # not threadsafe currently
+        self.eh.recently_added_serials = []
         super().reboot(serials)
-        self.eh.waitUntilInitilized(serials)
+        return self.eh.waitUntilInitilized(serials, timeout=timeout)
 
     def removeSerial(self, serial):
         conn_info = self.getConnectionInfo(serial)
