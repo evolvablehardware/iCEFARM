@@ -25,7 +25,7 @@ Ensure that the usb cable is not power only. The `lsusb` command is useful to de
 
 If it is not yet installed, install [Docker Engine](https://docs.docker.com/engine/install/). You may follow the [post installation steps](https://docs.docker.com/engine/install/linux-postinstall/) so that you do not need to use sudo, but note that this does enable privilege escalation. Included below:
 ```bash
-sudo usermod -aG docker $USERNAME
+sudo usermod -aG docker $USER
 #new shell or log out and then login
 newgrp docker
 ```
