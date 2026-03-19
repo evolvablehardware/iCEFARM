@@ -153,15 +153,34 @@ class UploadState(AbstractState):
 
             self.logger.debug(f"uploading bitstream {self.bitstream.name}")
 
-            for i in range(0, data_len, CHUNK_SIZE):
-                chunk = data[i:i+CHUNK_SIZE]
-                self.ser.write(chunk)
-                self.ser.flush()
-                time.sleep(INTER_CHUNK_DELAY)
+            try:
+                for i in range(0, data_len, CHUNK_SIZE):
+                    chunk = data[i:i+CHUNK_SIZE]
+                    self.ser.write(chunk)
+                    self.ser.flush()
+                    time.sleep(INTER_CHUNK_DELAY)
+            except Exception:
+                with self.cv:
+                    self.bitstream_queue.append(self.bitstream)
+                self.logger.debug(f"failed to upload bitstream, {self.bitstream.name}, adding back to queue and rebooting")
+                self.reader.exit()
+                # TODO
+                # cant join current thread during reboot
+                threading.Thread(target=self.reboot, daemon=True, name="upload-state-rebooter").start()
+                return
 
             self.logger.debug("waiting for result")
 
-            result = self.reader.waitUntilPulse()
+            try:
+                result = self.reader.waitUntilPulse()
+            except Exception:
+                with self.cv:
+                    self.bitstream_queue.append(self.bitstream)
+                self.logger.debug(f"failed to read bitstream results, {self.bitstream.name}, adding back to queue and rebooting")
+                # TODO
+                # cant join current thread during reboot
+                threading.Thread(target=self.reboot, daemon=True, name="upload-state-rebooter").start()
+                return
 
             self.logger.debug(f"got result: {result}")
 
@@ -259,6 +278,10 @@ class Reader:
             except Exception as e:
                 # TODO handle this better
                 self.logger.error(f"Exception during read: {e}")
+                self.last_result = False
+                with self.cv:
+                    self.cv.notify_all()
+                return
 
     def waitUntilReady(self):
         with self.cv:
@@ -271,6 +294,8 @@ class Reader:
         with self.cv:
             self.cv.wait_for(lambda : self.last_result is not None or self.exiting)
             last_result = self.last_result
+            if last_result == False:
+                raise Exception()
             self.last_result = None
             return last_result
 
