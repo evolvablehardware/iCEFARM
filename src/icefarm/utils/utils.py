@@ -108,7 +108,7 @@ def typecheck(fn, args) -> bool:
 
 def json_to_args(json, parameters):
     values = list(map(json.get, parameters))
-    if any(map(lambda x : x is None, parameters)):
+    if any(map(lambda x : x is None, values)):
         return False
 
     return values

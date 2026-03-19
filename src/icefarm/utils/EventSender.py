@@ -95,7 +95,6 @@ class Session:
                 self.logger.warning("socket disconnected during flush")
                 self.logger.debug(f"failed to flush message {message} to client {self.client_id}")
                 with self.lock:
-                    self.logger.debug(f"flushed {i} events but failed to flush remaining {len(messages) - i}")
                     self.message_queue.append(message)
 
         self.logger.debug(f"flushed {len(messages)} events")

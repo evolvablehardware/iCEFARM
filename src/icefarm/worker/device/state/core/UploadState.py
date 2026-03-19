@@ -59,7 +59,7 @@ class UploadState(AbstractState):
         self.reboot_firmware_path = reboot_firmware_path
         self.cv = threading.Condition()
         self.bitstream_queue: list[Bitstream] = []
-        self.current_bitstream = None
+        self.bitstream = None
         # name -> pulses
         self.results = {}
         # TODO configurable by client
@@ -108,6 +108,8 @@ class UploadState(AbstractState):
         self.switch(lambda: BrokenState(self.device))
         return None
 
+    # TODO use queue.Queue instead of cvs
+    # TODO look for other instances of this
     @AbstractState.register("evaluate", "files", "batch_id")
     def queue(self, files, batch_id):
         media_path = self.device.media_path
