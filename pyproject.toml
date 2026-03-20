@@ -14,7 +14,8 @@ dependencies = [
     "pyserial",
     "python-dotenv",
     "asgiref",
-    "pytest"
+    "pytest",
+    "msgpack"
 ]
 
 [build-system]
