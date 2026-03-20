@@ -9,7 +9,7 @@ class PulseCountEvaluation(Evaluation):
 
     def _toJson(self):
         with open(self.filepath, "rb") as f:
-            data = f.read().decode("cp437")
+            data = f.read()
 
         return {"files": {self.id: data}}
 

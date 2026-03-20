@@ -226,7 +226,8 @@ class Queue(Generic[E]):
     def put(self, item: E | Iterable[E]):
         """Adds an item to queue. Raises QueueShutDown if the queue has shutdown."""
         with self.cv:
-            if self.shutting_down: raise QueueShutDown
+            if self.shutting_down:
+                raise QueueShutDown
 
             if isinstance(item, Iterable):
                 self.contents.extend(item)
@@ -241,14 +242,31 @@ class Queue(Generic[E]):
         with self.cv:
             self.cv.wait_for(lambda: self.contents or self.shutting_down)
 
-            if self.shutting_down: raise QueueShutDown
+            if self.shutting_down:
+                raise QueueShutDown
 
             return self.contents.pop(0)
 
     def shutdown(self) -> list[E]:
         """Enters shutdown mode, returns all current contents and empties queue."""
         with self.cv:
-            self.shutting_down = True
             contents = self.contents
             self.contents = []
+            self.shutting_down = True
+
+            self.cv.notify_all()
             return contents
+
+    def __len__(self):
+        with self.cv:
+            if self.shutting_down:
+                raise QueueShutDown
+
+            return len(self.contents)
+
+    def __bool__(self):
+        with self.cv:
+            if self.shutting_down:
+                raise QueueShutDown
+
+            return bool(self.contents)
