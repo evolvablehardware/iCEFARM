@@ -17,6 +17,7 @@ sort:
 
 nav: 
   - Overview: index.md
+  - Getting Started: getting_started.md
   - API: API
   - Contribute: Contributing
 
