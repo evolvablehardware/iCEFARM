@@ -11,6 +11,7 @@ from typing import Callable, Any, TYPE_CHECKING
 import serial
 
 from icefarm.worker.device.state.core import AbstractState, FlashState, BrokenState
+from icefarm.utils import Queue, QueueShutDown, MappedQueues
 from icefarm.utils.dev import get_devs
 
 if TYPE_CHECKING:
@@ -55,16 +56,23 @@ class UploadState(AbstractState):
         if logger_postfix:
             self.logger = UploadLogger(self.logger, logger_postfix)
 
+        self.parser = parser
         self.reboot_firmware_path = reboot_firmware_path
-        self.cv = threading.Condition()
-        self.bitstream_queue: list[Bitstream] = []
+        self.bitstream_queue: Queue[Bitstream] = Queue()
+        self.current_bitstream = None
         # name -> pulses
-        self.results = {}
+        self.results = MappedQueues()
         # TODO configurable by client
         self.flush_interval_seconds = flush_interval_seconds
         self.last_flush_time = time.time()
         self.flush_at_bitstreams_remaining = flush_at_bitstreams_remaining if flush_at_bitstreams_remaining else 0
+        self.logger_postfix = logger_postfix
+        self.ser = None
+        self.reader = None
+        self.sender = None
+        self.thread = None
 
+    def start(self):
         # ensure new ports show correctly
         # TODO this better
         time.sleep(2)
@@ -72,20 +80,13 @@ class UploadState(AbstractState):
         self.ser = self.connectSerial()
         if self.ser is None:
             return
-        self.reader = Reader(self.ser, parser)
+        self.reader = Reader(self.ser, self.parser, self.logger)
         self.sender = UploadEventSender(self.device_event_sender)
 
-        self.exiting = False
         self.thread = threading.Thread(target=self.run)
         self.thread.start()
 
         self.device_event_sender.sendDeviceInitialized()
-
-    def flushReady(self) -> bool:
-        if self.flush_interval_seconds and self.last_flush_time + self.flush_interval_seconds <= time.time():
-            return True
-
-        return not self.bitstream_queue or len(self.bitstream_queue) == self.flush_at_bitstreams_remaining
 
     def connectSerial(self, max_retries=5, retry_delay=2):
         for attempt in range(max_retries):
@@ -111,95 +112,125 @@ class UploadState(AbstractState):
 
         for path, data in zip(paths, files.values()):
             with open(path, "wb") as f:
-                f.write(data.encode("cp437"))
+                f.write(data)
                 f.flush()
 
         self.logger.debug(f"queued bitstreams: {list(files.keys())}")
 
-        with self.cv:
-            for path, name in zip(paths, files.keys()):
-                self.bitstream_queue.append(Bitstream(path, name, batch_id))
+        try:
+            self.bitstream_queue.put(Bitstream(path, name, batch_id) for path, name in zip(paths, files.keys()))
+        except QueueShutDown:
+            # TODO inform client that this has happened, requires communication refactor first
+            # as long as the client stops sending bitstreams before calling reboot this wont happen,
+            # but if it does this is pretty bad
+            self.logger.error(f"Received bitstreams after queue shutdown: {files.keys()}")
 
-            self.cv.notify_all()
+        return True
+
+    def _writeBitstream(self, bitstream: Bitstream):
+        """Read bitstream file, wait until device ready, write bitstream."""
+        with open(bitstream.location, "rb") as f:
+            data = f.read()
+
+        data_len = len(data)
+
+        self.reader.waitUntilReady()
+
+        for i in range(0, data_len, CHUNK_SIZE):
+            chunk = data[i:i+CHUNK_SIZE]
+            self.ser.write(chunk)
+            self.ser.flush()
+            time.sleep(INTER_CHUNK_DELAY)
+
+    def _flush(self):
+        """"""
+        try:
+            flush_amount_ready = not self.bitstream_queue or len(self.bitstream_queue) == self.flush_at_bitstreams_remaining
+        except QueueShutDown:
+            return False
+        flush_interval_ready = self.flush_interval_seconds and self.last_flush_time + self.flush_interval_seconds <= time.time()
+
+        if not flush_amount_ready and not flush_interval_ready:
+            return False
+
+        if not self.sender.finished(self.results):
+            self.logger.error("failed to send results")
+            return False
+
+        self.results = MappedQueues()
+        self.last_flush_time = time.time()
 
         return True
 
     def run(self):
         time.sleep(2)
 
-        while not self.exiting:
-            with self.cv:
-                if not self.bitstream_queue:
-                    self.cv.wait_for(lambda : self.bitstream_queue or self.exiting)
+        while True:
+            try:
+                self.current_bitstream = self.bitstream_queue.pop()
+            except QueueShutDown:
+                return
 
-                if self.exiting:
-                    return
+            self.logger.debug(f"uploading bitstream {self.current_bitstream.name}")
 
-                bitstream = self.bitstream_queue.pop()
-
-            self.logger.debug(f"evaluating bitstream {bitstream.name}")
-
-            with open(bitstream.location, "rb") as f:
-                data = f.read()
-
-            data_len = len(data)
-
-            self.reader.waitUntilReady()
-
-            self.logger.debug(f"uploading bitstream {bitstream.name}")
-
-            for i in range(0, data_len, CHUNK_SIZE):
-                chunk = data[i:i+CHUNK_SIZE]
-                self.ser.write(chunk)
-                self.ser.flush()
-                time.sleep(INTER_CHUNK_DELAY)
+            try:
+                self._writeBitstream(self.current_bitstream)
+            except Exception:
+                self.reboot()
+                return
 
             self.logger.debug("waiting for result")
 
-            result = self.reader.waitUntilPulse()
+            try:
+                result = self.reader.waitUntilPulse()
+            except Exception:
+                self.reboot()
+                return
 
             self.logger.debug(f"got result: {result}")
 
-            if result is False:
-                with self.cv:
-                    self.bitstream_queue.append(bitstream)
-                    continue
+            self.results.append(self.current_bitstream.batch_id, (self.current_bitstream.name, result))
+            os.remove(self.current_bitstream.location)
+            self.current_bitstream = None
 
-            if bitstream.batch_id not in self.results:
-                self.results[bitstream.batch_id] = []
-
-            self.results[bitstream.batch_id].append((bitstream.name, result))
-            os.remove(bitstream.location)
-
-            with self.cv:
-                if self.flushReady():
-                    if not self.sender.finished(self.results):
-                        self.logger.error("failed to send results")
-
-                    self.results = {}
-                    self.last_flush_time = time.time()
+            self._flush()
 
     def handleExit(self):
-        self.exiting = True
-        with self.cv:
-            self.cv.notify_all()
-        self.thread.join()
-        self.reader.exit()
-        self.ser.close()
+        self.bitstream_queue.shutdown()
+
+        if self.thread and self.thread.is_alive() and self.thread is not threading.current_thread():
+            self.thread.join()
+        if self.reader:
+            self.reader.exit()
+        if self.ser and self.ser.is_open:
+            self.ser.close()
 
     def reboot(self):
-        clone = lambda : UploadState(self.device, self.parser)
-        flasher = lambda : FlashState(clone, self.reboot_firmware_path, clone)
-        self.switch(flasher)
+        self.handleExit()
+        # TODO kinda hacky
+        # i don't like having to chain state switches but its better than
+        # needing separate flash stuff
+        bitstreams = self.bitstream_queue.shutdown()
+        if self.current_bitstream:
+            bitstreams.append(self.current_bitstream)
 
+        def transfer_bitstreams():
+            state = UploadState(self.device, self.parser, self.reboot_firmware_path, logger_postfix=self.logger_postfix, flush_at_bitstreams_remaining=self.flush_at_bitstreams_remaining, flush_interval_seconds=self.flush_interval_seconds)
+            state.results = self.results
+            state.bitstream_queue = Queue(bitstreams)
+            return state
+
+        flasher = lambda : FlashState(self.device, self.reboot_firmware_path, transfer_bitstreams)
+        self.switch(flasher)
 class Reader:
-    def __init__(self, port: serial.Serial, parser: Callable[[str], Any]):
+    def __init__(self, port: serial.Serial, parser: Callable[[str], Any], logger):
         self.port = port
         self.parser = parser
         self.cv = threading.Condition()
         self.ready = True
         self.last_result = None
         self.exiting = False
+        self.logger = logger
 
         self.thread = threading.Thread(target=self.read, daemon=True)
         self.thread.start()
@@ -207,35 +238,44 @@ class Reader:
     def read(self):
         last_read = ""
         while True:
-            while self.port.is_open and not self.exiting and "\\r\\n" not in last_read:
-                if (data := self.port.read(self.port.in_waiting or 1)):
-                    last_read += str(data)[2:-1]
+            try:
+                while self.port.is_open and not self.exiting and "\\r\\n" not in last_read:
+                    if (data := self.port.read(self.port.in_waiting or 1)):
+                        last_read += str(data)[2:-1]
 
-            if "\\r\\n" not in last_read:
-                break
+                if "\\r\\n" not in last_read:
+                    break
 
-            line = last_read[:last_read.index("\\r\\n")]
-            last_read = last_read[last_read.index("\\r\\n") + 4:]
+                line = last_read[:last_read.index("\\r\\n")]
+                last_read = last_read[last_read.index("\\r\\n") + 4:]
 
-            results = self.parser(line)
-            if results:
+                results = self.parser(line)
+                if results:
+                    with self.cv:
+                        self.last_result = results
+                        self.cv.notify_all()
+
+                timeout = re.search("Watchdog timeout", line)
+                if timeout:
+                    with self.cv:
+                        self.last_result = False
+                        self.cv.notify_all()
+
+                wait = re.search("Waiting for bitstream transfer", line)
+                if wait:
+                    with self.cv:
+                        self.ready = True
+                        self.cv.notify_all()
+
+                if self.exiting:
+                    return
+
+            except Exception as e:
+                # TODO handle this better
+                self.logger.error(f"Exception during read: {e}")
+                self.last_result = False
                 with self.cv:
-                    self.last_result = results
                     self.cv.notify_all()
-
-            timeout = re.search("Watchdog timeout", line)
-            if timeout:
-                with self.cv:
-                    self.last_result = False
-                    self.cv.notify_all()
-
-            wait = re.search("Waiting for bitstream transfer", line)
-            if wait:
-                with self.cv:
-                    self.ready = True
-                    self.cv.notify_all()
-
-            if self.exiting:
                 return
 
     def waitUntilReady(self):
@@ -249,6 +289,8 @@ class Reader:
         with self.cv:
             self.cv.wait_for(lambda : self.last_result is not None or self.exiting)
             last_result = self.last_result
+            if last_result is False:
+                raise Exception()
             self.last_result = None
             return last_result
 
@@ -262,6 +304,7 @@ class UploadEventSender:
     def __init__(self, event_sender):
         self.event_sender = event_sender
 
-    def finished(self, results: dict[str, int]):
+    def finished(self, results: MappedQueues):
+        results = results.state
         events = [("results", {"results": pulses, "batch_id": batch_id}) for batch_id, pulses in results.items()]
         return self.event_sender.sendDeviceEvents(events)

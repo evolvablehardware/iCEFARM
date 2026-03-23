@@ -14,6 +14,7 @@ class FlashState(AbstractState):
         self._uploading = False
         self._bootloader_sent = False
 
+        # TODO dont think is is enabled for default firmware
         if timeout:
             def do_timeout():
                 self.logger.error("flashing timed out")

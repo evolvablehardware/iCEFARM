@@ -3,7 +3,7 @@ import os
 import logging
 import sys
 import threading
-import json
+import msgpack
 
 from flask import Flask, Response
 from flask_socketio import SocketIO
@@ -90,7 +90,7 @@ def create_app(app: Flask, socketio: SocketIO | SyncAsyncServer, config: Config,
             return
 
         try:
-            data = json.loads(data)
+            data = msgpack.unpackb(data)
         except Exception:
             logger.error(f"failed to load json string from client {client_id}")
             return

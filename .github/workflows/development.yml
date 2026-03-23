@@ -58,7 +58,7 @@ jobs:
 
       #TODO other tests
       - name: Run Tests
-        run: docker compose -f docker/test_compose.yml exec client .venv/bin/pytest/test_endpoints.py --url http://control:8080 -W error
+        run: docker compose -f docker/test_compose.yml exec client .venv/bin/pytest ./tests/test_endpoints.py --url http://control:8080 -W error
 
       - name: Compose Logs
         run: docker compose -f docker/test_compose.yml logs

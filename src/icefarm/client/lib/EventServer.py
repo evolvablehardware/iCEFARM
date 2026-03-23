@@ -2,6 +2,7 @@ from __future__ import annotations
 from logging import LoggerAdapter
 import threading
 import json
+import msgpack
 from dataclasses import dataclass
 
 import socketio
@@ -122,7 +123,7 @@ class EventServer:
     def sendWorker(self, url, event, data: dict):
         """Sends data to worker socket."""
         try:
-            data = json.dumps(data)
+            data = msgpack.packb(data)
         except Exception:
             self.logger.error(f"failed to jsonify event {event} for worker {url}")
             return

@@ -170,3 +170,8 @@ class BaseAPI:
             self.removeSerial(serial)
 
         return json
+
+    def reboot(self, serials: list[str]) -> bool:
+        return self.requestControl("reboot", {
+            "serials": serials
+        })
