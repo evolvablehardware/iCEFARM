@@ -144,7 +144,10 @@ class UploadState(AbstractState):
 
     def _flush(self):
         """"""
-        flush_amount_ready = not self.bitstream_queue or len(self.bitstream_queue) == self.flush_at_bitstreams_remaining
+        try:
+            flush_amount_ready = not self.bitstream_queue or len(self.bitstream_queue) == self.flush_at_bitstreams_remaining
+        except QueueShutDown:
+            return False
         flush_interval_ready = self.flush_interval_seconds and self.last_flush_time + self.flush_interval_seconds <= time.time()
 
         if not flush_amount_ready and not flush_interval_ready:
