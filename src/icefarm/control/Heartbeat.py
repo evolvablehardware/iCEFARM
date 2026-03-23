@@ -17,10 +17,11 @@ class HeartbeatConfig:
     def __init__(self):
         self.heartbeat_poll_seconds: str = 15
         self.timeout_poll_seconds: str = 15
-        self.timeout_duration_seconds: str = 60
+        self.timeout_duration_seconds: str = 180
         self.reservation_poll_seconds: str = 30
         self.reservation_expiring_poll_seconds: str = 300
         self.reservation_expiring_notify_at_seconds: str = 20 * 60
+        self.heartbeat_request_timeout_seconds: str = 30
 
 class HeartbeatLogger(LoggerAdapter):
     def process(self, msg, kwargs):
@@ -63,7 +64,7 @@ class Heartbeat:
 
                     url = f"http://{ip}:{port}/heartbeat"
                     try:
-                        req = requests.get(url, timeout=10)
+                        req = requests.get(url, timeout=self.config.heartbeat_request_timeout_seconds)
 
                         if req.status_code != 200:
                             raise Exception

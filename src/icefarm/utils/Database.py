@@ -27,10 +27,12 @@ class Database:
             raise Exception("Failed to connect to database")
 
     def execute(self, sql: str, args: tuple):
+        # TODO this better
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
                     cur.execute(sql, args)
+                    # dont do this
                     if sql[0:4] != "CALL":
                         return cur.fetchall()
 

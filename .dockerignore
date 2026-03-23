@@ -22,3 +22,4 @@ src/icefarm/worker/deploy.py
 
 icefarm.egg-info
 dist
+build

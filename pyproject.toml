@@ -1,6 +1,6 @@
 [project]
 name = "icefarm"
-version = "0.1.13"
+version = "0.1.14"
 dependencies = [
     "Flask",
     "flask-socketio",
@@ -14,7 +14,8 @@ dependencies = [
     "pyserial",
     "python-dotenv",
     "asgiref",
-    "pytest"
+    "pytest",
+    "msgpack"
 ]
 
 [build-system]

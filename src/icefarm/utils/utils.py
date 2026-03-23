@@ -10,6 +10,8 @@ import inspect
 import types
 from configparser import ConfigParser
 import itertools
+from typing import TypeVar, Generic, Iterable
+import threading
 
 from pexpect import fdpexpect
 
@@ -108,7 +110,7 @@ def typecheck(fn, args) -> bool:
 
 def json_to_args(json, parameters):
     values = list(map(json.get, parameters))
-    if any(map(lambda x : x is None, parameters)):
+    if any(map(lambda x : x is None, values)):
         return False
 
     return values
@@ -152,6 +154,7 @@ def generate_circuit(hz, build_dir, build_script="src/icefarm/utils/build.sh", p
     return os.path.join(build_dir, "top.bin"), clk / incr / 1000
 
 # Ideally would inherit dict but that doesn't behave nicely
+# TODO should be able to replace this with dict.setdefault
 class MappedQueues:
     """
     Manages a dict[Any, list[Any]] so that new lists are
@@ -206,3 +209,64 @@ def batch(l, amount):
         batches[i % amount].append(item)
 
     return batches
+
+
+E = TypeVar("E")
+class QueueShutDown(Exception): ...
+
+# TODO remove once using python 3.13+
+class Queue(Generic[E]):
+    """Replacement for queue.Queue with shutdown capabilities."""
+    def __init__(self, contents: Iterable[E]=None):
+        super().__init__()
+        self.contents = list(contents) if contents else []
+        self.shutting_down = False
+        self.cv = threading.Condition()
+
+    def put(self, item: E | Iterable[E]):
+        """Adds an item to queue. Raises QueueShutDown if the queue has shutdown."""
+        with self.cv:
+            if self.shutting_down:
+                raise QueueShutDown
+
+            if isinstance(item, Iterable):
+                self.contents.extend(item)
+            else:
+                self.contents.append(item)
+
+            self.cv.notify_all()
+
+    def pop(self) -> E:
+        """Pops an item from the queue, waiting for one to be available if necessary. Raises QueueShutDown
+        if the queue has shutdown or does so while waiting."""
+        with self.cv:
+            self.cv.wait_for(lambda: self.contents or self.shutting_down)
+
+            if self.shutting_down:
+                raise QueueShutDown
+
+            return self.contents.pop(0)
+
+    def shutdown(self) -> list[E]:
+        """Enters shutdown mode, returns all current contents and empties queue."""
+        with self.cv:
+            contents = self.contents
+            self.contents = []
+            self.shutting_down = True
+
+            self.cv.notify_all()
+            return contents
+
+    def __len__(self):
+        with self.cv:
+            if self.shutting_down:
+                raise QueueShutDown
+
+            return len(self.contents)
+
+    def __bool__(self):
+        with self.cv:
+            if self.shutting_down:
+                raise QueueShutDown
+
+            return bool(self.contents)
