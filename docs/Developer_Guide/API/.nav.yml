@@ -1,6 +1,6 @@
 # See Docs at: https://lukasgeiter.github.io/mkdocs-awesome-nav/reference/
 
-#title: Overall Site 
+title: API 
 preserve_directory_names: false       #False to clean up names (i.e. file-name.md => File Name)
 #hide: false                           #True if this folder should be hidden on page
 flatten_single_child_sections: false  #True to remove the folder and just replace it with the only element it contains
@@ -17,10 +17,6 @@ sort:
 
 nav: 
   - Overview: index.md
-  - Getting Started: getting_started.md
-  - User_Guide
-  - Developer_Guide
-  - Contribute: Contributing
 
 # If false, the above tree is all that is shown at this level of the directory structure.
-append_unmatched: false 
+append_unmatched: true 
