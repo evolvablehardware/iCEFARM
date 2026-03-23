@@ -44,7 +44,7 @@ A docker compose file is provided, which allows the iCEFARM system to be quickly
 ```bash
 docker compose -f docker/compose.yml up
 ```
-When you first start the stack, you should see a container named similarly to `db-1` start up. Afterwards, a container named similarly to `flyway-1` will start and then exit. Finally, the main iCEFARM `worker-1` and `control-1` containers will start.
+When you first start the stack, you should see a container named similarly to `db-1` start up (note that the database container uses port 5433 instead of the default to prevent conflicts). Afterwards, a container named similarly to `flyway-1` will start and then exit. Finally, the main iCEFARM `worker-1` and `control-1` containers will start.
 
 You should see periodic pings between the control and worker:
 ```

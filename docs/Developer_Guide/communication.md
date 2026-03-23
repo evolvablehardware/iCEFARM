@@ -54,13 +54,16 @@ class ExampleEventHandler(AbstractEventHandler):
     def printResults(self, data)
         print(data)
 ```
-When the ```EventServer``` receives a properly formatted event through a websocket, the method will then be called:
+When the ```EventServer``` receives a properly formatted event through a websocket, the method will then be called. Note that multiple events may be provided in one message packet.
 ```json
 {
-    "event": "results",
-    "contents": {
-        "data": "hello!"
-    }
+    "serial": "example pico2ice serial",
+    "contents": [
+        {
+            "event": "results",
+            "data": "hello!"
+        }
+    ]
 }
 ```
 The control server produces a few different types of events. This includes information about reservations that are expiring soon, and reservations that have ended. The control server also notifies clients when a new device becomes available for reservations. If a device becomes suddenly unexpectedly unavailable, a failure event will be sent.

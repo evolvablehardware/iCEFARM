@@ -56,7 +56,7 @@ password = ""
 ```
 The ```flyway.cleanDisabled``` setting is optional and enables the use of the ```flyway clean``` command. This essentially drops all of the objects in the database and is useful during development. In order to run the migrations:
 ```
-cd src/ICEFARM/control/flyway && flyway migrate
+cd src/icefarm/control/flyway && flyway migrate
 ```
 This can also be done with the ```database-rebuild``` vscode task. Note that in addition to running the migrations, it also runs clean beforehand.
 
@@ -84,7 +84,7 @@ ls -s [full_path]/pico-ice-sdk pico-ice-sdk
 
 Run build.sh in this directory, or use the ```build-firmware``` task:
 ```
-cd src/ICEFARM/worker/firmware
+cd src/icefarm/worker/firmware
 chmod +x build.sh
 ./build.sh
 ```
@@ -97,7 +97,7 @@ For the control server:
 |ICEFARM_DATABASE|[psycopg connection string](https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING)| required |
 |ICEFARM_CONTROL_PORT| Port to run on | 8080|
 
-Configuration for the worker can be done using environment variables or a toml file. Environment variables take precedence over the configuration file. Note that ICEFARM_DATABASE is not able to be provided through the configuration file. An example is [provided](./src/ICEFARM/worker/example_config.ini). The worker has to run with sudo in order to upload firmware to devices. This means that the environment variables need to be passed along:
+Configuration for the worker can be done using environment variables or a toml file. Environment variables take precedence over the configuration file. Note that ICEFARM_DATABASE is not able to be provided through the configuration file. An example is [provided](./src/icefarm/worker/example_config.ini). The worker has to run with sudo in order to upload firmware to devices. This means that the environment variables need to be passed along:
 ```
 sudo ICEFARM_DATABASE="$ICEFARM_DATABASE ICEFARM_WORKER_CONFIG=$ICEFARM_WORKER_CONFIG [command]
 ```
@@ -136,14 +136,14 @@ sudo ICEFARM_DATABASE="$ICEFARM_DATABASE" ICEFARM_WORKER_CONFIG="$ICEFARM_WORKER
 #### Uvicorn
 iCEFARM normally runs using uvicorn but can also use the flask debug server. There's not really a reason to run uvicorn in a development environment, as it does not allow for debugging, but otherwise should run identically. This mostly here for the sake of documenting how iCEFARM is started inside containers.
 
-Uvicorn does not access environment variables unless they are contain a special prefix, which is not included in the iCEFARM environment variables. Variables can be passed with a [.env](https://github.com/theskumar/python-dotenv) file instead. The provided ```.uvicorn_env_bridge``` file passes iCEFARM related environment variables to uvicorn. As a result, configuration can be done through environment variables normally provided this environment file is included.
+Uvicorn does not access environment variables unless they are contain a special prefix, which means the iCEFARM environment variables are not accessible by default. Variables can be passed with a [.env](https://github.com/theskumar/python-dotenv) file instead. The provided ```.uvicorn_env_bridge``` file passes iCEFARM related environment variables to uvicorn. As a result, configuration can be done through environment variables normally provided this environment file is included.
 Control:
 ```
-uvicorn ICEFARM.control.app:run_uvicorn --env-file .uvicorn_env_bridge --factory --host 0.0.0.0 --port 8080
+uvicorn icefarm.control.app:run_uvicorn --env-file .uvicorn_env_bridge --factory --host 0.0.0.0 --port 8080
 ```
 Worker:
 ```
-sudo ICEFARM_DATABASE="$ICEFARM_DATABASE" ICEFARM_WORKER_CONFIG=$ICEFARM_WORKER_CONFIG .venv/bin/uvicorn ICEFARM.worker.app:run_uvicorn --env-file .uvicorn_env_bridge --factory --host 0.0.0.0 --port 8081
+sudo ICEFARM_DATABASE="$ICEFARM_DATABASE" ICEFARM_WORKER_CONFIG=$ICEFARM_WORKER_CONFIG .venv/bin/uvicorn icefarm.worker.app:run_uvicorn --env-file .uvicorn_env_bridge --factory --host 0.0.0.0 --port 8081
 ```
 ### Workflow
 Vscode debug configurations are available for both the worker and control. There is also an assortment of vscode tasks. The task ```database-clear``` removes workers from the database and is useful to fix invalid worker/device states (this also causes all reservations/devices to be removed). This can also be done with ```psql -d "$ICEFARM_DATABASE" -c 'delete from worker;```.
