@@ -206,7 +206,6 @@ class UploadState(AbstractState):
             self.ser.close()
 
     def reboot(self):
-        self.handleExit()
         # TODO kinda hacky
         # i don't like having to chain state switches but its better than
         # needing separate flash stuff
@@ -220,6 +219,7 @@ class UploadState(AbstractState):
             state.bitstream_queue = Queue(bitstreams)
             return state
 
+        self.handleExit()
         flasher = lambda : FlashState(self.device, self.reboot_firmware_path, transfer_bitstreams)
         self.switch(flasher)
 class Reader:
