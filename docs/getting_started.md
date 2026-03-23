@@ -122,61 +122,6 @@ docker compose -f docker/compose.yml down
 ```
 Note that just using ```ctrl+c``` will not fully shutdown the stack and the database state will persist between runs, which will cause issues.
 
-### Troubleshooting
-*Generally, most things by can be fixed by destroying the stack and starting it again*
-#### Pico Light Status
-Green: initialized
-Blinking green: waiting for bitstream
-Blue: receiving bitstream
-Blue + red: flashing and evaluating
-Blue + red + green: idle
-Blinking red: usb disconnected
-
-#### Accessing Logs
-First, find the name of the worker and control container:
-```bash
-docker container ls -a
-```
-These are typically named `docker-worker-1` and `docker-control-1`.
-Getting logs:
-```bash
-docker logs <worker name>
-docker logs <control name>
-```
-
-#### Device goes to BrokenState
-This can happen occasionally even if everything is set up correctly. Restart the stack and plug the device in again. If it happens again, verify that you are able to manually flash firmware on to the device. First, install [picocom](https://github.com/npat-efault/picocom)
-Find the device file of the broken device:
-```
-ls /dev | grep ACM
-```
-The device should show up with a name similar to `ttyACM0`. If you are using multiple devices, you can use `udevadm info` on each dev file to view their serial id and find the one that matches the problematic one.
-Once you find the device, it will enter bootloader mode by connecting with a 1200 baud rate.
-```
-sudo picocom --baud 1200 /dev/ttyACM0
-```
-The device will now be mountable as a disk. It should show up with the format `/dev/sd[a-z][1-9]`. Locate the dev file:
-```bash
-ls /dev | grep sd
-```
-Create a new folder and mount the disk to it:
-```bash
-mkdir mount_dir
-sudo mount /dev/sda1 mount_dir
-```
-Copy the `rp2_hello_world` firmware used earlier onto the device. Once the device is unmounted, it will reboot.
-```bash
-sudo cp [firmware_location] mount_dir
-sudo umount mount_dir
-```
-Confirm that the firmware was uploaded successfully by connecting to the device. Find the dev file and connect to it with picocom:
-```bash
-ls /dev | grep ACM
-sudo picocom /dev/ttyACM0
-```
-If done correctly, you should see a ```hello world``` message printed repeatedly. You can use `<Ctrl-a>` then `<Ctrl-q>` to exit picocom.
-
-
 ## Client Usage
 Install the package:
 ```
@@ -244,21 +189,55 @@ The same efficiency guidelines mentioned for evaluateBitstreams apply to evaluat
 Lastly, using multiple threads purely to call evaluate methods multiple times at once will not result in any speedup. This will likely result in slower evaluations as the client will not be able to dispatch commands optimally. See the [website](https://evolvablehardware.github.io/iCEFARM/) or docs folder for additional information about using and developing the client.
 
 ## Troubleshooting
-*Generally, most things by destroying the stack and starting it again*
+*Generally, most things by can be fixed by destroying the stack and starting it again*
+### Pico Light Status
+Green: initialized
+Blinking green: waiting for bitstream
+Blue: receiving bitstream
+Blue + red: flashing and evaluating
+Blue + red + green: idle
+Blinking red: usb disconnected
+
+### Accessing Logs
+First, find the name of the worker and control container:
+```bash
+docker container ls -a
+```
+These are typically named `docker-worker-1` and `docker-control-1`.
+Getting logs:
+```bash
+docker logs <worker name>
+docker logs <control name>
+```
+
 ### Device goes to BrokenState
-This can happen occasionally even if everything is set up correctly. Restart the stack and replug the device in. If it happens again, it's probably a configuration error. Verify that you are able to manually flash firmware on to the device with a baud 1200 compatible firmware:
+This can happen occasionally even if everything is set up correctly. Restart the stack and plug the device in again. If it happens again, verify that you are able to manually flash firmware on to the device. First, install [picocom](https://github.com/npat-efault/picocom)
+Find the device file of the broken device:
+```
+ls /dev | grep ACM
+```
+The device should show up with a name similar to `ttyACM0`. If you are using multiple devices, you can use `udevadm info` on each dev file to view their serial id and find the one that matches the problematic one.
+Once you find the device, it will enter bootloader mode by connecting with a 1200 baud rate.
 ```
 sudo picocom --baud 1200 /dev/ttyACM0
-sudo mount /dev/sda1 [mount_location]
-sudo cp [firmware_location] [mount_location]
-sudo umount [mount_location]
 ```
-Note that you will have to wait between commands for the device to respond, and that the exact device path may be different.
-
-
-## Fixing a 'Stuck' Worker
-Under certain circumstances, there might be an error where a worker on the icefarm needs to be reset. In this case, run the following command if you are running docker container"
-
+The device will now be mountable as a disk. It should show up with the format `/dev/sd[a-z][1-9]`. Locate the dev file:
+```bash
+ls /dev | grep sd
 ```
-docker exec docker-db-1 psql -U postgres -p 5433 -c "DELETE FROM worker;"
+Create a new folder and mount the disk to it:
+```bash
+mkdir mount_dir
+sudo mount /dev/sda1 mount_dir
 ```
+Copy the `rp2_hello_world` firmware used earlier onto the device. Once the device is unmounted, it will reboot.
+```bash
+sudo cp [firmware_location] mount_dir
+sudo umount mount_dir
+```
+Confirm that the firmware was uploaded successfully by connecting to the device. Find the dev file and connect to it with picocom:
+```bash
+ls /dev | grep ACM
+sudo picocom /dev/ttyACM0
+```
+If done correctly, you should see a ```hello world``` message printed repeatedly. You can use `<Ctrl-a>` then `<Ctrl-q>` to exit picocom.
