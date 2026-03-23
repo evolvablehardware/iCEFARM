@@ -11,7 +11,7 @@ class ConnectionInfo:
         self.server_port = server_port
 
     def __eq__(self, value):
-        return self.ip == value.ip and self.server_port == value.ip
+        return self.ip == value.ip and self.server_port == value.server_port
 
     def url(self):
         return f"http://{self.ip}:{self.server_port}"

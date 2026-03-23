@@ -39,3 +39,11 @@ class ControlEventSender(EventSender):
             self.logger.warning(f"failed to send reservation ending soon to device {serial}")
         else:
             self.logger.info(f"sent reservation ending soon to device {serial}")
+
+    def sendDevicesAvailableChange(self, amount):
+        self.sendAllJson([{
+            "event": "devices_available",
+            "amount": amount
+        }])
+        self.logger.debug(f"sent notification for devices available change: {amount}")
+

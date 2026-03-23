@@ -11,8 +11,18 @@ RUN make
 COPY ./firmware /usr/local/firmware
 
 WORKDIR /usr/local/firmware
-RUN git clone --depth 1 https://github.com/raspberrypi/pico-sdk.git
-RUN git clone --depth 1 https://github.com/tinyvision-ai-inc/pico-ice-sdk.git
+RUN git clone https://github.com/tinyvision-ai-inc/pico-ice-sdk.git
+WORKDIR /usr/local/firmware/pico-ice-sdk
+RUN git checkout e5f71da8db916e88b8dc6835d7e2853b0abb35ca
+
+RUN git submodule update --init lib/tinyuf2
+RUN git submodule update --init lib/pico-sdk
+
+WORKDIR /usr/local/firmware/pico-ice-sdk/lib/pico-sdk
+RUN git submodule update --init lib/tinyusb
+
+WORKDIR /usr/local/firmware
+RUN ln -s /usr/local/firmware/pico-ice-sdk/lib/pico-sdk pico-sdk
 
 WORKDIR /usr/local/firmware/pico-sdk
 RUN git submodule update --init lib/tinyusb
@@ -38,7 +48,7 @@ RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update && apt-get install -y make cmake gcc-arm-none-eabi linux-tools-generic git python3 build-essential
 
 WORKDIR /usr/local/build
-RUN git clone --depth 1 https://github.com/npat-efault/picocom.git
+RUN git clone https://github.com/npat-efault/picocom.git
 WORKDIR /usr/local/build/picocom
 RUN make
 
