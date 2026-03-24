@@ -40,7 +40,9 @@ If you do choose to skip this step, note that provided image does not automatica
 docker pull evolvablehardware/icefarm:all
 ```
 
-A docker compose file is provided, which allows the iCEFARM system to be quickly deployed. Start the iCEFARM system:
+A docker compose file is provided, which allows the iCEFARM system to be quickly deployed. If you are going to use an external system to connect to iCEFARM, you need to modify some of the configuration in order to make the system discoverable. If you are going to use the same system to run the client, ignore this step. The compose file is located at `docker/compose.yml`. Run `hostname -I` or a similar command to obtain the ip of the system. Then, replace the `services.worker.environment.ICEFARM_VIRTUAL_IP` argument, which is by default set to `localhost`, with the ip of the system - use the raw ip, do not include `http` or a port. In the future, this will not be required.
+
+The system can now be started:
 ```bash
 docker compose -f docker/compose.yml up
 ```
