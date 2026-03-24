@@ -99,7 +99,11 @@ class BaseClient(BaseAPI):
         the client will wait until enough devices are available in the iCEFARM system. Otherwise, if there are not enough
         devices available, an error will be raised.
         """
-        if self.available() < amount:
+        amount_available = self.available()
+        if amount_available is False:
+            raise Exception("Failed to reach control server when checking device availability")
+
+        if amount_available < amount:
             if not wait_for_available:
                 raise Exception("Not enough devices available")
 
