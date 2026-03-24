@@ -123,8 +123,10 @@ docker compose -f docker/compose.yml down
 Note that just using ```ctrl+c``` will not fully shutdown the stack and the database state will persist between runs, which will cause issues.
 
 ## Client Usage
-Install the package:
-```
+Create a python venv or use an existing one and install the package:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install icefarm
 ```
 

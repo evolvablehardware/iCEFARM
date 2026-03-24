@@ -170,8 +170,10 @@ sudo picocom /dev/ttyACM0
 If done correctly, you should see a ```hello world``` message printed repeatedly. You can use `<Ctrl-a>` then `<Ctrl-q>` to exit picocom.
 
 ## Client Usage
-Install the package:
-```
+Create a python venv or use an existing one and install the package:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install icefarm
 ```
 
