@@ -14,6 +14,9 @@ class VarMaxEvaluation(Evaluation):
 
         return {"files": {self.id: data}}
 
+    def __str__(self):
+        return f"<Serials: {self.serials}, filepath: {self.filepath}>"
+
 class VarMaxBaseClient(BatchClient):
     """Provides access to variance maximization specific control API methods."""
     def reserve(self, amount, wait_for_available=False, available_timeout=60, kind="variance", send_waveform=False, flush_interval_seconds=10, flush_at_bitstreams_remaining=25):

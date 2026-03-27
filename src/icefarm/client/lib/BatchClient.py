@@ -95,6 +95,9 @@ class Result:
     evaluation: Evaluation
     value: Any | EvaluationFailed
 
+    def __str__(self):
+        return f"<Serial: {self.serial}, value: {self.value}, evaluation: {self.evaluation}>"
+
 class ResultTracker:
     """Tracks evaluations to know when all results have been received. Also keeps track of
     how long devices have gone without sending back results."""

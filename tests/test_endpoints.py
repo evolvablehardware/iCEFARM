@@ -41,7 +41,7 @@ def test_pulse_evaluate_bitstreams(get_pulse):
         pulses = list(client.evaluateBitstreams(BITSTREAM_PATHS))
 
         assert len(pulses) ==  3
-        assert set(BITSTREAM_PATHS) == set(item[1] for item in pulses)
+        assert set(BITSTREAM_PATHS) == set(pulse.evaluation.filepath for pulse in pulses)
 
 def test_varmax_extend_all(get_varmax):
     with get_varmax() as client:
@@ -80,4 +80,4 @@ def test_varmax_evaluate_bitstreams(get_varmax):
         pulses = list(client.evaluateBitstreams(BITSTREAM_PATHS))
 
         assert len(pulses) ==  3
-        assert set(BITSTREAM_PATHS) == set(item[1] for item in pulses)
+        assert set(BITSTREAM_PATHS) == set(pulse.evaluation.filepath for pulse in pulses)
