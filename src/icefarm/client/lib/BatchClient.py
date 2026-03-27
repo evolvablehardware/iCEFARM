@@ -247,8 +247,6 @@ class AbstractBatchFactory(ABC):
                 yield actual_batch
 
         self.tracker.bundleEmpty()
-
-    def exit(self):
         self.stop.set()
 
     def _readyForBatch(self) -> bool:
