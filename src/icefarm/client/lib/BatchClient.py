@@ -170,7 +170,7 @@ class AbstractBatchFactory(ABC):
     """
     Produces batches for client consumption.
     """
-    def __init__(self, bundle: EvaluationBundle, client: BaseClient, result_timeout=10, unreserve_on_timeout=True):
+    def __init__(self, bundle: EvaluationBundle, client: BaseClient, result_timeout=None, unreserve_on_timeout=True):
         super().__init__()
         self.bundle = bundle
         self.tracker = ResultTracker(bundle)
