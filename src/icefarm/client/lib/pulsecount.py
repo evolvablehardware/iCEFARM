@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Generator
-from icefarm.client.lib.BatchClient import Evaluation, BatchClient
+from icefarm.client.lib.BatchClient import Evaluation, BatchClient, Result
 
 class PulseCountEvaluation(Evaluation):
     def __init__(self, serials, filepath):
@@ -31,7 +31,7 @@ class PulseCountBaseClient(BatchClient):
         }
         return super().reserveSpecific(serials, kind, args)
 
-    def evaluateBitstreams(self, bitstreams: list[str], serials=None) -> Generator[tuple[str, str, int]]:
+    def evaluateBitstreams(self, bitstreams: list[str], serials=None) -> Generator[Result]:
         """Sends bitstream filepaths to be evaluated by iCEFARM. If serials are not specified, bitstreams
         are evaluated on each reserved device. Results are received as (serial, filepath, pulses)."""
         if not serials:
@@ -40,5 +40,4 @@ class PulseCountBaseClient(BatchClient):
         serials = set(serials)
 
         evaluations = [PulseCountEvaluation(serials, bitstream) for bitstream in bitstreams]
-        for serial, evaluation, pulses in self.evaluateEvaluations(evaluations):
-            yield serial, evaluation.filepath, pulses
+        return self.evaluateEvaluations(evaluations)

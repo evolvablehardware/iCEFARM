@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Generator
 
-from icefarm.client.lib.BatchClient import Evaluation, BatchClient
+from icefarm.client.lib.BatchClient import Evaluation, BatchClient, Result
 
 class VarMaxEvaluation(Evaluation):
     def __init__(self, serials, filepath):
@@ -32,7 +32,7 @@ class VarMaxBaseClient(BatchClient):
         }
         return super().reserveSpecific(serials, kind, args or {})
 
-    def evaluateBitstreams(self, bitstreams: list[str], serials=None) -> Generator[tuple[str, str, float]]:
+    def evaluateBitstreams(self, bitstreams: list[str], serials=None) -> Generator[Result]:
         """Sends bitstream filepaths to be evaluated by iCEFARM. If serials are not specified, bitstreams
         are evaluated on each reserved device. Results are received as (serial, filepath, fitness)."""
         if not serials:
@@ -41,5 +41,6 @@ class VarMaxBaseClient(BatchClient):
         serials = set(serials)
 
         evaluations = [VarMaxEvaluation(serials, bitstream) for bitstream in bitstreams]
-        for serial, evaluation, fitness in self.evaluateEvaluations(evaluations):
-            yield serial, evaluation.filepath, fitness
+        return self.evaluateEvaluations(evaluations)
+
+

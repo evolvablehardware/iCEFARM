@@ -209,8 +209,8 @@ CIRCUITS = ["examples/pulse_count_driver/precompiled_circuits/circuit_generated_
             "examples/pulse_count_driver/precompiled_circuits/circuit_generated_8Khz.bin",
             "examples/pulse_count_driver/precompiled_circuits/circuit_generated_32Khz.bin"]
 
-for serial, filepath, pulses in client.evaluateBitstreams(CIRCUITS, serials=[serial_id]):
-    print(f"Counted {pulses} pulses from circuit {filepath} on device {serial}!")
+for result in client.evaluateBitstreams(CIRCUITS, serials=[serial_id]):
+    print(f"Counted {result.value} pulses from circuit {result.evaluation.filepath} on device {result.serial}!")
 ```
 This sends out the circuits to each of the devices specified. This method produces an iterator that generates results as they are received from the iCEFARM system, so it is most efficient to act on the results as they are iterated on rather than consuming the entire iterator with something like ```list``` . Evaluations done with the client have a small delay as circuits are initially queued into the system, but after startup evaluations are done as fast as they would be locally. It is much faster to send 50 circuits in one evaluation than say 10 batches of 5. The client gradually sends circuits to the system as devices are ready to evaluate them, so sending large evaluations does not cause server stress. The evaluateBitstreams method is convenient, but does all evaluations on the same set of devices. Reserve another device:
 ```python
@@ -233,8 +233,8 @@ commands.append(PulseCountEvaluation([serials[1]], CIRCUITS[2]))
 
 Commands can be evaluated in a similar way to using the evaluateBitstreams method. The main difference is rather than returning a filepath in the iterator, the PulseCountEvaluation that created the result is returned.
 ```python
-for serial, evaluation, pulses in client.evaluateEvaluations(commands):
-    print(f"Counted {pulses} pulses from circuit {evaluation.filepath} on device {serial}!")
+for result in client.evaluateEvaluations(commands):
+    print(f"Counted {result.value} pulses from circuit {result.evaluation.filepath} on device {result.serial}!")
 ```
 The same efficiency guidelines mentioned for evaluateBitstreams apply to evaluateEvaluations. In addition, if you have multiple sets of circuits that need to be evaluated on different devices, it is much faster to use a single evaluateEvaluations than to use multiple evaluateBitstream calls.
 Lastly, using multiple threads purely to call evaluate methods multiple times at once will not result in any speedup. This will likely result in slower evaluations as the client will not be able to dispatch commands optimally. See the [website](https://evolvablehardware.github.io/iCEFARM/) or docs folder for additional information about using and developing the client.

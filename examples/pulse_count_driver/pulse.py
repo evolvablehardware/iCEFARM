@@ -47,7 +47,7 @@ WAIT_FOR_AVAILABLE = False
 AVAILABLE_S_TO_WAIT = 60
 
 # ID for the client. Must be unique.
-CLIENT_NAME = "read default example"
+CLIENT_NAME = "pulse count example"
 
 # Url to the control server.
 CONTROL_SERVER = "http://localhost:8080"
@@ -149,8 +149,8 @@ logger.info("Sending bitstreams...")
 start_time = time.time()
 
 # Returns results as they come in
-for serial, evaluation, result in client.evaluateEvaluations(evaluations):
-    print(f"Serial {serial}, bitstream {evaluation.filepath}, result {result}")
+for result in client.evaluateEvaluations(evaluations):
+    print(f"Serial {result.serial}, bitstream {result.evaluation.filepath}, value {result.value}")
 
 
 elapsed = time.time() - start_time

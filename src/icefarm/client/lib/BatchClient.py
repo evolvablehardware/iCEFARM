@@ -7,8 +7,10 @@ from collections.abc import Generator
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict
 import time
+from dataclasses import dataclass
+import itertools
 
-from icefarm.utils import MappedQueues
+from icefarm.utils import MappedQueues, Queue
 from icefarm.client.lib import BaseClient
 from icefarm.client.lib.AbstractEventHandler import AbstractEventHandler, register
 
@@ -87,125 +89,153 @@ class EvaluationBundle:
     def __iter__(self):
         return self
 
+@dataclass
+class Result:
+    serial: str
+    evaluation: Evaluation
+    value: Any | EvaluationFailed
+
+class ResultTracker:
+    """Tracks evaluations to know when all results have been received. Also keeps track of
+    how long devices have gone without sending back results."""
+    def __init__(self, bundle: EvaluationBundle):
+        self.bundle = bundle
+
+        self.lock = threading.RLock()
+        # serial -> Evaluations
+        self.awaiting_results: dict[str, set[Evaluation]] = {}
+        self.serial_last_result: dict[str, float] = {}
+        self.results: Queue[Result] = Queue()
+
+        self.broken_serials: set[str] = set()
+
+    def getSerialTimeouts(self, duration: float) -> set[str]:
+        """Returns serials that are expecting results but have not
+        received any within the duration."""
+        with self.lock:
+            return set(serial for serial, last_result in self.serial_last_result.items() if last_result + duration < time.time())
+
+    def markBrokenSerial(self, serial: str):
+        """Marks a serial as broken. Whenever an evaluation for a broken device that is tracked,
+        and for those already being tracked, a Result is created with an EvaluationFailed value
+        instead of waiting for a value."""
+        with self.lock:
+            self.broken_serials.add(serial)
+
+            for evaluation in list(self.awaiting_results.get(serial, [])):
+                self.processResult(Result(serial, evaluation, EvaluationFailed))
+
+    def trackEvaluation(self, serial: str, evaluation: Evaluation):
+        """Starts tracking an evaluation. Result processing does not stop until all tracked
+        evaluations are processed or invalidated."""
+        with self.lock:
+            if serial not in self.awaiting_results:
+                self.serial_last_result[serial] = time.time()
+
+            if serial not in self.awaiting_results:
+                self.awaiting_results[serial] = set()
+
+            self.awaiting_results[serial].add(evaluation)
+
+            if serial in self.broken_serials:
+                result = Result(serial, evaluation, EvaluationFailed)
+                self.processResult(result)
+                print("\n\nADDED FAILED RESULTS\n\n")
+
+    def processResult(self, result: Result):
+        """Updates tracked evaluations to mark this one as completed, forwards the result to
+        caller of getResults."""
+        with self.lock:
+            if result.evaluation not in self.awaiting_results.get(result.serial, []):
+                return
+
+            self.awaiting_results[result.serial].discard(result.evaluation)
+            self.serial_last_result[result.serial] = time.time()
+            self.results.put(result)
+
+            # TODO would be nice to get rid of bundle
+            # dependence but I think having a to set a flag for empty
+            # is less straightforward
+            if self.bundle.empty and not any(self.awaiting_results.values()):
+                self.results.put(None)
+
+    def getResults(self) -> Generator[Result]:
+        """Returns results as they are processed."""
+        while res := self.results.pop():
+            yield res
+
 class AbstractBatchFactory(ABC):
     # TODO at some point this should support adding evaluations to an existing factory,
     # this will give a slight speedup as partial generations can be sent while using icepack
     """
     Produces batches for client consumption.
     """
-    # this could be easily replaced with a bundle, not needed and complicated for now
-    def __init__(self, evaluations: list[Evaluation], batch_size: int, client: BaseClient, result_timeout=None, unreserve_on_timeout=True):
+    def __init__(self, bundle: EvaluationBundle, client: BaseClient, result_timeout=10, unreserve_on_timeout=True):
         super().__init__()
-        self.bundle = EvaluationBundle(evaluations, batch_size=batch_size)
-        self.results: list[tuple[Evaluation, dict]] = []
+        self.bundle = bundle
+        self.tracker = ResultTracker(bundle)
         self.result_cv = threading.Condition()
-
-        self.awaiting_results: dict[str, set] = {}
-        self.serial_last_result: dict[str, float] = {}
 
         self.result_timeout = result_timeout
         self.unreserve_on_timeout = unreserve_on_timeout
         self.client = client
-        self.broken_serials = set()
 
         self.thread = None
-        self.stop_thread = False
+        self.stop = threading.Event()
         self.startWatchdog()
 
     def startWatchdog(self):
         def watch():
-            while not self.stop_thread:
-                time.sleep(self.result_timeout)
+            while not self.stop.wait(self.result_timeout):
+                failed_serials = list(self.tracker.getSerialTimeouts(self.result_timeout))
 
-                with self.result_cv:
-                    awaiting_serials = [serial for serial in self.awaiting_results if self.awaiting_results.get(serial)]
-                    expired_serials = [serial for serial in awaiting_serials if self.serial_last_result[serial] + self.result_timeout < time.time()]
-                    newly_expired_serials = [serial for serial in expired_serials if serial not in self.broken_serials]
+                if self.unreserve_on_timeout:
+                    self.client.end(failed_serials)
 
-                    failed_evaluations = []
+                for serial in failed_serials:
+                    self.tracker.markBrokenSerial(serial)
 
-                    for serial in newly_expired_serials:
-                        self.client.logger.warning(f"timeout detected on device {serial} during evaluation, rebooting")
+        self.thread = threading.Thread(target=watch, name="batchfactory-watchdog", daemon=True)
+        self.thread.start()
 
-                    for serial in self.client.reboot(newly_expired_serials, timeout=30):
-                            self.client.logger.error(f"device {serial} reboot failed, ending reservation")
-                            self.client.end([serial])
-                            self.broken_serials.add(serial)
-
-                            for evaluation_id in self.awaiting_results[serial]:
-                                failed_evaluations.append((serial, evaluation_id, EvaluationFailed))
-
-                for evaluation in failed_evaluations:
-                    self.processResult(*evaluation)
-
-        if self.result_timeout:
-            self.thread = threading.Thread(target=watch, name="batchfactory-watchdog", daemon=True)
-            self.thread.start()
-
-    def processResult(self, serial: str, evaluation_id: str, result: Any):
+    def processResult(self, serial: str, evaluation_id: str, value: Any):
         with self.result_cv:
-            if serial not in self.awaiting_results:
-                return
+            evaluation = self.bundle.evaluation_lookup[evaluation_id]
+            result = Result(serial, evaluation, value)
 
-            if evaluation_id not in self.awaiting_results[serial]:
-                return
-
-            self.awaiting_results[serial] -= {evaluation_id}
-            self.serial_last_result[serial] = time.time()
-
-            self.results.append((serial, evaluation_id, result))
+            self.tracker.processResult(result)
             self.result_cv.notify_all()
 
-    def getResults(self) -> Generator[tuple[str, Evaluation, Any]]:
+    def getResults(self) -> Generator[Result]:
         """Produces results as they received by processResult."""
-        while True:
-            with self.result_cv:
-                if not self.results:
-                    self.result_cv.wait_for(lambda : self.results)
-
-                for serial, evaluation_id, result in self.results:
-                    evaluation = self.bundle.evaluation_lookup.get(evaluation_id)
-                    yield serial, evaluation, result
-
-                self.results = []
-
-                if self.bundle.empty and not any(self.awaiting_results.values()):
-                    self.exit()
-                    return
-
-    def _addBatch(self, batch: dict[set[str], list[Evaluation]]):
-        """Adds batch to awaiting results and adds any serials included to serial_last_result."""
-        bad_results = []
-        for serials, evaluations in batch.items():
-            for serial in serials:
-                with self.result_cv:
-                    if serial not in self.awaiting_results:
-                        self.serial_last_result[serial] = time.time()
-
-                if serial not in self.awaiting_results:
-                    self.awaiting_results[serial] = set()
-
-                self.awaiting_results[serial] |= set(evaluation.id for evaluation in evaluations)
-
-                if serial in self.broken_serials:
-                    bad_results.extend((serial, evaluation.id, EvaluationFailed) for evaluation in evaluations)
-
-        for result in bad_results:
-            self.processResult(*result)
-
+        yield from self.tracker.getResults()
 
     def getBatches(self) -> Generator[dict[set[str], list[Evaluation]]]:
         """Produces batches for client to consume."""
-        for batch in self.bundle:
-            with self.result_cv:
+        # TODO kinda suboptimal but should not matter
+        with self.result_cv:
+            for batch in self.bundle:
                 if not self._readyForBatch():
                     self.result_cv.wait_for(self._readyForBatch)
 
-                self._addBatch(batch)
-                yield batch
+                for serials, evaluations in batch.items():
+                    pairs = itertools.product(serials, evaluations)
+                    for serial, evaluation in pairs:
+                        self.tracker.trackEvaluation(serial, evaluation)
+
+                # remove broken serials from evaluations
+                actual_batch: dict[set[str], list[Evaluation]] = {}
+                for serials, evaluations in batch.items():
+                    working_serials = serials.difference(self.tracker.broken_serials)
+                    current_evaluations = actual_batch.get(working_serials, [])
+
+                    current_evaluations.extend(evaluations)
+                    actual_batch[working_serials] = current_evaluations
+
+                yield actual_batch
 
     def exit(self):
-        self.stop_thread = True
+        self.stop.set()
 
     def _readyForBatch(self) -> bool:
         """Whether the next batch should be made available for consumption."""
@@ -223,7 +253,7 @@ class PatientBatchFactory(AbstractBatchFactory):
     before sending a new one.
     """
     def _readyForBatch(self):
-        return not any(self.awaiting_results.values())
+        return not any(self.tracker.awaiting_results.values())
 
 class BalancedBatchFactory(AbstractBatchFactory):
     """
@@ -231,15 +261,15 @@ class BalancedBatchFactory(AbstractBatchFactory):
     waits until a threshold of results have been received
     before sending more batches.
     """
-    def __init__(self, evaluations, client, target_batches=4, batch_size=5, result_timeout=None):
-        super().__init__(evaluations, batch_size, client, result_timeout=result_timeout)
+    def __init__(self, bundle, client, target_batches=4, result_timeout=None, unreserve_on_timeout=True):
+        super().__init__(bundle, client, result_timeout, unreserve_on_timeout)
         self.target_batches = target_batches
 
     def _readyForBatch(self):
-        if not any(self.awaiting_results.values()):
+        if not any(self.tracker.awaiting_results.values()):
             return True
 
-        highest_queued = max(map(len, self.awaiting_results.values()))
+        highest_queued = max(map(len, self.tracker.awaiting_results.values()))
         batches = math.floor(highest_queued / self.bundle.batch_size)
         return bool(self.target_batches - batches)
 
@@ -266,29 +296,21 @@ class BatchClient(BaseClient):
         self.batch_factories: dict[str, AbstractBatchFactory] = {}
         self.addEventHandler(ResultHandler(self.server, self))
 
-    # TODO figure out better design for broken devices during batches
-    # Need to improve EvaluationBundle first
-    def _evaluateBatch(self, evaluations: list[Evaluation], batch_id: str, bad_serials: set[str]):
+    def _evaluateBatch(self, evaluations: list[Evaluation], batch_id: str):
         out = []
         for evaluation in evaluations:
-            out.append(self.requestBatchWorker(list(evaluation.serials - bad_serials), "evaluate", evaluation.toJson(batch_id)))
+            out.append(self.requestBatchWorker(list(evaluation.serials), "evaluate", evaluation.toJson(batch_id)))
 
         return out
 
-    def _evaluateFactory(self, factory: AbstractBatchFactory) -> Generator[tuple[str, Evaluation, Any]]:
+    def _evaluateFactory(self, factory: AbstractBatchFactory) -> Generator[Result]:
         """Returns serial, source evaluation, result"""
         self.batch_factories[factory.bundle.id] = factory
 
         def evaluate_batches():
             for evaluations in factory.getBatches():
                 for serial_group in evaluations.values():
-                    # TODO improve EvaluationBundle so bad serials are not generated in the first place?
-                    # I don't like that method really because it means that evaluations with multiple devices will be
-                    # run for none of them
-
-                    # I think the best option is to generate the serials in the batchfactory alongside the evaluations and ignore the listed
-                    # serials in the evaluation object itself
-                    self._evaluateBatch(serial_group, factory.bundle.id, factory.broken_serials)
+                    self._evaluateBatch(serial_group, factory.bundle.id)
 
         threading.Thread(target=evaluate_batches, name="batch-sender").start()
 
@@ -298,6 +320,7 @@ class BatchClient(BaseClient):
         del self.batch_factories[factory.bundle.id]
 
     #TODO switch this to just evaluate, requires bitstreamevo changes
-    def evaluateEvaluations(self, evaluations: List[Evaluation], result_timeout=30, batch_size=5, target_batches=2) -> Generator[tuple[str, Evaluation, Any]]:
-        return self._evaluateFactory(BalancedBatchFactory(evaluations, self, batch_size=batch_size, target_batches=target_batches, result_timeout=result_timeout))
+    def evaluateEvaluations(self, evaluations: List[Evaluation], result_timeout=30, batch_size=5, target_batches=2) -> Generator[Result]:
+        bundle = EvaluationBundle(evaluations, batch_size=batch_size)
+        return self._evaluateFactory(BalancedBatchFactory(bundle, self, target_batches=target_batches, result_timeout=result_timeout))
 

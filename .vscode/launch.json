@@ -21,6 +21,22 @@
         },
 
         {
+            "name": "Pulsecount Example",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "examples/pulse_count_driver/pulse.py",
+            "console": "integratedTerminal",
+        },
+
+        {
+            "name": "Varmax Example",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "examples/pulse_count_driver/varmax.py",
+            "console": "integratedTerminal",
+        },
+
+        {
             "name": "Worker",
             "type": "debugpy",
             "request": "launch",
