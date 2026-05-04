@@ -29,6 +29,6 @@ jobs:
             mkdocs-material-
       - run: pip install mkdocs-material 
       - name: Install dependencies
-        run: pip install mkdocs-redirects mkdocs-minify-plugin mkdocs-git-revision-date-localized-plugin mkdocs-awesome-nav
+        run: pip install mkdocs-redirects mkdocs-minify-plugin mkdocs-git-revision-date-localized-plugin mkdocs-awesome-nav mkdocs-macros-plugin
       - run: mkdocs gh-deploy --force  
 
