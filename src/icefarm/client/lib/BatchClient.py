@@ -278,7 +278,6 @@ class BalancedBatchFactory(AbstractBatchFactory):
         self.target_batches = target_batches
 
     def _readyForBatch(self):
-        print(f"values: {self.tracker.awaiting_results.values()}")
         if not any(self.tracker.awaiting_results.values()):
             return True
 

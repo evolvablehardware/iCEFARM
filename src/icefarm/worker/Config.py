@@ -25,15 +25,11 @@ class Config:
         if not self.worker_name:
             raise Exception("ICEFARM_WORKER_NAME not set, no HOSTNAME")
 
-        self.server_port: str = config_else_env("ICEFARM_SERVER_PORT", "Connection", parser, default="8081")
-        self.virtual_server_port: str = config_else_env("ICEFARM_VIRTUAL_PORT", "Connection", parser, default="8081")
+        self.worker_url: str = config_else_env("ICEFARM_WORKER_URL", "Connection", parser)
         self.control_server_url: str = config_else_env("ICEFARM_CONTROL_SERVER", "Connection", parser, error=False)
-        if not self.control_server_url:
-            print("WARNING: not logging to control")
-        self.virtual_ip: str = config_else_env("ICEFARM_VIRTUAL_IP", "Connection", parser, error=False)
-        if not self.virtual_ip:
-            self.virtual_ip = get_ip()
-            print(f"WARNING: using {self.virtual_ip}")
+        if not self.worker_url:
+            self.worker_url = "http://localhost:8081"
+            print(f"WARNING: using {self.worker_url}")
 
         self.libpg_string= os.environ.get("ICEFARM_DATABASE")
         if not self.libpg_string:

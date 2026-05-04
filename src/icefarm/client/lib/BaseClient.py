@@ -136,7 +136,7 @@ class BaseClient(BaseAPI):
                 if not info:
                     self.logger.error(f"could not get connection info for serial {serial}")
 
-                self.server.connectWorker(info.url())
+                self.server.connectWorker(info)
                 connected.append(serial)
 
             self.eh.waitUntilInitilized(connected)
@@ -157,7 +157,7 @@ class BaseClient(BaseAPI):
             if not info:
                 self.logger.error(f"could not get connection info for serial {serial}")
 
-            self.server.connectWorker(info.url())
+            self.server.connectWorker(info)
             connected.append(serial)
 
         self.eh.waitUntilInitilized(connected)
@@ -183,7 +183,7 @@ class BaseClient(BaseAPI):
             return
 
         if not self.usingConnection(conn_info):
-            self.server.disconnectWorker(conn_info.url())
+            self.server.disconnectWorker(conn_info)
 
     def requestWorker(self, serial: str, event: str, data: dict):
         """Sends data to socket of worker hosting serial. Note that the 'serial'
@@ -194,7 +194,7 @@ class BaseClient(BaseAPI):
         if not info:
             return False
 
-        return self.server.sendWorker(info.url(), "request", {
+        return self.server.sendWorker(info, "request", {
             "serial": serial,
             "event": event,
             "contents": data
@@ -215,12 +215,12 @@ class BaseClient(BaseAPI):
                 self.logger.error(f"Could not get connection info for batch request serials: {batch_serials}")
                 continue
 
-            if not self.server.sendWorker(info.url(), "request", {
+            if not self.server.sendWorker(info, "request", {
                 "serial": batch_serials,
                 "event": event,
                 "contents": data
             }):
-                self.logger.error(f"Failed to send request to worker {info.url()} for serials {batch_serials}")
+                self.logger.error(f"Failed to send request to worker {info} for serials {batch_serials}")
                 failed_serials.extend(batch_serials)
 
         return failed_serials

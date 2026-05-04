@@ -31,8 +31,7 @@ END $$;
 
 CREATE FUNCTION get_device_worker(device_id varchar(255))
 RETURNS TABLE (
-    worker_host varchar(255),
-    worker_port int
+    wurl varchar(255)
 )
 LANGUAGE plpgsql AS $$ BEGIN
     IF device_id NOT IN (
@@ -42,8 +41,7 @@ LANGUAGE plpgsql AS $$ BEGIN
     END IF;
 
     RETURN QUERY
-    SELECT worker.host,
-        worker.port
+    SELECT worker.wurl
     FROM device
         INNER JOIN worker ON device.worker_id = worker.id
     WHERE device.id = device_id;

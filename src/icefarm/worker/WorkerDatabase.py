@@ -27,8 +27,8 @@ class WorkerDatabase(Database):
         farm_version = version("icefarm")
         reservables = get_registered_reservables()
 
-        args = (self.worker_name, config.virtual_ip, config.virtual_server_port, farm_version, reservables)
-        if not self.execute("CALL add_worker(%s::varchar(255), %s::varchar(255), %s::int, %s::varchar(255), %s::varchar(255)[])", args):
+        args = (self.worker_name, config.worker_url, farm_version, reservables)
+        if not self.execute("CALL add_worker(%s::varchar(255), %s::varchar(255), %s::varchar(255), %s::varchar(255)[])", args):
             raise Exception(f"Failed to add worker {self.worker_name}")
 
     def addDevice(self, deviceserial: str) -> bool:

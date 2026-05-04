@@ -1,7 +1,6 @@
 CREATE TABLE worker (
     id              varchar(255)    PRIMARY KEY,
-    host            varchar(255)    NOT NULL,
-    port            int             NOT NULL,
+    wurl            varchar(255)    NOT NULL,
     heartbeat       timestamp       NOT NULL,
     farm_version    varchar(255)    NOT NULL,
     reservables     varchar(255)[]  NOT NULL,

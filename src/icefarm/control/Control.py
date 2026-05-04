@@ -112,12 +112,11 @@ class Control:
     def _sendReservationNotifications(self, con_info, kind, args):
         for row in con_info:
             def send_reserve():
-                ip = row["ip"]
-                port = row["serverport"]
+                url = row["url"]
                 serial = row["serial"]
 
                 try:
-                    res = requests.get(f"http://{ip}:{port}/reserve", json={
+                    res = requests.get(f"{url}/reserve", json={
                         "serial": serial,
                         "kind": kind,
                         "args": args

@@ -23,11 +23,11 @@ def db():
     conn.close()
 
 
-def call_add_worker(cur, worker_id="test-worker-1", host="127.0.0.1", port=9999):
+def call_add_worker(cur, worker_id="test-worker-1", wurl="http://127.0.0.1:9999"):
     """Helper to call the add_worker stored procedure."""
     cur.execute(
-        "CALL add_worker(%s::varchar(255), %s::varchar(255), %s::int, %s::varchar(255), %s::varchar(255)[])",
-        (worker_id, host, port, "0.0.0-test", ["pulsecount"])
+        "CALL add_worker(%s::varchar(255), %s::varchar(255), %s::varchar(255), %s::varchar(255)[])",
+        (worker_id, wurl, "0.0.0-test", ["pulsecount"])
     )
 
 
@@ -67,14 +67,13 @@ class TestAddWorkerUpsert:
             assert cur.fetchone() is not None
 
     def test_upsert_updates_fields(self, db):
-        """Re-registering should update host/port to new values."""
+        """Re-registering should update wurl to new values."""
         with db.cursor() as cur:
-            call_add_worker(cur, "test-worker-update", host="10.0.0.1", port=8000)
-            call_add_worker(cur, "test-worker-update", host="10.0.0.2", port=9000)
-            cur.execute("SELECT host, port FROM worker WHERE id = 'test-worker-update'")
+            call_add_worker(cur, "test-worker-update", wurl="http://10.0.0.1:8000")
+            call_add_worker(cur, "test-worker-update", wurl="http://10.0.0.2:9000")
+            cur.execute("SELECT wurl FROM worker WHERE id = 'test-worker-update'")
             row = cur.fetchone()
-            assert str(row[0]) == "10.0.0.2"
-            assert row[1] == 9000
+            assert row[0] == "http://10.0.0.2:9000"
 
     def test_upsert_cleans_stale_devices(self, db):
         """Re-registering a worker should cascade-delete its old devices."""

@@ -58,8 +58,7 @@ services:
 
     environment:
       ICEFARM_DATABASE: 'postgresql://postgres:postgres@localhost:5433/postgres'
-      ICEFARM_VIRTUAL_IP: localhost
-      ICEFARM_VIRTUAL_PORT: 8081
+      ICEFARM_WORKER_URL: http://localhost:8081
       ICEFARM_CONTROL_SERVER: http://localhost:8080
       ICEFARM_WORKER_NAME: host_worker
       ICEFARM_WORKER_LOGS: /usr/local/app/worker_logs

@@ -153,7 +153,7 @@ def run_debug():
     # spurious "packet queue is empty, aborting" disconnects on the client.
     socketio = SocketIO(app, max_http_buffer_size=MAX_REQUEST_SIZE, ping_timeout=60, ping_interval=25)
     create_app(app, socketio, config, logger)
-    socketio.run(app, port=config.server_port, allow_unsafe_werkzeug=True, host="0.0.0.0")
+    socketio.run(app, allow_unsafe_werkzeug=True, host="0.0.0.0", port=8081)
 
 def run_uvicorn():
     logger = logging.getLogger(__name__)

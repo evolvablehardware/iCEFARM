@@ -4,18 +4,6 @@ from logging import Logger
 
 import requests
 
-class ConnectionInfo:
-    """Database for information required to establish and maintain worker connections."""
-    def __init__(self, ip: str, server_port: str):
-        self.ip = ip
-        self.server_port = server_port
-
-    def __eq__(self, value):
-        return self.ip == value.ip and self.server_port == value.server_port
-
-    def url(self):
-        return f"http://{self.ip}:{self.server_port}"
-
 class BaseAPI:
     """Provides an an abstraction over control server http endpoints and tracks reserved devices."""
     def __init__(self, url: str, client_name: str, logger: Logger):
@@ -25,9 +13,9 @@ class BaseAPI:
         self.lock = Lock()
         self.logger = logger
 
-    def addSerial(self, serial, conn_info: ConnectionInfo):
+    def addSerial(self, serial, url):
         with self.lock:
-            self.connection_info[serial] = conn_info
+            self.connection_info[serial] = url
 
     def removeSerial(self, serial: str) -> bool:
         """Manually removes a device. Should be called after reservations end or
@@ -44,12 +32,12 @@ class BaseAPI:
         with self.lock:
             return list(self.connection_info.keys())
 
-    def getConnectionInfo(self, serial: str) -> ConnectionInfo:
+    def getConnectionInfo(self, serial: str) -> str:
         """Returns connection information associated with a serial."""
         with self.lock:
             return self.connection_info.get(serial)
 
-    def usingConnection(self, info: ConnectionInfo):
+    def usingConnection(self, info: str):
         """Returns whether a connection is currently in use by a device."""
         with self.lock:
             return info in self.connection_info.values()
@@ -85,7 +73,7 @@ class BaseAPI:
 
         for row in data:
             serial = row["serial"]
-            info = ConnectionInfo(row["ip"], row["serverport"])
+            info = row["url"]
             self.addSerial(serial, info)
 
             out.append(serial)

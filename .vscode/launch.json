@@ -45,8 +45,7 @@
             "sudo": true,
             "env": {
                 "ICEFARM_WORKER_NAME": "debug-worker",
-                "ICEFARM_SERVER_PORT": "8081",
-                "ICEFARM_VIRTUAL_PORT": "8081",
+                "ICEFARM_WORKER_URL": "http://localhost:8081",
 
                 "ICEFARM_DATABASE": "${env:USBIPICE_DATABASE}",
                 "ICEFARM_CONTROL_SERVER": "http://localhost:8080",
@@ -66,8 +65,7 @@
             "sudo": true,
             "env": {
                 "ICEFARM_WORKER_NAME": "debug-worker",
-                "ICEFARM_SERVER_PORT": "8081",
-                "ICEFARM_VIRTUAL_PORT": "8081",
+                "ICEFARM_WORKER_URL": "http://localhost:8081",
 
                 "ICEFARM_DATABASE": "${env:USBIPICE_DATABASE}",
                 "ICEFARM_CONTROL_SERVER": "http://localhost:8080",

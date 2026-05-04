@@ -4,21 +4,18 @@ CREATE FUNCTION make_reservations (
     reservation_type varchar(255)
 ) RETURNS TABLE (
     device_id varchar(255),
-    worker_host varchar(255),
-    worker_port int
+    wurl varchar(255)
 ) LANGUAGE plpgsql AS $$
 DECLARE amount_found int8;
 BEGIN
     CREATE TEMPORARY TABLE res (
         device_id varchar(255),
-        worker_host varchar(255),
-        worker_port int
+        wurl varchar(255)
     ) ON COMMIT DROP;
 
-    INSERT INTO res(device_id, worker_host, worker_port)
+    INSERT INTO res(device_id, wurl)
     SELECT device.id,
-        worker.host,
-        worker.port
+           worker.wurl
     FROM device
         INNER JOIN worker ON worker.id = device.worker_id
     WHERE device_status = 'available'
@@ -52,22 +49,19 @@ END $$;
 CREATE FUNCTION make_specific_reservations(client_name varchar(255), serial_ids varchar(255)[], reservation_type varchar(255))
 RETURNS TABLE (
     device_id varchar(255),
-    worker_host varchar(255),
-    worker_port int
+    wurl varchar(255)
 ) LANGUAGE plpgsql AS $$
 DECLARE amount_found int8;
 DECLARE expected int8;
 BEGIN
     CREATE TEMPORARY TABLE res (
         device_id varchar(255),
-        worker_host varchar(255),
-        worker_port int
+        wurl varchar(255)
     ) ON COMMIT DROP;
 
-    INSERT INTO res(device_id, worker_host, worker_port)
+    INSERT INTO res(device_id, wurl)
     SELECT device.id,
-        worker.host,
-        worker.port
+        worker.wurl
     FROM device
         INNER JOIN worker ON worker.id = device.worker_id
     WHERE device_status = 'available'
@@ -162,13 +156,11 @@ CREATE FUNCTION end_reservations(
     serial_ids varchar(255) []
 ) RETURNS TABLE (
     device_id varchar(255),
-    worker_host varchar(255),
-    worker_port int
+    wurl varchar(255)
 ) LANGUAGE plpgsql AS $$ BEGIN
     CREATE TEMPORARY TABLE res (
         device_id varchar(255),
-        worker_host varchar(255),
-        worker_port int
+        wurl varchar(255)
     ) ON COMMIT DROP;
 
     INSERT INTO res(device_id)
@@ -179,8 +171,7 @@ CREATE FUNCTION end_reservations(
 
     RETURN QUERY
     SELECT reservations.device_id,
-        worker.host,
-        worker.port
+        worker.wurl
     FROM res
         INNER JOIN reservations ON res.device_id = reservations.device_id
         INNER JOIN device ON res.device_id = device.id
@@ -203,8 +194,7 @@ END $$;
 CREATE FUNCTION end_all_reservations (client_name varchar(255))
 RETURNS TABLE (
     device_id varchar(255),
-    worker_host varchar(255),
-    worker_port int
+    wurl varchar(255)
 )
 LANGUAGE plpgsql AS $$ BEGIN
     CREATE TEMPORARY TABLE res (
@@ -218,8 +208,7 @@ LANGUAGE plpgsql AS $$ BEGIN
 
     RETURN QUERY
     SELECT res.device_id,
-        worker.host,
-        worker.port
+        worker.wurl
     FROM res
         INNER JOIN reservations ON res.device_id = reservations.device_id
         INNER JOIN device ON res.device_id = device.id
@@ -243,8 +232,7 @@ CREATE FUNCTION handle_reservation_timeouts()
 RETURNS TABLE (
     device_id varchar(255),
     client_id varchar(255),
-    worker_host varchar(255),
-    worker_port int
+    wurl varchar(255)
 ) LANGUAGE plpgsql AS $$ BEGIN
     CREATE TEMPORARY TABLE res (
        device_id varchar(255)
@@ -257,8 +245,7 @@ RETURNS TABLE (
     RETURN QUERY
     SELECT res.device_id,
         reservations.client_id,
-        worker.host,
-        worker.port
+        worker.wurl
     FROM res
         INNER JOIN reservations ON res.device_id = reservations.device_id
         INNER JOIN device on device.id= res.device_id

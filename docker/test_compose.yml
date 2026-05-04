@@ -36,9 +36,7 @@ services:
 
     environment:
       ICEFARM_DATABASE: 'postgresql://postgres:postgres@db:5432'
-
-      ICEFARM_VIRTUAL_IP: worker
-      ICEFARM_VIRTUAL_PORT: 8081
+      ICEFARM_WORKER_URL: http://worker:8081
 
       ICEFARM_CONTROL_SERVER: http://control:8080
       ICEFARM_WORKER_NAME: host_worker

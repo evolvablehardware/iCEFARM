@@ -1,7 +1,6 @@
 CREATE OR REPLACE PROCEDURE add_worker(
     id varchar(255),
-    host varchar(255),
-    port int,
+    wurl varchar(255),
     farm_version varchar(255),
     reservables varchar(255) []
 )
@@ -11,8 +10,7 @@ LANGUAGE plpgsql AS $$ BEGIN
 
     INSERT INTO worker (
             id,
-            host,
-            port,
+            wurl,
             heartbeat,
             farm_version,
             reservables,
@@ -20,8 +18,7 @@ LANGUAGE plpgsql AS $$ BEGIN
         )
     VALUES (
             id,
-            host,
-            port,
+            wurl,
             CURRENT_TIMESTAMP,
             farm_version,
             reservables,

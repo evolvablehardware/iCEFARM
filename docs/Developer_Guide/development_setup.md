@@ -112,9 +112,7 @@ This may also be done with the -E flag, but this is not supported on all systems
 |ICEFARM_DEFAULT| Path for Ready state firmware | required |
 |ICEFARM_PULSE_COUNT | Path for PulseCount state firmware | required |
 |ICEFARM_WORKER_LOGS | Log location | None - required if running with uvicorn|
-|ICEFARM_SERVER_PORT| Port to host server on | 8081|
-|ICEFARM_VIRTUAL_IP| Ip for clients to reach worker with | First result from hostname -I |
-|ICEFARM_VIRTUAL_PORT| Port for clients to reach worker with | 8081 |
+|ICEFARM_WORKER_URL| Server worker is available on | http://localhost:8081|
 
 ## Preparing Devices
 The picos need to be plugged into the worker and running firmware that has tinyusb loaded. The [rp2_hello_world](https://github.com/tinyvision-ai-inc/pico-ice-sdk/tree/main/examples/rp2_hello_world) example from the pico-ice-sdk works for this purpose.

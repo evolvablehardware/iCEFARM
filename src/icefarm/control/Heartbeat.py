@@ -59,10 +59,9 @@ class Heartbeat:
 
                 for row in workers:
                     name = row["name"]
-                    ip = row["ip"]
-                    port = row["port"]
+                    wurl = row["url"]
 
-                    url = f"http://{ip}:{port}/heartbeat"
+                    url = f"{wurl}/heartbeat"
                     try:
                         req = requests.get(url, timeout=self.config.heartbeat_request_timeout_seconds)
 

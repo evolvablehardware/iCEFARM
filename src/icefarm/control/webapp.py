@@ -76,7 +76,7 @@ def build_page(database: ControlDatabase) -> str:
         if (worker_data := database.getWorkers()) is False:
             raise Exception
 
-        worker = Worker(map(lambda r : WorkerRow(r["name"], f"http://{r["ip"]}:{r["port"]}", r["version"], r["shutting_down"], r["reservables"]), worker_data))
+        worker = Worker(map(lambda r : WorkerRow(r["name"], r["url"], r["version"], r["shutting_down"], r["reservables"]), worker_data))
 
         if (device_data := database.getDevices()) is False:
             raise Exception

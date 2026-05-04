@@ -9,20 +9,20 @@ class ControlDatabase(Database):
             return False
 
         row = data[0]
-        ip, port = row[0], row[1]
-        return f"http://{ip}:{port}"
+        url = row[0]
+        return url
 
     def reserve(self, amount: int, clientname: str, reservation_type: str) -> dict:
-        """Reserves amount devices for clientname. Returns as {serial, ip, serverport}"""
+        """Reserves amount devices for clientname. Returns as {serial, url}"""
         return self.getData(
             "SELECT * FROM make_reservations(%s::int, %s::varchar(255), %s::varchar(255))", (amount, clientname, reservation_type),
-            ["serial", "ip", "serverport"], stringify=["ip"]
+            ["serial", "url"], stringify=["url"]
         )
 
     def reserveSerials(self, client_id: str, serials: list[str], kind: str) -> dict:
         return self.getData(
             "SELECT * FROM make_specific_reservations(%s::varchar(255), %s::varchar(255)[], %s::varchar(255))", (client_id, serials, kind),
-            ["serial", "ip", "serverport"], stringify=["ip"]
+            ["serial", "url"], stringify=["url"]
         )
 
     def extend(self, name: str, serials: list[str]) -> list[str]:
@@ -41,25 +41,25 @@ class ControlDatabase(Database):
 
     def end(self, name: str, serials: list[str]):
         """Ends the reservation of serials under the name of the client.
-        Returns as {serial, workerip, workerport}"""
+        Returns as {serial, url}"""
         return self.getData(
             "select * from end_reservations(%s::varchar(255), %s::varchar(255)[])", (name, serials),
-            ["serial", "workerip", "workerport"], stringify=["workerip", "workerport"]
+            ["serial", "url"], stringify=["url"]
         )
 
     def endAll(self, name: str):
         """Ends all of the reservations under the client name.
-        Returns as {serial, workerip, workerport}"""
+        Returns as {serial, url}"""
         return self.getData(
             "SELECT * FROM end_all_reservations(%s::varchar(255))", (name,),
-            ["serial", "workerip", "workerport"], stringify=["workerip", "workerport"]
+            ["serial", "url"], stringify=["url"]
         )
 
     def getWorkers(self) -> dict:
-        """Gets information about all of the workers, returns as a list of {name, ip, port}"""
+        """Gets information about all of the workers, returns as a list of {name, url}"""
         return self.getData(
             "SELECT * FROM worker", tuple(),
-            ["name", "ip", "port", "heartbeat", "version", "reservables", "shutting_down"], stringify=["ip", "port"]
+            ["name", "url", "heartbeat", "version", "reservables", "shutting_down"], stringify=["url"]
         )
 
     def getDevices(self) -> dict:
@@ -93,7 +93,7 @@ class ControlDatabase(Database):
         """Gets reservations that have timed out, returns (serial, client_id)"""
         return self.getData(
             "SELECT * FROM handle_reservation_timeouts()", tuple(),
-            ["serial", "client_id", "workerip", "workerport"], stringify=["workerip", "workerport"]
+            ["serial", "client_id", "url"], stringify=["url"]
         )
 
     def endAllReservations(self):
@@ -121,4 +121,3 @@ class ControlDatabase(Database):
             return False
 
         return list(map(lambda x : x["serial_ids"], data))
-
