@@ -81,8 +81,15 @@ class AbstractState:
         """Attempt to restore device state after request by client by switching to the"""
         self.logger.warning("Got reboot request but not implemented for this state")
 
+    def _handleExit(self):
+        """Enables self.switching before calling normal handleExit method"""
+        with self.switching_lock:
+            self._switching = True
+
+        self.handleExit()
+
     def handleExit(self):
-        """Cleanup"""
+        """Cleanup called during state change. Do not call outside of _handleExit."""
 
     def switch(self, state_factory):
         """Switches the Device's state to a new one. This happens by first calling

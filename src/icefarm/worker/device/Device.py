@@ -87,7 +87,7 @@ class Device:
     def handleExit(self):
         with self._device_lock:
             if self._device:
-                self._device.handleExit()
+                self._device._handleExit()
 
     def reboot(self):
         self.logger.info("rebooting")
@@ -98,7 +98,7 @@ class Device:
     def switch(self, state_factory):
         with self._device_lock:
             if self._device:
-                self._device.handleExit()
+                self._device._handleExit()
             device = state_factory()
             self._device = device
             self._device.start()

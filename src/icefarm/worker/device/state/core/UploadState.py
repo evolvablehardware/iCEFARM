@@ -219,7 +219,6 @@ class UploadState(AbstractState):
             state.bitstream_queue = Queue(bitstreams)
             return state
 
-        self.handleExit()
         flasher = lambda : FlashState(self.device, self.reboot_firmware_path, transfer_bitstreams)
         self.switch(flasher)
 class Reader:
