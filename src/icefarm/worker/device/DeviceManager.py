@@ -20,8 +20,7 @@ class ManagerLogger(LoggerAdapter):
         return f"[DeviceManager] {msg}", kwargs
 
 class DeviceManager:
-    """Tracks device events and routes them to their corresponding Device object. Also listens to kernel
-    device events to identify usbip disconnects."""
+    """Tracks device events and routes them to their corresponding Device object."""
     def __init__(self, event_sender: EventSender, database: WorkerDatabase, config: Config, logger: Logger):
         self.config: Config = config
         self.logger: Logger = ManagerLogger(logger)

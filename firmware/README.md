@@ -17,7 +17,7 @@ git submodule update --init --recursive
 You will want to creating symlinks for the directories such that firmware should have links to the sdks:
 
 ```
-[..]usbip-ice/src/icefarm/worker/firmware$ ls -la
+[..]iCEFARM/src/icefarm/worker/firmware$ ls -la
 pico-ice-sdk -> [full_path]/pico-ice-sdk/
 pico-sdk -> [full_path]/pico-sdk/
 ```
