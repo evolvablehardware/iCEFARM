@@ -3,11 +3,6 @@ RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update && apt-get install -y make cmake gcc-arm-none-eabi linux-tools-generic git python3 build-essential
 
-WORKDIR /usr/local/build
-RUN git clone --depth 1 https://github.com/npat-efault/picocom.git
-WORKDIR /usr/local/build/picocom
-RUN make
-
 COPY ./firmware /usr/local/firmware
 
 WORKDIR /usr/local/firmware
@@ -50,6 +45,7 @@ RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
 WORKDIR /usr/local/build
 RUN git clone https://github.com/npat-efault/picocom.git
 WORKDIR /usr/local/build/picocom
+RUN git checkout 1acf1ddabaf3576b4023c4f6f09c5a3e4b086fb8
 RUN make
 
 FROM ubuntu:noble-20251013
