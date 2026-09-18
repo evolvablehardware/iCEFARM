@@ -3,6 +3,7 @@ from icefarm.client.lib.BatchClient import Evaluation, EvaluationFailed, Evaluat
 from collections import defaultdict
 import itertools
 import time
+import threading
 
 
 class TestEvaluation(Evaluation):
@@ -112,12 +113,48 @@ def test_result_tracker_timeouts():
     rt.processResult(Result("a", a_evals.pop(), None))
     assert rt.getSerialTimeouts(0.2) == {"b"}
 
-# TODO test with consumer thread
+def result_tracker_threaded(evals: set[Evaluation]):
+    """Ensure that results can be consumed directly after they are produced.
+    Also ensures that consumer exists when all results are finished."""
+
+    rt = ResultTracker()
+
+    for evaluation in evals:
+        for serial in evaluation.serials:
+                rt.trackEvaluation(serial, evaluation)
+
+    rt.bundleEmpty()
+
+    ready = threading.Event()
+    ready.set()
+
+    done = threading.Event()
+
+    def consume():
+        for _ in rt.getResults():
+            ready.set()
+            print("set ready")
+
+        done.set()
+
+    threading.Thread(target=consume, daemon=True, name="consumer").start()
+
+    for evaluation in evals:
+        for serial in evaluation.serials:
+            if done.is_set():
+                raise Exception("Consumer exited early")
+
+            if not ready.wait(timeout=1):
+                raise Exception("Consumer did not consume result in time")
+
+            ready.clear()
+
+            result = Result(serial, evaluation, evaluation.id)
+            rt.processResult(result)
 
 
+    if not done.wait(timeout=1):
+        raise Exception("Consumer did not exit in time")
 
-
-
-
-
-
+def test_result_tracker_threaded():
+    result_tracker_threaded(get_evaluations())
