@@ -9,7 +9,6 @@ import os
 import inspect
 import types
 from configparser import ConfigParser
-import itertools
 from typing import TypeVar, Generic, Iterable
 import threading
 
@@ -109,6 +108,8 @@ def typecheck(fn, args) -> bool:
     return True
 
 def json_to_args(json, parameters):
+    """Keys json into function parameters. Returns False if a
+    parameter is missing."""
     values = list(map(json.get, parameters))
     if any(map(lambda x : x is None, values)):
         return False
@@ -184,7 +185,7 @@ class MappedQueues:
             if key not in self:
                 return out
 
-            out.append(self[key].pop())
+            out.append(self[key].pop(0))
 
         return out
 
@@ -195,15 +196,16 @@ class MappedQueues:
         return bool(self.state.get(value))
 
     def __iter__(self):
-        return itertools.takewhile(self.__getitem__, self.state)
+        return (i for i in self.state if self.state[i])
 
     def keys(self):
-        return list(iter(self))
+        return iter(self)
 
     def values(self):
-        return [self[key] for key in self]
+        return (self[key] for key in self)
 
 def batch(l, amount):
+    """Splits iterable into amount batches"""
     batches = [[] for _ in range(amount)]
     for i, item in enumerate(l):
         batches[i % amount].append(item)
