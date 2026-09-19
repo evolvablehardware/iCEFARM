@@ -1,4 +1,4 @@
-from icefarm.client.lib.BatchClient import Evaluation, EvaluationFailed, EvaluationBundle, Result, ResultTracker
+from icefarm.client.lib.BatchClient import *
 
 from collections import defaultdict
 import itertools
@@ -10,40 +10,56 @@ class TestEvaluation(Evaluation):
     def _toJson(self):
         pass
 
+def ensure_bundle_serials_nonincreasing(evals: set[Evaluation], batch_size=10):
+    bundle = EvaluationBundle(evals, batch_size=batch_size)
+    serials = set(itertools.chain.from_iterable(ev.serials for ev in evals))
+    last_serials_amount = len(serials)
+
+    for batch in bundle:
+        used_serials = set(itertools.chain.from_iterable(batch))
+        if len(used_serials) > last_serials_amount:
+            raise Exception("Amount of serials evaluated increased")
+
+    last_serials_amount = len(used_serials)
+
+def ensure_bundle_evaluations_nonincreasing(evals: set[Evaluation], batch_size=10):
+    bundle = EvaluationBundle(evals, batch_size=batch_size)
+    all_serials = set(itertools.chain.from_iterable(ev.serials for ev in evals))
+    last_evals_amount = {serial: batch_size for serial in all_serials}
+
+    for batch in bundle:
+        amounts = Counter()
+
+        for serials, evaluations in batch.items():
+            for serial in serials:
+                amounts[serial] += len(evaluations)
+
+        for serial in all_serials:
+            assert last_evals_amount[serial] >= amounts[serial]
+            last_evals_amount[serial] = amounts[serial]
+
 def sanity_evaluation_bundle(evals: set[Evaluation], batch_size=10):
     """Sanity test for evaluation bundle, modifies evals in place. Ensures that batches can be properly consumed
     but does ensure they are packaged for optimal network transfer speed."""
+    evaluation_lookup = {evaluation: set(evaluation.serials) for evaluation in evals}
     bundle = EvaluationBundle(evals, batch_size=batch_size)
-    serials = {ev.serials for ev in evals}
-
-    # amount of serials in each batch should be nonincreasing
-    last_serials_amount = len(serials)
-    # amount of evaluations per serial should be nonincreasing
-    last_evals_amount = {serial: batch_size for serial in serials}
 
     for batch in bundle:
-        if len(batch) > last_serials_amount:
-            raise Exception("Amount of serials evaluated increased")
+        for serials, evaluations in batch.items():
+            for serial in serials:
+                for evaluation in evaluations:
+                    evaluation_lookup[evaluation].remove(serial)
 
-        last_serials_amount = len(batch)
-
-        for serial, serial_evals in batch.items():
-            if len(serial_evals) > last_evals_amount[serial]:
-                raise Exception(f"Amount of evaluations for {serial:} increased")
-
-            last_evals_amount[serial] = len(serial_evals)
-            for serial_eval in serial_evals:
-                evals.remove(serial_eval)
-
-    if len(evals):
-        raise Exception(f"Some evaluations did not get batched: {len(evals)}")
+    for remaining in evaluation_lookup.values():
+        if len(remaining):
+            raise Exception(f"Some evaluations did not get batched: {len(remaining)}")
 
 def get_evaluations(serials=list(range(5)), amount=30):
     """Returns amount evaluation for each combination serials."""
     evals = set()
 
     # all combinations of serials
-    for batched_serials in itertools.chain(itertools.combinations(serials, i) for i in range(1, len(serials)+1)):
+    for batched_serials in itertools.chain.from_iterable(itertools.combinations(serials, i) for i in range(1, len(serials)+1)):
         # serials is consumable here
         batched_serials = set(batched_serials)
         for _ in range(amount):
@@ -51,7 +67,37 @@ def get_evaluations(serials=list(range(5)), amount=30):
 
     return evals
 
+def test_bundle():
+    ones = get_evaluations(serials=[1], amount=10)
+    bundle = EvaluationBundle(ones, 1)
+    assert len(list(bundle)) == 10
+
+    evaluations = []
+    for i in range(1, 6):
+        evaluations.append(TestEvaluation(set(range(i))))
+    bundle = EvaluationBundle(evaluations, 1)
+
+    batches = list(bundle)
+    assert len(batches) == 5
+
+    evaluations = []
+    for i in range(1, 11):
+        for _ in range(3):
+            evaluations.append(TestEvaluation(set(range(i))))
+    bundle = EvaluationBundle(evaluations, 3)
+
+    batches = list(bundle)
+    assert len(batches) == 10
+
+    evaluations = []
+    for i in range(1, 15):
+        for _ in range(1):
+            evaluations.append(TestEvaluation(set(range(i))))
+    sanity_evaluation_bundle(set(evaluations), batch_size=1)
+
 def test_evaluation_bundle():
+    ensure_bundle_serials_nonincreasing(get_evaluations())
+    ensure_bundle_evaluations_nonincreasing(get_evaluations())
     sanity_evaluation_bundle(get_evaluations())
 
 def sanity_result_tracker(evals: set[Evaluation], fail_serials=set()):
@@ -133,7 +179,6 @@ def result_tracker_threaded(evals: set[Evaluation]):
     def consume():
         for _ in rt.getResults():
             ready.set()
-            print("set ready")
 
         done.set()
 
@@ -158,3 +203,33 @@ def result_tracker_threaded(evals: set[Evaluation]):
 
 def test_result_tracker_threaded():
     result_tracker_threaded(get_evaluations())
+
+def batch_factory_get_batches(evals: set[Evaluation]):
+    evals_copy = set(evals)
+    bundle = EvaluationBundle(evals, 5)
+    # client integration only used for timeout watchdog
+    factory = PatientBatchFactory(bundle, None)
+
+    for batch in factory.getBatches():
+        for serials, evaluations in batch.items():
+            for serial, evaluation in itertools.product(serials, evaluations):
+                factory.processResult(serial, evaluation.id, evaluation.id)
+
+    results = defaultdict(dict)
+
+    for res in factory.getResults():
+        results[res.evaluation][res.serial] = res.value
+
+    for evaluation in evals_copy:
+        for serial in evaluation.serials:
+            res = results[evaluation].pop(serial)
+            assert res == evaluation.id
+
+    for remaining in results.values():
+        assert len(remaining) == 0
+
+def test_batch_factory_get_batches():
+    batch_factory_get_batches(get_evaluations(serials=[1, 2, 3], amount=1))
+    # batch_factory_get_batches(get_evaluations(serials=[1, 2, 3], amount=1))
+
+

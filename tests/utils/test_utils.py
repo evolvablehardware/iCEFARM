@@ -38,6 +38,9 @@ def test_mapped_queues():
     for _ in queue.values():
         raise Exception("Queue should be empty")
 
+    if queue:
+        raise Exception("Queue should be empty")
+
     for i in range(10):
         queue.append("k", i)
 

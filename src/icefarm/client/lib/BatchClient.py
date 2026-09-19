@@ -73,7 +73,7 @@ class EvaluationBundle:
         serial_amounts = Counter()
         batch = {}
 
-        search_order = sorted(self.queue.keys(), key=len)
+        search_order = sorted(self.queue.keys(), key=len, reverse=True)
         for serials in search_order:
             slots = min(self.batch_size - serial_amounts[serial] for serial in serials)
             if not slots:
@@ -160,6 +160,7 @@ class ResultTracker:
             if self.bundle_empty and not any(self.awaiting_results.values()):
                 self.results.put(None)
 
+    # TODO change this to markBundleEmpty
     def bundleEmpty(self):
         self.bundle_empty = True
         with self.lock:
