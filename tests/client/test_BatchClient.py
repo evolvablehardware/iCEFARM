@@ -230,6 +230,6 @@ def batch_factory_get_batches(evals: set[Evaluation]):
 
 def test_batch_factory_get_batches():
     batch_factory_get_batches(get_evaluations(serials=[1, 2, 3], amount=1))
-    # batch_factory_get_batches(get_evaluations(serials=[1, 2, 3], amount=1))
+    batch_factory_get_batches(get_evaluations(serials=[1, 2, 3], amount=1))
 
 
