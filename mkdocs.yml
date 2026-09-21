@@ -1,5 +1,5 @@
 site_name: iCEFARM
-site_description: A tool to run evolution experiments on multiple icesticks.
+site_description: A tool to run evolution experiments on multiple ice40 FPGAs. (Currently only support pico2ice boards.)
 site_author: Evolvable Hardware Community
 #site_url: https://evolvablehardware.org
 
@@ -92,6 +92,7 @@ plugins:
       type: timeago
       enable_creation_date: true
       fallback_to_build_date: true
+  - macros
 
 # Extensions
 markdown_extensions:
@@ -154,6 +155,10 @@ markdown_extensions:
 
 # Extra
 extra:
+  EHW:
+    website: https://evolvablehardware.github.io
+    discord: https://discord.gg/q7xKAfKm6m
+
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/evolvablehardware/iCEFARM

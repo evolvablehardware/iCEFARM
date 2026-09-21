@@ -5,7 +5,7 @@ There are two components of iCEFARM that need to be setup in order to run. If yo
 [Server Setup](getting_started.md#server-setup){.md-button .md-button--primary}
 [Client Setup](getting_started.md#client-usage){.md-button .md-button--primary}
 
-[Fixing A Stuck Worker](getting_started.md#fixing-a-stuck-worker){.md-button .md-button--seccondary}
+[Troubleshooting](getting_started.md#troubleshooting){.md-button .md-button--seccondary}
 
 
 ## Server Setup
