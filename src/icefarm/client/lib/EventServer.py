@@ -154,6 +154,14 @@ class EventServer:
 
             del self.worker_sockets[url]
 
+    def disconnectControl(self):
+        with self.control_lock:
+            if not self.control_socket:
+                raise Exception("Control socket does not exist")
+
+            self.control_socket.disconnect()
+            self.control_socket = None
+
     def exit(self):
         for eh in self.eventhandlers:
             eh.exit()
@@ -163,3 +171,5 @@ class EventServer:
 
         for url in urls:
             self.disconnectWorker(url)
+
+        self.disconnectControl()
