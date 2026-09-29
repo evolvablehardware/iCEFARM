@@ -165,7 +165,10 @@ class EventSender(Database):
         for session in sessions:
             session.send(contents)
 
-    def __packageContents(self, serial: str, contents: dict):
+    def __packageContents(self, serial: str, contents: dict | list[dict]):
+        if not isinstance(contents, list):
+            contents = [contents]
+
         contents = {
             "serial": serial,
             "contents": contents
@@ -175,7 +178,7 @@ class EventSender(Database):
         except Exception:
             return False
 
-    def sendClientJson(self, serial: str, client_id: str, contents: dict) -> bool:
+    def sendClientJson(self, serial: str, client_id: str, contents: dict | list[dict]) -> bool:
         contents = self.__packageContents(serial, contents)
         if not contents:
             return False
@@ -183,7 +186,7 @@ class EventSender(Database):
         self.sendClient(client_id, contents)
         return True
 
-    def sendSerialJson(self, serial: str, contents: dict) -> bool:
+    def sendSerialJson(self, serial: str, contents: dict | list[dict]) -> bool:
         contents = self.__packageContents(serial, contents)
         if not contents:
             return False

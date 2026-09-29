@@ -29,6 +29,7 @@ class Event:
     event: str
     contents: dict
 
+# TODO exit control socket
 class EventServer:
     """
     Maintains websockets with the iCEFARM control and workers. Allows commands to be sent to the workers
