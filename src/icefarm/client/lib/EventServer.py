@@ -156,11 +156,9 @@ class EventServer:
 
     def disconnectControl(self):
         with self.control_lock:
-            if not self.control_socket:
-                raise Exception("Control socket does not exist")
-
-            self.control_socket.disconnect()
-            self.control_socket = None
+            if self.control_socket:
+                self.control_socket.disconnect()
+                self.control_socket = None
 
     def exit(self):
         for eh in self.eventhandlers:
