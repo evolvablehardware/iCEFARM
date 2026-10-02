@@ -8,7 +8,7 @@ import subprocess
 import pyudev
 
 def get_serial(dev):
-    """Obtains the serial from a dev file dict. Returns false if the dev file 
+    """Obtains the serial from a dev file dict. Returns false if the dev file
     is not related to pico2-ice."""
     devname = dev.get("DEVNAME")
 
@@ -80,7 +80,7 @@ def send_bootloader(path: str, timeout: int=10):
     return True
 
 def get_devs():
-    """Returns a dict mapping device serials to list of dev info dicts. This operation 
+    """Returns a dict mapping device serials to list of dev info dicts. This operation
     looks through all available dev files and is intended to be only used once after reserving devices.
     If you are dealing with frequent dev file changes, you should use a pyudev MonitorObserver instead."""
     out = {}
@@ -105,7 +105,7 @@ def get_devs():
     return out
 
 def get_dev_paths():
-    """Returns a dict mapping device serials to list of dev paths. This operation 
+    """Returns a dict mapping device serials to list of dev paths. This operation
     looks through all available dev files and is intended to be only used once after reserving devices.
     If you are dealing with frequent dev file changes, you should use a pyudev MonitorObserver instead."""
     out = get_devs()
@@ -113,7 +113,7 @@ def get_dev_paths():
         items = map(lambda x : x.get("DEVNAME"), out[key])
         filtered = filter(lambda x : x, items)
         out[key] = list(filtered)
-    
+
     return out
 
 class FirmwareUploadFail(Exception):
@@ -121,14 +121,14 @@ class FirmwareUploadFail(Exception):
         super().__init__(*args)
 
 def upload_firmware(partition_path: str, mount_location: str, firmware_bytes: bytes, mount_timeout=30):
-    """Mounts the partition at location and uploads firmware_bytes to the drive. Requires sudo 
+    """Mounts the partition at location and uploads firmware_bytes to the drive. Requires sudo
     to write to drive.."""
     mounted = mount(partition_path, mount_location, timeout=mount_timeout)
 
     if not mounted:
         return False
 
-    if os.listdir(mount_location) != ["INDEX.HTM", "INFO_UF2.TXT"]:
+    if set(os.listdir(mount_location)) != {"INDEX.HTM", "INFO_UF2.TXT"}:
         umount(mount_location)
         return False
 
