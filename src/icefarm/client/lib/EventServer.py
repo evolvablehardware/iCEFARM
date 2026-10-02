@@ -95,8 +95,8 @@ class EventServer:
                     event = None
 
                 if not serial or not event:
-                    logger.error("bad event content")
-                    return
+                    logger.error(f"bad event content: {content}")
+                    continue
 
                 # TODO this is hacky, need to update eventhandlers to use event.serial instead of contents.serial
                 # TODO need to update design docs with protocol changes
