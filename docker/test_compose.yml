@@ -31,7 +31,7 @@ services:
 
     image: ${IMAGE}
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile
 
     environment:
@@ -57,7 +57,7 @@ services:
 
     image: ${IMAGE}
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile
     environment:
       ICEFARM_DATABASE: 'postgresql://postgres:postgres@db:5432/postgres'
