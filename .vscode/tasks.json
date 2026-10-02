@@ -5,7 +5,7 @@
             "label": "database-rebuild",
             "detail": "Runs flyway clean and flyway migrate",
             "type": "shell",
-            "command": "cd src/usbipice/control/flyway && flyway clean && flyway migrate",
+            "command": "cd src/icefarm/control/flyway && flyway clean && flyway migrate",
             "problemMatcher": []
         },
         {
@@ -15,7 +15,7 @@
             "command": [
                 "psql",
                 "-d",
-                "\"$USBIPICE_DATABASE\"",
+                "\"$ICEFARM_DATABASE\"",
                 "-c",
                 "\"delete from worker;\""
             ],
@@ -25,17 +25,17 @@
             "label": "build-firmware",
             "detail": "Builds firmware in worker/firmware",
             "type": "shell",
-            "command": "cd src/usbipice/worker/firmware && bash build.sh",
+            "command": "cd firmware && bash build.sh",
             "problemMatcher": []
         },
         {
-            "label": "docker-build-all",
+            "label": "docker-build",
             "detail": "Builds all image",
             "dependsOn": "build-firmware",
             "type": "docker-build",
             "dockerBuild": {
-                "dockerfile": "${workspaceFolder}/deploy/Dockerfile",
-                "tag": "usbipiceproject/usbipice-worker:all",
+                "dockerfile": "${workspaceFolder}/docker/Dockerfile",
+                "tag": "evolvablehardware/icefarm:all",
                 "context": "${workspaceFolder}"
             }
         },
@@ -68,7 +68,6 @@
             "detail": "Restarts compose and clears database",
             "dependsOn": [
                 "compose-down",
-                "database-clear",
                 "compose-up"
             ],
             "dependsOrder": "sequence",
