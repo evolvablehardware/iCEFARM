@@ -198,10 +198,10 @@ class UploadState(AbstractState):
     def handleExit(self):
         self.bitstream_queue.shutdown()
 
-        if self.thread and self.thread.is_alive() and self.thread is not threading.current_thread():
-            self.thread.join()
         if self.reader:
             self.reader.exit()
+        if self.thread and self.thread.is_alive() and self.thread is not threading.current_thread():
+            self.thread.join()
         if self.ser and self.ser.is_open:
             self.ser.close()
 
