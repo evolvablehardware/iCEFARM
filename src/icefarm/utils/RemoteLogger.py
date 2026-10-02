@@ -7,12 +7,13 @@ import requests
 
 class RemoteLogger:
     """Drop in replacement for a logging.Logger to also post to logs control server."""
-    def __init__(self, logger: Logger, control_server: str, client_name: str, interval: int=30):
+    def __init__(self, logger: Logger, control_server: str, client_name: str, interval: int=30, backlog_limit=1000):
         self.logger: Logger = logger
 
         self.control_server = control_server
         self.client_name = client_name
         self.interval = interval
+        self.backlog_limit = backlog_limit
 
         self._backlog = []
         self._backlog_lock = threading.Lock()
@@ -48,6 +49,9 @@ class RemoteLogger:
         self.logger.log(level, msg, *args, **kwargs)
         with self._backlog_lock:
             self._backlog.append((level, msg))
+
+            if len(self._backlog) > self.backlog_limit:
+                self._backlog.pop(0)
 
     def debug(self, msg, *args, **kwargs):
         self.log(logging.DEBUG, msg, *args, **kwargs)
