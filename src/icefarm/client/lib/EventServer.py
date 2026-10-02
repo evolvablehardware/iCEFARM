@@ -105,16 +105,13 @@ class EventServer:
                 event = Event(serial, event, content)
                 self.handleEvent(event)
 
-        # TODO
-        try:
-            sio.connect(url, auth={"client_id": self.client_id}, wait_timeout=10)
-            return sio
-        except Exception:
-            return False
+        sio.connect(url, auth={"client_id": self.client_id}, wait_timeout=10)
+        return sio
 
     def connectWorker(self, url):
         if not self.control_socket:
             raise Exception("Control socket not connected")
+
         with self.worker_lock:
             if url in self.worker_sockets:
                 return
