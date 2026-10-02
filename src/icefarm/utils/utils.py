@@ -9,7 +9,7 @@ import os
 import inspect
 import types
 from configparser import ConfigParser
-from typing import TypeVar, Generic, Iterable
+from typing import TypeVar, Generic, Iterable, Generator
 import threading
 
 from pexpect import fdpexpect
@@ -225,13 +225,14 @@ class Queue(Generic[E]):
         self.shutting_down = False
         self.cv = threading.Condition()
 
-    def put(self, item: E | Iterable[E]):
-        """Adds an item to queue. Raises QueueShutDown if the queue has shutdown."""
+    def put(self, item: E | Generator[E]):
+        """Adds an item to queue. Raises QueueShutDown if the queue has shutdown.
+        Does not treat str as adding multiple characters.."""
         with self.cv:
             if self.shutting_down:
                 raise QueueShutDown
 
-            if isinstance(item, Iterable):
+            if isinstance(item, Generator):
                 self.contents.extend(item)
             else:
                 self.contents.append(item)
