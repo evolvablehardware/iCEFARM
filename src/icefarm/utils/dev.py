@@ -136,10 +136,10 @@ def upload_firmware(partition_path: str, mount_location: str, firmware_bytes: by
         with open(os.path.join(mount_location, "firmware.uf2"), "wb") as f:
             f.write(firmware_bytes)
     except Exception:
-        umount(partition_path)
+        umount(mount_location)
         raise FirmwareUploadFail()
 
-    umount(partition_path)
+    umount(mount_location)
 
     return True
 
