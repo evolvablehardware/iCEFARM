@@ -93,9 +93,9 @@ class BaseClient(BaseAPI):
     def addEventHandler(self, eh: AbstractEventHandler):
         self.server.addEventHandler(eh)
 
-    def reserve(self, amount: int, kind: str, args: str, wait_for_available=False, available_timeout=None):
+    def reserve(self, amount: int, kind: str, args: str, available_timeout=None):
         """
-        Reserves amount devices of type kind providing args to the worker when it is initilized. If wait_for_available,
+        Reserves amount devices of type kind providing args to the worker when it is initilized. If available_timeout is set to an amount of seconds,
         the client will wait until enough devices are available in the iCEFARM system. Otherwise, if there are not enough
         devices available, an error will be raised.
         """
@@ -104,23 +104,13 @@ class BaseClient(BaseAPI):
             raise Exception("Failed to reach control server when checking device availability")
 
         if amount_available < amount:
-            if not wait_for_available:
+            if available_timeout is None:
                 raise Exception("Not enough devices available")
 
             self.logger.warning("Not enough devices available, waiting for availability.")
 
-            def raise_():
-                raise Exception("Reservation timeout")
-
-            if available_timeout:
-                timer = threading.Timer(available_timeout, raise_)
-                timer.daemon = True
-                timer.name = "reserve-timeout-monitor"
-                timer.start()
-
-            self.waiter.waitForAmountAvailable(amount)
-            if available_timeout:
-                timer.cancel()
+            if not self.waiter.waitForAmountAvailable(amount, available_timeout=available_timeout):
+                raise Exception("Availability timeout reached, not enough devices available")
 
         with self.reservation_lock:
             serials = super().reserve(amount, kind, args)

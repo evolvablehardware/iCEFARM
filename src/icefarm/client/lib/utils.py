@@ -59,14 +59,16 @@ class AvailabilityWaiter(AbstractEventHandler):
         with self.cv:
             self.cv.notify_all()
 
-    def waitForAmountAvailable(self, amount):
+    def waitForAmountAvailable(self, amount, timeout=None) -> bool:
         """
-        Returns once at least amount devices are available for reservation. Note that
-        this does not guarantee this client will be able to reserve them, as another client
+        Returns once at least amount devices are available for reservation. Returns False on timeout.
+        Note that this does not guarantee this client will be able to reserve them, as another client
         might first.
         """
         if self.client.available() >= amount:
             return
 
         with self.cv:
-            self.cv.wait_for(lambda : amount <= self.last_available)
+            self.cv.wait_for(lambda : amount <= self.last_available, timeout=timeout)
+
+            return amount <= self.last_available

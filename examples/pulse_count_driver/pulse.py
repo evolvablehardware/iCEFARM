@@ -40,11 +40,9 @@ BUILD_DIR = "examples/pulse_count_driver/build"
 # If you have more than one device, feel free to increase this number.
 NUM_DEVICES = 1
 
-# Whether to wait for devices to become available if
-# not enough devices are available
-WAIT_FOR_AVAILABLE = False
-# How long to wait before timing out
-AVAILABLE_S_TO_WAIT = 60
+# How long to wait for devices to become available if not enough
+# devices are available. Set to None to fail immediately instead.
+AVAILABLE_S_TO_WAIT = None
 
 # ID for the client. Must be unique.
 CLIENT_NAME = "pulse count example"
@@ -80,7 +78,7 @@ logger.info(f"{available} available devices for reservation.")
 # the device will automatically be set to the pulse count device behavior.
 
 logger.info("Reserving devices. This may take up to 30 seconds.")
-devices = client.reserve(NUM_DEVICES, wait_for_available=WAIT_FOR_AVAILABLE, available_timeout=AVAILABLE_S_TO_WAIT)
+devices = client.reserve(NUM_DEVICES, available_timeout=AVAILABLE_S_TO_WAIT)
 if not devices:
     raise Exception("Failed to reserve any devices")
 

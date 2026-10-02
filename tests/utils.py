@@ -13,10 +13,7 @@ def get_client(control_url, name, logger, kind, devices=1, available_timeout=60)
         client = PulseCountClient(control_url, name, logger)
     elif kind == "varmax":
         client = VarMaxClient(control_url, name, logger)
-    if available_timeout:
-        serials = client.reserve(devices, wait_for_available=True, available_timeout=available_timeout)
-    else:
-        serials = client.reserve(devices)
+    serials = client.reserve(devices, available_timeout=available_timeout)
 
     if not serials:
         raise Exception("Failed to reserve any devices")
