@@ -61,8 +61,6 @@ class EvaluationBundle:
         self.evaluation_lookup = {evaluation.id : evaluation for evaluation in evaluations}
 
         self.batch_size = batch_size
-
-        self.empty = False
         self.id = str(uuid.uuid4())
 
     def __next__(self) -> dict[set[str], list[Evaluation]]:
@@ -85,7 +83,6 @@ class EvaluationBundle:
                 serial_amounts[serial] += len(commands)
 
         if not batch:
-            self.empty = True
             raise StopIteration
 
         return batch
