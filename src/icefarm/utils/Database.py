@@ -25,7 +25,7 @@ class Database:
     """Base database class that syncs postgres enums with psycopg"""
     def __init__(self, dburl: str, logger: Logger):
         self.url = dburl
-        self._logger = logger
+        self._logger = DatabaseLogger(logger)
 
         try:
             with psycopg.connect(self.url) as conn:
@@ -90,4 +90,4 @@ class Database:
                     except Exception:
                         pass
 
-        threading.Thread(target=l, daemon=True, name="devies-available-listener").start()
+        threading.Thread(target=l, daemon=True, name="devices-available-listener").start()

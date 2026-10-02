@@ -112,10 +112,10 @@ class EventSender(Database):
         with self.lock:
             if client_id not in self.sessions:
                 self.sessions[client_id] = Session(self.socketio, self, self.logger, client_id)
+                self.logger.info(f"started session {client_id}")
 
             return self.sessions.get(client_id)
 
-        self.logger.info(f"started session {client_id}")
 
     def addSocket(self, sock_id, client_id: str):
         session = self.startSession(client_id)

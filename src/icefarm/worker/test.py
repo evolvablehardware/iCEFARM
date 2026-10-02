@@ -125,7 +125,7 @@ def patch(patch_event_sender=False):
     FlashState.start = flash_state_start
     FlashState.handleAdd = lambda self, dev : None
     TestState.start = test_state_start
-    FlashState.handleAdd = lambda self, dev : None
+    TestState.handleAdd = lambda self, dev : None
     UploadState.__new__ = UploadState__new__
 
     if patch_event_sender:

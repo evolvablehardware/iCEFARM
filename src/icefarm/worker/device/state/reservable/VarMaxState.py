@@ -3,10 +3,6 @@ import re
 from icefarm.worker.device.state.core import AbstractState, FlashState, UploadState
 from icefarm.worker.device.state.reservable import reservable
 
-BAUD = 115200            # ignored by TinyUSB but needed by pyserial
-CHUNK_SIZE = 512         # bytes per write
-INTER_CHUNK_DELAY = 0.00001  # seconds
-
 def calculate_variance(samples: list[int]) -> float:
     """Calculate variance fitness from ADC samples.
     Replicates VarMaxFitnessFunction.__measure_variance_fitness():

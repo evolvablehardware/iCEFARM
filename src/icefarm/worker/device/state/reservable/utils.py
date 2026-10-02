@@ -48,6 +48,7 @@ def reservable(name, *args: List[str]):
 
             return True
 
+        # TODO check against this on reservation
         state_value_checkers[name] = check_state
 
         def make_state_fac(state, event):

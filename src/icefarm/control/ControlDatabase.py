@@ -41,10 +41,6 @@ class ControlDatabase(Database):
         client_id: str
         wurl: str
 
-    @dataclass
-    class _Available:
-        serial_ids: Any
-
     def getDeviceWorkerUrl(self, serial: str) -> str:
         """Obtains the worker server url of the worker the device is located on."""
         if not (data := self.execute("SELECT * FROM get_device_worker(%s::varchar(255))", (serial,))):

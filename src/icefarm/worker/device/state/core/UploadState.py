@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 BAUD = 115200            # ignored by TinyUSB but needed by pyserial
 CHUNK_SIZE = 512         # bytes per write
 INTER_CHUNK_DELAY = 0.00001  # seconds
-BITSTREAM_SIZE = 0 #TODO
+BITSTREAM_SIZE = 0 #TODO verify uploaded files against this
 
 @dataclass
 class Bitstream:
