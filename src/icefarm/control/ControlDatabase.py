@@ -50,7 +50,7 @@ class ControlDatabase(Database):
         if not (data := self.execute("SELECT * FROM get_device_worker(%s::varchar(255))", (serial,))):
             return False
 
-        row = data[0]
+        row = data[0][0]
         return row
 
     def reserve(self, amount: int, clientname: str, reservation_type: str) -> list[ControlDatabase._DeviceLocation]:
