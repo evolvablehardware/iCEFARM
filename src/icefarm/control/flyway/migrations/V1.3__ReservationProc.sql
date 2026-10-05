@@ -26,7 +26,7 @@ BEGIN
     SELECT COUNT(*) INTO amount_found FROM res;
     IF amount_found != amount THEN
         RAISE EXCEPTION 'Not enough devices';
-    END iF;
+    END IF;
 
     UPDATE device
     SET device_status = 'reserved'
@@ -120,6 +120,7 @@ LANGUAGE plpgsql AS $$ BEGIN
         FROM reservations
             INNER JOIN device ON reservations.device_id = device.id
             INNER JOIN worker ON worker.id = device.worker_id
+            WHERE worker.id = wid
     );
 END $$;
 
