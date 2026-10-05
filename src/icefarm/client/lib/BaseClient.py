@@ -109,7 +109,7 @@ class BaseClient(BaseAPI):
 
             self.logger.warning("Not enough devices available, waiting for availability.")
 
-            if not self.waiter.waitForAmountAvailable(amount, available_timeout=available_timeout):
+            if not self.waiter.waitForAmountAvailable(amount, timeout=available_timeout):
                 raise Exception("Availability timeout reached, not enough devices available")
 
         with self.reservation_lock:
