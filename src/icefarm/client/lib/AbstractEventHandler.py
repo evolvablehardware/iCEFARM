@@ -83,7 +83,7 @@ class AbstractEventHandler:
         """Called on EventServer shutdown."""
 
     def sendEvent(self, event: Event):
-        self.event_server.sendEvent(event)
+        self.event_server.handleEvent(event)
 
     # TODO this was originally designed so that when registered methods
     # are overloaded it acts like they are themselves registered. This
