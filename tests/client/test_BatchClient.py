@@ -6,7 +6,7 @@ import time
 import threading
 
 
-class TestEvaluation(Evaluation):
+class _TestEvaluation(Evaluation):
     def _toJson(self):
         pass
 
@@ -63,7 +63,7 @@ def get_evaluations(serials=list(range(5)), amount=30):
         # serials is consumable here
         batched_serials = set(batched_serials)
         for _ in range(amount):
-            evals.add(TestEvaluation(batched_serials))
+            evals.add(_TestEvaluation(batched_serials))
 
     return evals
 
@@ -74,7 +74,7 @@ def test_bundle():
 
     evaluations = []
     for i in range(1, 6):
-        evaluations.append(TestEvaluation(set(range(i))))
+        evaluations.append(_TestEvaluation(set(range(i))))
     bundle = EvaluationBundle(evaluations, 1)
 
     batches = list(bundle)
@@ -83,7 +83,7 @@ def test_bundle():
     evaluations = []
     for i in range(1, 11):
         for _ in range(3):
-            evaluations.append(TestEvaluation(set(range(i))))
+            evaluations.append(_TestEvaluation(set(range(i))))
     bundle = EvaluationBundle(evaluations, 3)
 
     batches = list(bundle)
@@ -92,7 +92,7 @@ def test_bundle():
     evaluations = []
     for i in range(1, 15):
         for _ in range(1):
-            evaluations.append(TestEvaluation(set(range(i))))
+            evaluations.append(_TestEvaluation(set(range(i))))
     sanity_evaluation_bundle(set(evaluations), batch_size=1)
 
 def test_evaluation_bundle():
@@ -144,8 +144,8 @@ def test_sanity_result_tracker():
 def test_result_tracker_timeouts():
     """Ensures that the tracking of last received result time per serial
     is working."""
-    a_evals = [TestEvaluation("a") for _ in range(3)]
-    b_evals = [TestEvaluation("b") for _ in range(3)]
+    a_evals = [_TestEvaluation("a") for _ in range(3)]
+    b_evals = [_TestEvaluation("b") for _ in range(3)]
     all_evals = a_evals + b_evals
     rt = ResultTracker()
 
