@@ -56,7 +56,9 @@ def setup(serial_to_client: dict[str, str], port=8080) -> tuple[EventSender, Soc
 @patch("icefarm.client.lib.EventServer.EventServer.handleEvent")
 def test_event(handle_event, _):
     """Tests whether EventServer translates socket messages to Events"""
-    PORT = 8080
+    # TODO need to make a better system than this
+    # different across tests as server needs time for shutdown
+    PORT = 8082
 
     server = EventServer("client_id", [], Mock())
     sender, socketio, app = setup({}, port=PORT)
@@ -88,7 +90,7 @@ def events_to_json(events: list[Event]) -> dict:
 @patch("icefarm.utils.Database.Database.__init__")
 @patch("icefarm.client.lib.EventServer.EventServer.handleEvent")
 def test_events(handle_event, _):
-    PORT = 8080
+    PORT = 8083
 
     server = EventServer("client_id", [], Mock())
     sender, socketio, app = setup({}, port=PORT)
