@@ -196,8 +196,7 @@ class BaseClient(BaseAPI):
         """
         failed_serials = []
 
-        # TODO this doesn't work like pandas groupby
-        groups = groupby(serials, self.getConnectionInfo)
+        groups = groupby(sorted(serials), self.getConnectionInfo)
 
         for info, serials_iter in groups:
             batch_serials = list(serials_iter)
