@@ -37,3 +37,8 @@ class TestState(AbstractState):
             if check_default(path):
                 self.timer.cancel()
                 self.switch(lambda : ReadyState(self.device))
+
+    def handleExit(self):
+        if self.timer:
+            self.timer.cancel()
+

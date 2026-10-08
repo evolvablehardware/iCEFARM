@@ -77,3 +77,7 @@ class FlashState(AbstractState):
             if self.timer:
                 self.timer.cancel()
             self.switch(self.next_state_factory)
+
+    def handleExit(self):
+        if self.timer:
+            self.timer.cancel()
