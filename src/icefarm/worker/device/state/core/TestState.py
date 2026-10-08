@@ -15,6 +15,8 @@ class TestState(AbstractState):
             self.logger.error("failed to update device status in database to testing")
 
         self.timer = threading.Timer(30, lambda : self.switch(lambda : BrokenState(self.device)))
+        self.timer.daemon = True
+        self.timer.name = f"{self.serial}-test-timeout"
         self.timer.start()
 
     def handleAdd(self, dev):
