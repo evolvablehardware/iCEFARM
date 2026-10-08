@@ -1,46 +1,10 @@
 from __future__ import annotations
-from typing import Generator
-from icefarm.client.lib.BatchClient import Evaluation, BatchClient, Result
 
-class PulseCountEvaluation(Evaluation):
-    def __init__(self, serials, filepath):
-        super().__init__(serials)
-        self.filepath = filepath
+from icefarm.client.lib.bitstream import BitstreamEvaluation, BitstreamBaseClient
 
-    def _toJson(self):
-        with open(self.filepath, "rb") as f:
-            data = f.read()
+class PulseCountEvaluation(BitstreamEvaluation): ...
 
-        return {"files": {self.id: data}}
-
-    def __str__(self):
-        return f"<Serials: {self.serials}, filepath: {self.filepath}>"
-
-class PulseCountBaseClient(BatchClient):
+class PulseCountBaseClient(BitstreamBaseClient):
     """Provides access to pulse count specific control API methods."""
-    def reserve(self, amount, available_timeout=60, kind="pulsecount", flush_interval_seconds=10, flush_at_bitstreams_remaining=25):
-        args = {
-            "flush_interval_seconds": flush_interval_seconds,
-            "flush_at_bitstreams_remaining": flush_at_bitstreams_remaining
-        }
-        return super().reserve(amount, kind, args, available_timeout=available_timeout)
-
-    def reserveSpecific(self, serials: list[str], kind="pulsecount", flush_interval_seconds=10, flush_at_bitstreams_remaining=25):
-        """Sends bitstream filepaths to be evaluated by iCEFARM. If serials are not specified, bitstreams
-        are evaluated on each reserved device. Results are received as (serial, filepath, pulses)."""
-        args = {
-            "flush_interval_seconds": flush_interval_seconds,
-            "flush_at_bitstreams_remaining": flush_at_bitstreams_remaining
-        }
-        return super().reserveSpecific(serials, kind, args)
-
-    def evaluateBitstreams(self, bitstreams: list[str], serials=None) -> Generator[Result]:
-        """Sends bitstream filepaths to be evaluated by iCEFARM. If serials are not specified, bitstreams
-        are evaluated on each reserved device. Results are received as (serial, filepath, pulses)."""
-        if not serials:
-            serials = self.getSerials()
-
-        serials = set(serials)
-
-        evaluations = [PulseCountEvaluation(serials, bitstream) for bitstream in bitstreams]
-        return self.evaluateEvaluations(evaluations)
+    def reserve(self, devices: int | list[str], available_timeout: int=60, flush_interval_seconds: int=10, flush_at_bitstreams_remaining: int=25):
+        return super().reserve(devices, "pulsecount", available_timeout=available_timeout, flush_interval_seconds=flush_interval_seconds, flush_at_bitstreams_remaining=flush_at_bitstreams_remaining)

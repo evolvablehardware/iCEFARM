@@ -1,49 +1,15 @@
 from __future__ import annotations
-from typing import Generator
 
-from icefarm.client.lib.BatchClient import Evaluation, BatchClient, Result
+from icefarm.client.lib.bitstream import BitstreamEvaluation, BitstreamBaseClient
 
-class VarMaxEvaluation(Evaluation):
-    def __init__(self, serials, filepath):
-        super().__init__(serials)
-        self.filepath = filepath
+class VarMaxEvaluation(BitstreamEvaluation): ...
 
-    def _toJson(self):
-        with open(self.filepath, "rb") as f:
-            data = f.read()
-
-        return {"files": {self.id: data}}
-
-    def __str__(self):
-        return f"<Serials: {self.serials}, filepath: {self.filepath}>"
-
-class VarMaxBaseClient(BatchClient):
+class VarMaxBaseClient(BitstreamBaseClient):
     """Provides access to variance maximization specific control API methods."""
-    def reserve(self, amount, available_timeout=60, kind="variance", send_waveform=False, flush_interval_seconds=10, flush_at_bitstreams_remaining=25):
+    def reserve(self, devices: int | list[str], available_timeout: int=60, send_waveform: bool=False, flush_interval_seconds: int=10, flush_at_bitstreams_remaining: int=25):
         args = {
             "send_waveform": send_waveform,
-            "flush_interval_seconds": flush_interval_seconds,
-            "flush_at_bitstreams_remaining": flush_at_bitstreams_remaining
         }
-        return super().reserve(amount, kind, args, available_timeout=available_timeout)
 
-    def reserveSpecific(self, serials: list[str], kind="variance", send_waveform=False, flush_interval_seconds=10, flush_at_bitstreams_remaining=25):
-        args = {
-            "send_waveform": send_waveform,
-            "flush_interval_seconds": flush_interval_seconds,
-            "flush_at_bitstreams_remaining": flush_at_bitstreams_remaining
-        }
-        return super().reserveSpecific(serials, kind, args or {})
-
-    def evaluateBitstreams(self, bitstreams: list[str], serials=None) -> Generator[Result]:
-        """Sends bitstream filepaths to be evaluated by iCEFARM. If serials are not specified, bitstreams
-        are evaluated on each reserved device. Results are received as (serial, filepath, fitness)."""
-        if not serials:
-            serials = self.getSerials()
-
-        serials = set(serials)
-
-        evaluations = [VarMaxEvaluation(serials, bitstream) for bitstream in bitstreams]
-        return self.evaluateEvaluations(evaluations)
-
+        return super().reserve(devices, "variance", extra_args=args, available_timeout=available_timeout, flush_interval_seconds=flush_interval_seconds, flush_at_bitstreams_remaining=flush_at_bitstreams_remaining)
 

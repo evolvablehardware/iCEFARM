@@ -93,7 +93,7 @@ class BaseClient(BaseAPI):
     def addEventHandler(self, eh: AbstractEventHandler):
         self.server.addEventHandler(eh)
 
-    def reserve(self, amount: int, kind: str, args: str, available_timeout=None):
+    def reserve(self, amount: int, kind: str, args: dict, available_timeout=None):
         """
         Reserves amount devices of type kind providing args to the worker when it is initilized. If available_timeout is set to an amount of seconds,
         the client will wait until enough devices are available in the iCEFARM system. Otherwise, if there are not enough
@@ -132,6 +132,7 @@ class BaseClient(BaseAPI):
             self.eh.waitUntilInitilized(connected)
             return connected
 
+    # TODO provide available_timeout to merge with .reserve()
     def reserveSpecific(self, serials, kind, args):
         """Reserves specific serials from the iCEFARM system. The serials must be available."""
         serials = super().reserveSpecific(serials, kind, args)
