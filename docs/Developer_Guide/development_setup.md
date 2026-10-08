@@ -147,7 +147,7 @@ sudo ICEFARM_DATABASE="$ICEFARM_DATABASE" ICEFARM_WORKER_CONFIG=$ICEFARM_WORKER_
 Vscode debug configurations are available for both the worker and control. There is also an assortment of vscode tasks. The task ```database-clear``` removes workers from the database and is useful to fix invalid worker/device states (this also causes all reservations/devices to be removed). This can also be done with ```psql -d "$ICEFARM_DATABASE" -c 'delete from worker;```.
 
 ### Testing
-Tests assume that a newly launched worker and control instance are running with at least two devices available. If you do not have two devices, you can use ```worker/test.py```. This applies patches to emulate device behavior without needing physical access. Running tests:
+Tests assume that a newly launched worker and control instance are running with at least two devices available. If you do not have two devices, you can use ```worker/test_app.py```. This applies patches to emulate device behavior without needing physical access. Running tests:
 ```pytest ./tests --url [control url]```
 Note that if you do not specify the test directory, and have pico-sdk symlinks, pytest may pick up additional tests from dependencies. This applies patches to emulate device behavior without needing physical access. Tests are also automatically performed on main/development commits.
 

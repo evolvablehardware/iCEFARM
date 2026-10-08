@@ -47,7 +47,7 @@
                 "ICEFARM_WORKER_NAME": "debug-worker",
                 "ICEFARM_WORKER_URL": "http://localhost:8081",
 
-                "ICEFARM_DATABASE": "${env:USBIPICE_DATABASE}",
+                "ICEFARM_DATABASE": "${env:ICEFARM_DATABASE}",
                 "ICEFARM_CONTROL_SERVER": "http://localhost:8080",
                 "ICEFARM_DEFAULT": "firmware/default/build/default_firmware.uf2",
                 "ICEFARM_PULSE_COUNT": "firmware/pulse_count/build/bitstream_over_usb.uf2",
@@ -60,14 +60,14 @@
             "name": "Fake Worker",
             "type": "debugpy",
             "request": "launch",
-            "module": "icefarm.worker.test",
+            "module": "icefarm.worker.test_app",
             "console": "integratedTerminal",
             "sudo": true,
             "env": {
                 "ICEFARM_WORKER_NAME": "debug-worker",
                 "ICEFARM_WORKER_URL": "http://localhost:8081",
 
-                "ICEFARM_DATABASE": "${env:USBIPICE_DATABASE}",
+                "ICEFARM_DATABASE": "${env:ICEFARM_DATABASE}",
                 "ICEFARM_CONTROL_SERVER": "http://localhost:8080",
                 "ICEFARM_DEFAULT": "firmware/default/build/default_firmware.uf2",
                 "ICEFARM_PULSE_COUNT": "firmware/pulse_count/build/bitstream_over_usb.uf2",
@@ -83,7 +83,7 @@
             "module": "icefarm.control.app",
             "console": "integratedTerminal",
             "env": {
-                "ICEFARM_DATABASE": "${env:USBIPICE_DATABASE}",
+                "ICEFARM_DATABASE": "${env:ICEFARM_DATABASE}",
                 "ICEFARM_CONTROL_PORT": "8080",
             }
         },
