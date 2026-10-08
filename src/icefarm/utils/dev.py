@@ -143,6 +143,7 @@ def upload_firmware(partition_path: str, mount_location: str, firmware_bytes: by
 
     return True
 
+# TODO duplication
 def upload_firmware_path(partition_path: str, mount_location: str, firmware_path: str, mount_timeout=10):
     """Mounts the partition at location and copies firmware_path to the drive."""
     mounted = mount(partition_path, mount_location, timeout=mount_timeout)
@@ -150,16 +151,16 @@ def upload_firmware_path(partition_path: str, mount_location: str, firmware_path
     if not mounted:
         return False
 
-    if os.listdir(mount_location) != ["INDEX.HTM", "INFO_UF2.TXT"]:
+    if set(os.listdir(mount_location)) != {"INDEX.HTM", "INFO_UF2.TXT"}:
         umount(mount_location)
         return False
 
     try:
         subprocess.run(["sudo", "cp", firmware_path, mount_location], timeout=15, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception:
-        umount(partition_path)
+        umount(mount_location)
         raise FirmwareUploadFail()
 
-    umount(partition_path)
+    umount(mount_location)
 
     return True

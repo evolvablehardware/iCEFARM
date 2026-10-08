@@ -205,6 +205,9 @@ class UploadState(AbstractState):
         if self.ser and self.ser.is_open:
             self.ser.close()
 
+        # TODO purge .media_path of old bitstreams
+        # can't do this yet because .reboot() relies on them afterwards
+
     def reboot(self):
         # TODO kinda hacky
         # i don't like having to chain state switches but its better than
