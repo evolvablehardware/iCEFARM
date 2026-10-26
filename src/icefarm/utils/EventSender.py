@@ -24,6 +24,7 @@ class SessionLogger(logging.LoggerAdapter):
         return f"[{self.client_id}] {msg}", kwargs
 
 class Session:
+    """Manages messages for a specific iCEFARM client."""
     def __init__(self, socketio: SocketIO, event_sender, logger: logging.Logger, client_id: str):
         self.socketio = socketio
         self.event_sender = event_sender
@@ -39,6 +40,8 @@ class Session:
         self.startTimeout()
 
     def startTimeout(self, time: int=60):
+        """Starts session timeout. If a client with queued messages does not connect
+        in time, the messages are discarded."""
         def timeout():
             self.logger.error("client did not connect in time")
             self.event_sender.endSession(self.client_id)
@@ -50,16 +53,19 @@ class Session:
             self.timeout.start()
 
     def stopTimeout(self):
+        """Cancels timeout thread for use after successful flush"""
         with self.lock:
             if self.timeout:
                 self.timeout.cancel()
 
     def send(self, data: str):
+        """Adds packet to message queue"""
         with self.lock:
             self.message_queue.append(data)
         self.flush()
 
     def setSocket(self, sock_id):
+        """Updates socket associated with the client, for use after socket connect"""
         with self.lock:
             self.sock_id = sock_id
         self.logger.info("socket connected")
@@ -68,6 +74,7 @@ class Session:
         self.flush()
 
     def removeSocket(self):
+        """Removes socket associated with the client, for use after socket disconnect"""
         with self.lock:
             self.sock_id = None
         self.logger.info("socket disconnected")
@@ -75,6 +82,8 @@ class Session:
         self.startTimeout()
 
     def flush(self):
+        """Attempts to sent queued messages to client. Failed packets are added back
+        into the message queue."""
         with self.lock:
             if not self.message_queue:
                 return
