@@ -108,7 +108,22 @@ class Session:
 
         self.logger.debug(f"flushed {len(messages)} events")
 
+
 class EventSender(Database):
+    """Manages sending Events to clients using client_ids and serial reservation lookups.
+    Routes messages to their respective websockets.
+    Json format:
+    ```json
+    [
+        {
+            "senders": dict[Serial | "meta", uid]
+            "format": class
+            "contents": {}
+        },
+    ]
+    ```
+    Events are replicated for each destination listed in senders.
+    """
     def __init__(self, socketio: SocketIO, dburl: str, logger: logging.Logger):
         super().__init__(dburl, logger)
         self.socketio = socketio
@@ -185,12 +200,17 @@ class EventSender(Database):
         if not isinstance(contents, list):
             contents = [contents]
 
-        contents = {
-            "serial": serial,
-            "contents": contents
-        }
+        transformed = []
+
+        for content in contents:
+            transformed.append({
+                "senders": [serial],
+                "format": content["event"],
+                "content": content
+            })
+
         try:
-            return json.dumps(contents)
+            return json.dumps(transformed)
         except Exception:
             return False
 

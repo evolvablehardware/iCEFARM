@@ -82,28 +82,21 @@ class EventServer:
                 logger.error("received unparsable data")
                 return
 
-            serial = msg.get("serial")
-            contents = msg.get("contents")
-            if not isinstance(contents, list):
-                logger.error(f"bad message contents: {contents}")
+            if not isinstance(msg, list):
+                logger.error(f"bad message contents: {msg}")
                 return
 
-            for content in contents:
-                if content:
-                    event = content.get("event")
-                else:
-                    event = None
+            #TODO Event.from_json
+            for event_json in msg:
+                senders = event_json["senders"]
+                fmt = event_json["format"]
+                content = event_json["content"]
 
-                if not serial or not event:
-                    logger.error(f"bad event content: {content}")
-                    continue
-
-                # TODO this is hacky, need to update eventhandlers to use event.serial instead of contents.serial
-                # TODO need to update design docs with protocol changes
-                content["serial"] = serial
-                logger.debug(f"received {event} event")
-                event = Event(serial, event, content)
-                self.handleEvent(event)
+                for sender in senders:
+                    # TODO hacky old system requires this
+                    content["serial"] = sender
+                    event = Event(sender, fmt, content)
+                    self.handleEvent(event)
 
         sio.connect(url, auth={"client_id": self.client_id}, wait_timeout=10)
         return sio
