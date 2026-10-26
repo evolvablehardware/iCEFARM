@@ -25,7 +25,7 @@ class SessionLogger(logging.LoggerAdapter):
 
 class Session:
     """Manages messages for a specific iCEFARM client."""
-    def __init__(self, socketio: SocketIO, event_sender, logger: logging.Logger, client_id: str):
+    def __init__(self, socketio: SocketIO, event_sender: EventSender, logger: logging.Logger, client_id: str):
         self.socketio = socketio
         self.event_sender = event_sender
         self.logger = SessionLogger(logger, client_id)
@@ -117,7 +117,8 @@ class EventSender(Database):
         self.sessions: dict[str, Session] = {}
         self.lock = threading.Lock()
 
-    def startSession(self, client_id):
+    def startSession(self, client_id) -> Session:
+        """Creates a Session with a client, or fetches an ongoing one, and returns it."""
         with self.lock:
             if client_id not in self.sessions:
                 self.sessions[client_id] = Session(self.socketio, self, self.logger, client_id)
@@ -125,12 +126,13 @@ class EventSender(Database):
 
             return self.sessions.get(client_id)
 
-
     def addSocket(self, sock_id, client_id: str):
+        """Updates Session socket for a client"""
         session = self.startSession(client_id)
         session.setSocket(sock_id)
 
     def removeSocket(self, client_id):
+        """Updates Session socket for a client"""
         with self.lock:
             session = self.sessions.get(client_id)
 
@@ -139,10 +141,13 @@ class EventSender(Database):
         else:
             self.logger.error(f"tried to socket for {client_id} but session does not exist")
 
+    # TODO cancel timeout, add logging
     def endSession(self, client_id):
+        """Removes Session associated with client, discarding unsent messages."""
         with self.lock:
             self.sessions.pop(client_id, None)
 
+    # NOTE this feels messy but this functionality doesn't seem to justify a separate Database class
     def __getReservationClientId(self, serial: str):
         """Returns the event server url for a device, None if there is none, or False on error."""
         if (data := self.execute("SELECT * FROM get_device_callback(%s::varchar(255))", (serial,))) is False:
@@ -155,10 +160,12 @@ class EventSender(Database):
         return data[0][0]
 
     def sendClient(self, client_id: str, contents: str):
+        """Sends contents to a client using client_id identifier."""
         session = self.startSession(client_id)
         session.send(contents)
 
     def sendSerial(self, serial, contents: str):
+        """Sends content to client with an ongoing reservation for the serial device."""
         client_id = self.__getReservationClientId(serial)
         if not client_id:
             self.logger.warning(f"tried to send event to {serial} but no reservation")
