@@ -2,11 +2,12 @@ from __future__ import annotations
 import logging
 import threading
 import json
+import uuid
 
-import psycopg
 from flask_socketio import SocketIO
 
 from .Database import Database
+from icefarm.utils import json_to_args
 
 class EventSenderLogger(logging.LoggerAdapter):
     def __init__(self, logger, extra=None):
@@ -108,6 +109,40 @@ class Session:
 
         self.logger.debug(f"flushed {len(messages)} events")
 
+class BaseEvent:
+    BASE_EVENT_CLS_ARGS = {}
+    BASE_EVENT_CLS_SELF = {}
+
+    def __init_subclass__(cls, register_args=None):
+        super().__init_subclass__()
+        # TODO can add dataclass decorator here, use those instead of register_args
+        cls.BASE_EVENT_CLS_ARGS[cls.__name__] = register_args
+        cls.BASE_EVENT_CLS_SELF[cls.__name__] = cls
+
+    @classmethod
+    def fromJson(cls, json):
+        cls_name = json["format"]
+        cls_args = cls.BASE_EVENT_CLS_ARGS[cls_name]
+        cls_self = cls.BASE_EVENT_CLS_SELF[cls_name]
+        event_contents = json["contents"]
+
+        if set(cls_args) != set(event_contents.keys()):
+            raise Exception("Arguments do not match parameters")
+
+        args = json_to_args(event_contents, cls_args)
+        return cls_self(*args)
+
+    def toJson(self, senders: dict[str, uuid.UUID]) -> dict:
+        contents = {}
+        for atr in self.registered_args:
+            contents[atr] = getattr(self, atr)
+
+        return {
+            "senders": senders,
+            "format": type(self).__name__,
+            "contents": contents
+
+        }
 
 class EventSender(Database):
     """Manages sending Events to clients using client_ids and serial reservation lookups.
