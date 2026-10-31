@@ -10,9 +10,15 @@ import time
 from dataclasses import dataclass
 import itertools
 
-from icefarm.utils import MappedQueues, Queue
+from icefarm.utils import (
+    MappedQueues,
+    Queue,
+    DeviceReservationEnd,
+    DeviceFailure,
+)
 from icefarm.client.lib import BaseClient
 from icefarm.client.lib.AbstractEventHandler import AbstractEventHandler, register
+from icefarm.worker.device.state.core.UploadState import UploadResults
 
 class Evaluation(ABC):
     """
@@ -289,31 +295,31 @@ class ResultHandler(AbstractEventHandler):
         super().__init__(event_server)
         self.client = client
 
-    @register("results", "batch_id", "serial", "results")
-    def results(self, batch_id: str, serial: str, results: Dict[str, int]):
-        factory = self.client.batch_factories.get(batch_id)
+    @register(UploadResults)
+    def results(self, event: UploadResults):
+        factory = self.client.batch_factories.get(event.batch_id)
         if not factory:
             return
 
-        for uid, pulses in results:
-            factory.processResult(serial, uid, pulses)
+        for uid, pulses in event.results:
+            factory.processResult(event.serial, uid, pulses)
 
     # TODO might be able to do the same thing for reboot perhaps?
     # since it would require other changes probably just going to wait
     # for communication overhaul
-    @register("reservation end", "serial")
-    def handleReservationEnd(self, serial: str):
+    @register(DeviceReservationEnd)
+    def handleReservationEnd(self, event: DeviceReservationEnd):
         for factory in self.client.batch_factories.values():
-            factory.tracker.markBrokenSerial(serial)
+            factory.tracker.markBrokenSerial(event.serial)
             # since no result is actually being processed by the factory, need to
             # trigger manually
             with factory.result_cv:
                 factory.result_cv.notify_all()
 
-    @register("failure", "serial")
-    def handleFailure(self, serial: str):
+    @register(DeviceFailure)
+    def handleFailure(self, event: DeviceFailure):
         for factory in self.client.batch_factories.values():
-            factory.tracker.markBrokenSerial(serial)
+            factory.tracker.markBrokenSerial(event.serial)
             with factory.result_cv:
                 factory.result_cv.notify_all()
 

@@ -3,9 +3,10 @@ from logging import LoggerAdapter
 import threading
 import json
 import msgpack
-from dataclasses import dataclass
 
 import socketio
+
+from icefarm.utils import BaseEvent
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -22,12 +23,6 @@ class SocketLogger(LoggerAdapter):
 
     def process(self, msg, kwargs):
         return f"[socket@{self.url}] {msg}", kwargs
-
-@dataclass
-class Event:
-    serial: str
-    event: str
-    contents: dict
 
 # TODO exit control socket
 class EventServer:
@@ -51,7 +46,7 @@ class EventServer:
         been made."""
         self.eventhandlers.append(eh)
 
-    def handleEvent(self, event: Event):
+    def handleEvent(self, event: BaseEvent):
         """
         Dispatches an Event to the eventhandlers. This may be called directly rather than as a result of a websocket message,
         but care needs to be taken not to produce recursive behavior.
@@ -86,17 +81,15 @@ class EventServer:
                 logger.error(f"bad message contents: {msg}")
                 return
 
-            #TODO Event.from_json
             for event_json in msg:
-                senders = event_json["senders"]
-                fmt = event_json["format"]
-                content = event_json["content"]
+                try:
+                    event = BaseEvent.fromJson(event_json)
+                except Exception as e:
+                    logger.error(f"failed to parse event {event_json}: {e}")
+                    continue
 
-                for sender in senders:
-                    # TODO hacky old system requires this
-                    content["serial"] = sender
-                    event = Event(sender, fmt, content)
-                    self.handleEvent(event)
+                logger.debug(f"received {type(event).__name__} event")
+                self.handleEvent(event)
 
         sio.connect(url, auth={"client_id": self.client_id}, wait_timeout=10)
         return sio

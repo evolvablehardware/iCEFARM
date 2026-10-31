@@ -2,7 +2,6 @@ from __future__ import annotations
 import logging
 import threading
 import json
-import uuid
 
 from flask_socketio import SocketIO
 
@@ -173,13 +172,14 @@ class EventSender(Database):
     ```json
     [
         {
-            "senders": dict[Serial | "meta", uid]
-            "format": class
+            "senders": ["serial or meta"],
+            "format": "EventClassName",
             "contents": {}
         },
     ]
     ```
-    Events are replicated for each destination listed in senders.
+    The senders field records where the event originated. Events are sent to
+    the client(s) determined by the send* method that was called.
     """
     def __init__(self, socketio: SocketIO, dburl: str, logger: logging.Logger):
         super().__init__(dburl, logger)
@@ -232,41 +232,48 @@ class EventSender(Database):
         return data[0][0]
 
     def sendClient(self, client_id: str, contents: str):
-        """Sends contents to a client using client_id identifier."""
+        """Sends serialized contents to a client using client_id identifier."""
         session = self.startSession(client_id)
         session.send(contents)
 
-    def sendSerial(self, serial, contents: str):
-        """Sends content to client with an ongoing reservation for the serial device."""
+    def sendSerial(self, serial: str, contents: str):
+        """Sends serialized contents to client with an ongoing reservation for the serial device."""
         client_id = self.__getReservationClientId(serial)
         if not client_id:
             self.logger.warning(f"tried to send event to {serial} but no reservation")
-            return
+            return False
 
-        return self.sendClient(client_id, contents)
+        self.sendClient(client_id, contents)
+        return True
+
+    def __packageContents(self, serial: str, events: BaseEvent | list[BaseEvent]) -> str | None:
+        """Serializes events into the json format used by EventServer. Returns
+        None if the events could not be serialized."""
+        if isinstance(events, BaseEvent):
+            events = [events]
+
+        try:
+            return json.dumps([event.toJson([serial]) for event in events])
+        except Exception:
+            self.logger.error(f"failed to serialize events for {serial}: {events}")
+            return None
 
     # TODO make this more configurable, use client db entries rather than ongoing sessions
-    def sendAllJson(self, contents: dict):
-        if not (contents := self.__packageContents("meta", contents)):
+    def sendAllJson(self, events: BaseEvent | list[BaseEvent]) -> bool:
+        """Sends events to every client with an ongoing session."""
+        contents = self.__packageContents("meta", events)
+        if not contents:
             return False
 
         sessions = list(self.sessions.values())
         for session in sessions:
             session.send(contents)
 
-    def __packageContents(self, serial: str, events: BaseEvent| list[BaseEvent]):
-        if not isinstance(contents, list):
-            contents = [contents]
-
-        transformed = []
-
-        for event in events:
-            transformed.append(event.toJson([serial]))
-
-        return json.dumps(transformed)
+        return True
 
     # TODO this supports non actual serial values; make more clear
     def sendClientJson(self, serial: str, client_id: str, events: BaseEvent | list[BaseEvent]) -> bool:
+        """Sends events to a specific client. The serial is used as the sender of the events."""
         contents = self.__packageContents(serial, events)
         if not contents:
             return False
@@ -275,9 +282,9 @@ class EventSender(Database):
         return True
 
     def sendSerialJson(self, serial: str, events: BaseEvent | list[BaseEvent]) -> bool:
+        """Sends events to the client that has an ongoing reservation for serial."""
         contents = self.__packageContents(serial, events)
         if not contents:
             return False
 
-        self.sendSerial(serial, events)
-        return True
+        return self.sendSerial(serial, contents)

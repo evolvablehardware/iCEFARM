@@ -10,8 +10,9 @@ from typing import Callable, Any, TYPE_CHECKING
 
 import serial
 
+from icefarm.utils import BaseEvent
 from icefarm.worker.device.state.core import AbstractState, FlashState, BrokenState
-from icefarm.utils import Queue, QueueShutDown, MappedQueues, BaseEvent
+from icefarm.utils import Queue, QueueShutDown, MappedQueues
 from icefarm.utils.dev import get_devs
 
 if TYPE_CHECKING:
@@ -302,19 +303,21 @@ class Reader:
             self.cv.notify_all()
         self.thread.join()
 
-class UploadResults(BaseEvent, register_args={"serial", "results"}):
-    def __init__(self, serial, results):
-        super().__init__()
-        self.serial: str = serial
-        self.results: dict = results
+
+class UploadResults(BaseEvent, register_args=("serial", "batch_id", "results")):
+    """Sent by a worker with the results of a batch of bitstream evaluations."""
+    def __init__(self, serial: str, batch_id: str, results: list):
+        self.serial = serial
+        self.batch_id = batch_id
+        self.results = results
 
 class UploadEventSender:
     def __init__(self, event_sender):
         self.event_sender = event_sender
-        self.serial = self.event_sender.se
+        self.serial = event_sender.serial
 
     def finished(self, results: MappedQueues):
         results = results.state
 
-        events = [UploadResults(self.event_sender.serial, {"results": pulses, "batch_id": batch_id}) for batch_id, pulses in results.items()]
-        return self.event_sender.sendDeviceResults(events)
+        events = [UploadResults(self.serial, batch_id, pulses) for batch_id, pulses in results.items()]
+        return self.event_sender.sendDeviceEvents(events)

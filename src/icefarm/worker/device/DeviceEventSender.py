@@ -1,22 +1,13 @@
 from __future__ import annotations
 from logging import Logger
 
-from icefarm.utils import EventSender, BaseEvent
-
-class DeviceInitialized(BaseEvent, register_args=["serial"]):
-    def __init__(self, serial):
-        super().__init__()
-        self.serial = serial
-
-class DeviceReservationEnd(BaseEvent, register_args=["serial"]):
-    def __init__(self, serial):
-        super().__init__()
-        self.serial = serial
-
-class DeviceFailure(BaseEvent, register_args=["serial"]):
-    def __init__(self, serial):
-        super().__init__()
-        self.serial = serial
+from icefarm.utils import BaseEvent
+from icefarm.utils import (
+    EventSender,
+    DeviceInitialized,
+    DeviceReservationEnd,
+    DeviceFailure,
+)
 
 # TODO this can probably be removed now
 class DeviceEventSender:
@@ -31,19 +22,19 @@ class DeviceEventSender:
         return self.sendDeviceEvents([event])
 
     def sendDeviceEvents(self, events: list[BaseEvent]) -> bool:
-        if not self.event_sender.sendSerial(events):
-            self.logger.error(f"failed to sent events: {events}")
+        if not self.event_sender.sendSerialJson(self.serial, events):
+            self.logger.error(f"failed to send events: {events}")
             return False
 
         return True
 
-    def sendDeviceInitialized(self):
-        return self.event_sender.sendSerial(DeviceInitialized(self.serial))
+    def sendDeviceInitialized(self) -> bool:
+        return self.sendDeviceEvent(DeviceInitialized(self.serial))
 
     def sendDeviceReservationEnd(self) -> bool:
         """Sends a reservation end event for serial."""
-        return self.event_sender.sendSerial(DeviceReservationEnd(self.serial))
+        return self.sendDeviceEvent(DeviceReservationEnd(self.serial))
 
     def sendDeviceFailure(self) -> bool:
         """Sends a failure event for serial."""
-        return self.event_sender.sendSerial(DeviceFailure(self.serial))
+        return self.sendDeviceEvent(DeviceFailure(self.serial))

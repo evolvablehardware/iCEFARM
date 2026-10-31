@@ -1,23 +1,10 @@
-from icefarm.client.lib.AbstractEventHandler import JsonMethodCall, AbstractEventHandler, register
-from icefarm.client.lib import Event
+from icefarm.utils import BaseEvent
+from icefarm.client.lib.AbstractEventHandler import AbstractEventHandler, register
+from icefarm.utils import DeviceFailure, DeviceInitialized
 
-
-def test_json_method_call():
-    class Test():
-        def fn1(self):
-            return True
-
-        def fn2(self, a, b, c):
-            return a, b, c
-
-    fn1_call = JsonMethodCall("fn1", [])
-    fn2_call = JsonMethodCall("fn2", ["a", "b", "c"])
-
-    test = Test()
-    assert fn1_call(test, {})
-    assert fn1_call(test, {"asdf": 1})
-    assert fn2_call(test, {"a":1, "b":2, "c":3}) == (1, 2, 3)
-
+class _TestEvent(BaseEvent, register_args=("value",)):
+    def __init__(self, value):
+        self.value = value
 
 def test_abstract_event_handler():
     class EventHandler(AbstractEventHandler):
@@ -27,18 +14,26 @@ def test_abstract_event_handler():
             self.fn1_value = None
             self.fn2_value = None
 
-        @register("fn1_call")
-        def fn1(self):
-            self.fn1_value = True
+        @register(_TestEvent)
+        def fn1(self, event):
+            self.fn1_value = event.value
 
-        @register("fn2_call", "a", "b")
-        def fn2(self, a, b):
-            self.fn2_value = (a, b)
+        @register(DeviceFailure)
+        def fn2(self, event):
+            self.fn2_value = event.serial
 
     handler = EventHandler()
 
-    handler.handleEvent(Event(None, "fn1_call", {}))
-    assert handler.fn1_value
+    handler.handleEvent(_TestEvent(1))
+    assert handler.fn1_value == 1
 
-    handler.handleEvent(Event(None, "fn2_call", {"a":1, "b":2}))
-    assert handler.fn2_value == (1, 2)
+    handler.handleEvent(DeviceFailure("serial"))
+    assert handler.fn2_value == "serial"
+
+def test_abstract_event_handler_unregistered():
+    class EventHandler(AbstractEventHandler):
+        @register(DeviceFailure)
+        def handle(self, event):
+            raise Exception("should not be called")
+
+    assert EventHandler(None).handleEvent(DeviceInitialized("serial")) is False

@@ -7,6 +7,7 @@ import time
 
 from icefarm.client.lib import BaseAPI, EventServer, AbstractEventHandler, register
 from icefarm.client.lib.utils import AvailabilityWaiter
+from icefarm.utils import DeviceInitialized, DeviceReservationEnd, DeviceFailure
 
 class BaseClientEventHandler(AbstractEventHandler):
     """
@@ -20,20 +21,20 @@ class BaseClientEventHandler(AbstractEventHandler):
         self.awaiting_serials = set()
         self.cond = threading.Condition()
 
-    @register("reservation end", "serial")
-    def handleReservationEnd(self, serial: str):
-        self.client.removeSerial(serial)
-        self.client.logger.warning(f"reservation for {serial} ended")
+    @register(DeviceReservationEnd)
+    def handleReservationEnd(self, event: DeviceReservationEnd):
+        self.client.removeSerial(event.serial)
+        self.client.logger.warning(f"reservation for {event.serial} ended")
 
-    @register("failure", "serial")
-    def handleFailure(self, serial: str):
-        self.client.removeSerial(serial)
-        self.client.logger.warning(f"device {serial} failed")
+    @register(DeviceFailure)
+    def handleFailure(self, event: DeviceFailure):
+        self.client.removeSerial(event.serial)
+        self.client.logger.warning(f"device {event.serial} failed")
 
-    @register("initialized", "serial")
-    def handleInitialization(self, serial):
+    @register(DeviceInitialized)
+    def handleInitialization(self, event: DeviceInitialized):
         with self.cond:
-            self.awaiting_serials.discard(serial)
+            self.awaiting_serials.discard(event.serial)
             if not self.awaiting_serials:
                 self.cond.notify_all()
 
