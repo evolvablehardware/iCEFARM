@@ -7,7 +7,7 @@ import uuid
 from flask_socketio import SocketIO
 
 from .Database import Database
-from icefarm.utils import json_to_args
+from .utils import json_to_args
 
 class EventSenderLogger(logging.LoggerAdapter):
     def __init__(self, logger, extra=None):
@@ -110,13 +110,30 @@ class Session:
         self.logger.debug(f"flushed {len(messages)} events")
 
 class BaseEvent:
-    BASE_EVENT_CLS_ARGS = {}
-    BASE_EVENT_CLS_SELF = {}
+    """Base class for events that can be converted to and from the json
+    format used by EventSender/EventServer.
 
-    def __init_subclass__(cls, register_args=None):
-        super().__init_subclass__()
+    Subclasses register the names of their constructor arguments, which are
+    used as the keys of the serialized ``contents`` object:
+
+    >>> class MyEvent(BaseEvent, register_args=("serial", "value")):
+    ...     def __init__(self, serial, value):
+    ...         self.serial = serial
+    ...         self.value = value
+
+    The registries are shared by every subclass, so ``fromJson`` can be called
+    on any subclass (or on ``BaseEvent`` itself) to rebuild the correct type.
+    """
+    BASE_EVENT_CLS_ARGS: dict[str, tuple[str, ...]] = {}
+    BASE_EVENT_CLS_SELF: dict[str, type[BaseEvent]] = {}
+
+    def __init_subclass__(cls, register_args=None, **kwargs):
+        super().__init_subclass__(**kwargs)
         # TODO can add dataclass decorator here, use those instead of register_args
-        cls.BASE_EVENT_CLS_ARGS[cls.__name__] = register_args
+        if register_args is None:
+            raise TypeError(f"{cls.__name__} must be registered with register_args")
+
+        cls.BASE_EVENT_CLS_ARGS[cls.__name__] = tuple(register_args)
         cls.BASE_EVENT_CLS_SELF[cls.__name__] = cls
 
     @classmethod
@@ -130,11 +147,16 @@ class BaseEvent:
             raise Exception("Arguments do not match parameters")
 
         args = json_to_args(event_contents, cls_args)
+        if args is False:
+            raise ValueError(f"event contents contain null values: {event_contents}")
+
         return cls_self(*args)
 
-    def toJson(self, senders: dict[str, uuid.UUID]) -> dict:
+    # def toJson(self, senders: dict[str, uuid.UUID] | list[str]) -> dict:
+    def toJson(self, senders: list[str]) -> dict:
+        """Serializes the event. ``senders`` is passed through untouched."""
         contents = {}
-        for atr in self.registered_args:
+        for atr in self.BASE_EVENT_CLS_ARGS[type(self).__name__]:
             contents[atr] = getattr(self, atr)
 
         return {
@@ -223,6 +245,7 @@ class EventSender(Database):
 
         return self.sendClient(client_id, contents)
 
+    # TODO make this more configurable, use client db entries rather than ongoing sessions
     def sendAllJson(self, contents: dict):
         if not (contents := self.__packageContents("meta", contents)):
             return False
@@ -231,36 +254,30 @@ class EventSender(Database):
         for session in sessions:
             session.send(contents)
 
-    def __packageContents(self, serial: str, contents: dict | list[dict]):
+    def __packageContents(self, serial: str, events: BaseEvent| list[BaseEvent]):
         if not isinstance(contents, list):
             contents = [contents]
 
         transformed = []
 
-        for content in contents:
-            transformed.append({
-                "senders": [serial],
-                "format": content["event"],
-                "content": content
-            })
+        for event in events:
+            transformed.append(event.toJson([serial]))
 
-        try:
-            return json.dumps(transformed)
-        except Exception:
-            return False
+        return json.dumps(transformed)
 
-    def sendClientJson(self, serial: str, client_id: str, contents: dict | list[dict]) -> bool:
-        contents = self.__packageContents(serial, contents)
+    # TODO this supports non actual serial values; make more clear
+    def sendClientJson(self, serial: str, client_id: str, events: BaseEvent | list[BaseEvent]) -> bool:
+        contents = self.__packageContents(serial, events)
         if not contents:
             return False
 
         self.sendClient(client_id, contents)
         return True
 
-    def sendSerialJson(self, serial: str, contents: dict | list[dict]) -> bool:
-        contents = self.__packageContents(serial, contents)
+    def sendSerialJson(self, serial: str, events: BaseEvent | list[BaseEvent]) -> bool:
+        contents = self.__packageContents(serial, events)
         if not contents:
             return False
 
-        self.sendSerial(serial, contents)
+        self.sendSerial(serial, events)
         return True

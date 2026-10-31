@@ -1,4 +1,4 @@
 from .Database import Database, DeviceStatus
 from .RemoteLogger import RemoteLogger
-from .EventSender import EventSender
+from .EventSender import EventSender, BaseEvent
 from .utils import *

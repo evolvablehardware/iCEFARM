@@ -11,7 +11,7 @@ from typing import Callable, Any, TYPE_CHECKING
 import serial
 
 from icefarm.worker.device.state.core import AbstractState, FlashState, BrokenState
-from icefarm.utils import Queue, QueueShutDown, MappedQueues
+from icefarm.utils import Queue, QueueShutDown, MappedQueues, BaseEvent
 from icefarm.utils.dev import get_devs
 
 if TYPE_CHECKING:
@@ -302,11 +302,19 @@ class Reader:
             self.cv.notify_all()
         self.thread.join()
 
+class UploadResults(BaseEvent, register_args={"serial", "results"}):
+    def __init__(self, serial, results):
+        super().__init__()
+        self.serial: str = serial
+        self.results: dict = results
+
 class UploadEventSender:
     def __init__(self, event_sender):
         self.event_sender = event_sender
+        self.serial = self.event_sender.se
 
     def finished(self, results: MappedQueues):
         results = results.state
-        events = [("results", {"results": pulses, "batch_id": batch_id}) for batch_id, pulses in results.items()]
-        return self.event_sender.sendDeviceEvents(events)
+
+        events = [UploadResults(self.event_sender.serial, {"results": pulses, "batch_id": batch_id}) for batch_id, pulses in results.items()]
+        return self.event_sender.sendDeviceResults(events)
