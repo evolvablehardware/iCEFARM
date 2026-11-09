@@ -2,6 +2,7 @@ from __future__ import annotations
 import logging
 import threading
 import json
+import uuid
 
 from flask_socketio import SocketIO
 
@@ -126,6 +127,9 @@ class BaseEvent:
     BASE_EVENT_CLS_ARGS: dict[str, tuple[str, ...]] = {}
     BASE_EVENT_CLS_SELF: dict[str, type[BaseEvent]] = {}
 
+    # for type hints on instances; not actual class attr
+    event_id: uuid.UUID
+
     def __init_subclass__(cls, register_args=None, **kwargs):
         super().__init_subclass__(**kwargs)
         # TODO can add dataclass decorator here, use those instead of register_args
@@ -134,6 +138,11 @@ class BaseEvent:
 
         cls.BASE_EVENT_CLS_ARGS[cls.__name__] = tuple(register_args)
         cls.BASE_EVENT_CLS_SELF[cls.__name__] = cls
+
+    def __new__(cls, *args, **kwargs):
+        self = super().__new__(cls)
+        self.event_id = uuid.uuid8()
+        return self
 
     @classmethod
     def fromJson(cls, json):
@@ -149,9 +158,10 @@ class BaseEvent:
         if args is False:
             raise ValueError(f"event contents contain null values: {event_contents}")
 
-        return cls_self(*args)
+        out = cls_self(*args)
+        out.event_id = uuid.UUID(json["event_id"])
+        return out
 
-    # def toJson(self, senders: dict[str, uuid.UUID] | list[str]) -> dict:
     def toJson(self, senders: list[str]) -> dict:
         """Serializes the event. ``senders`` is passed through untouched."""
         contents = {}
@@ -159,6 +169,7 @@ class BaseEvent:
             contents[atr] = getattr(self, atr)
 
         return {
+            "event_id": str(self.event_id),
             "senders": senders,
             "format": type(self).__name__,
             "contents": contents
